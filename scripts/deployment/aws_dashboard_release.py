@@ -16,6 +16,7 @@ import tarfile
 import time
 from pathlib import Path, PurePosixPath
 from urllib.error import HTTPError
+from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 try:
@@ -92,13 +93,21 @@ def digest(data):
 
 
 def command(args, timeout=90, output=None, env=None):
-    result = subprocess.run(
+    require(
+        isinstance(args, list)
+        and bool(args)
+        and args[0] in {"docker", "tar"}
+        and all(isinstance(value, str) and "\0" not in value for value in args),
+        "Only the fixed Docker and archive commands are permitted.",
+    )
+    result = subprocess.run(  # noqa: S603 -- Fixed executable allowlist, argument lists and no shell.
         args,
         stdout=output or subprocess.PIPE,
         stderr=subprocess.PIPE,
         timeout=timeout,
         check=False,
         env=env,
+        shell=False,
     )
     if result.returncode:
         with LOG.open("ab") as log:
@@ -119,15 +128,11 @@ def inspect(name):
 
 
 def exists(name):
-    return bool(
-        docker("ps", "-a", "--filter", "name=^/" + name + "$", "--format", "{{.ID}}")
-    )
+    return bool(docker("ps", "-a", "--filter", "name=^/" + name + "$", "--format", "{{.ID}}"))
 
 
 def env_map(info):
-    return dict(
-        row.split("=", 1) for row in info["Config"].get("Env", []) if "=" in row
-    )
+    return dict(row.split("=", 1) for row in info["Config"].get("Env", []) if "=" in row)
 
 
 def fingerprint(info):
@@ -142,9 +147,7 @@ def fingerprint(info):
 def others():
     return sorted(
         row
-        for row in docker(
-            "ps", "--no-trunc", "--format", "{{.ID}} {{.Names}}"
-        ).splitlines()
+        for row in docker("ps", "--no-trunc", "--format", "{{.ID}} {{.Names}}").splitlines()
         if row.split()[-1] not in {WEB, CANDIDATE, PREVIOUS}
     )
 
@@ -155,9 +158,7 @@ def config_hashes():
         "/root/.dubai-property-aws-preview/owner.env",
         "/root/.dubai-property-aws-api/gateway.env",
     ]
-    return {
-        name: digest(Path(name).read_bytes()) for name in paths if Path(name).is_file()
-    }
+    return {name: digest(Path(name).read_bytes()) for name in paths if Path(name).is_file()}
 
 
 def validate_live(info):
@@ -204,8 +205,7 @@ def validate_live(info):
         "Private API token is not configured.",
     )
     require(
-        bool(env.get("DUBAI_PORTAL_ADMIN_EMAIL"))
-        and bool(env.get("DUBAI_PORTAL_PASSWORD_HASH")),
+        bool(env.get("DUBAI_PORTAL_ADMIN_EMAIL")) and bool(env.get("DUBAI_PORTAL_PASSWORD_HASH")),
         "Existing owner sign-in configuration must be present.",
     )
     require(
@@ -217,9 +217,7 @@ def validate_live(info):
 def volume_path(name):
     p = Path(json.loads(docker("volume", "inspect", name))[0]["Mountpoint"])
     require(
-        p == Path("/var/lib/docker/volumes") / name / "_data"
-        and p.is_dir()
-        and not p.is_symlink(),
+        p == Path("/var/lib/docker/volumes") / name / "_data" and p.is_dir() and not p.is_symlink(),
         "Unexpected Docker volume location. Preserved for review.",
     )
     return p
@@ -274,8 +272,7 @@ def backup_volume(path, archive):
                 seen.add(item.name[5:])
                 require(
                     item.name[5:] in before
-                    and digest(bundle.extractfile(item).read())
-                    == before[item.name[5:]][0],
+                    and digest(bundle.extractfile(item).read()) == before[item.name[5:]][0],
                     "Private backup verification failed.",
                 )
         require(seen == set(before), "Private backup inventory differs.")
@@ -321,8 +318,7 @@ def download_source(context):
             count += 1
     require(count > 100, "Dashboard source inventory is unexpectedly small.")
     require(
-        json.loads((context / "package.json").read_text())["dependencies"]["next"]
-        == "15.5.29",
+        json.loads((context / "package.json").read_text())["dependencies"]["next"] == "15.5.29",
         "Expected patched framework version not found.",
     )
     # Preserve the deployed AWS service-token/read-only gateway; do not enable new API writes.
@@ -343,15 +339,31 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 def request(port, path, body=None, origin=None, https=False):
+    require(
+        port in {3000, PORT}
+        and isinstance(path, str)
+        and path.startswith("/")
+        and not any(character in path for character in "\r\n\0"),
+        "Unexpected probe target.",
+    )
     headers = {"Host": HOST}
     if origin is not None:
         headers["Origin"] = origin
     if body is not None:
         headers["Content-Type"] = "application/json"
     url = ("https://" + HOST if https else "http://127.0.0.1:" + str(port)) + path
+    parsed = urlsplit(url)
+    require(
+        parsed.scheme in {"http", "https"}
+        and parsed.hostname in {"127.0.0.1", HOST}
+        and parsed.username is None
+        and parsed.password is None,
+        "Unexpected probe destination.",
+    )
     opener = build_opener(ProxyHandler({}), NoRedirect())
     try:
-        response = opener.open(Request(url, data=body, headers=headers), timeout=12)
+        # Only the validated loopback/public HTTPS destinations above; redirects are disabled.
+        response = opener.open(Request(url, data=body, headers=headers), timeout=12)  # noqa: S310
     except HTTPError as error:
         response = error
     with response:
@@ -391,12 +403,8 @@ def checks(container, port, https=False):
         ("http://" + HOST, 403),
         ("null", 403),
     ]:
-        status, _ = request(
-            port, "/api/portal-auth/login", b'{"originProbe":true}', origin, https
-        )
-        require(
-            status == expected, "Sign-in origin check failed (" + str(status) + ")."
-        )
+        status, _ = request(port, "/api/portal-auth/login", b'{"originProbe":true}', origin, https)
+        require(status == expected, "Sign-in origin check failed (" + str(status) + ").")
     probe = """(async()=>{
       for(const [path,status,auth] of [['/ready',200,true],['/api/v1/agents',200,true],['/api/v1/agents',401,false]]){
         const r=await fetch('http://api:8000'+path,{headers:auth?{Authorization:'Bearer '+process.env.DUBAI_PORTAL_API_TOKEN}:{},redirect:'manual',signal:AbortSignal.timeout(10000)});
@@ -459,8 +467,7 @@ def save(state):
 
 def unchanged(state, live=True):
     require(
-        others() == state["other_containers"]
-        and config_hashes() == state["private_config_hashes"],
+        others() == state["other_containers"] and config_hashes() == state["private_config_hashes"],
         "Another service or private configuration changed; pause for review.",
     )
     if live:
@@ -489,9 +496,7 @@ def prepare():
     )
     current = inspect(WEB)
     validate_live(current)
-    data_size = sum(
-        p.stat().st_size for p in volume_path(VOLUME).rglob("*") if p.is_file()
-    )
+    data_size = sum(p.stat().st_size for p in volume_path(VOLUME).rglob("*") if p.is_file())
     require(
         shutil.disk_usage(ROOT).free >= 8 * 1024**3 + 3 * data_size,
         "Insufficient free space for the image, separate data copy and two private backups. Existing data preserved.",
@@ -531,17 +536,12 @@ def prepare():
     state["gateway_sha256"] = download_source(context)
     env = env_map(current)
     require(
-        all(
-            "\n" not in key + value and "\r" not in key + value
-            for key, value in env.items()
-        ),
+        all("\n" not in key + value and "\r" not in key + value for key, value in env.items()),
         "Multiline runtime configuration requires manual review.",
     )
     env["DUBAI_PORTAL_PUBLIC_ORIGIN"] = "https://" + HOST
     env_file = ROOT / "runtime-private.env"
-    env_file.write_text(
-        "\n".join(key + "=" + value for key, value in env.items()) + "\n"
-    )
+    env_file.write_text("\n".join(key + "=" + value for key, value in env.items()) + "\n")
     state["runtime_env_sha256"] = digest(env_file.read_bytes())
     print(
         "Building a separate patched dashboard image. The current website stays running.",
@@ -652,8 +652,7 @@ def activate(state):
     )
     unchanged(state)
     require(
-        digest((ROOT / "runtime-private.env").read_bytes())
-        == state["runtime_env_sha256"],
+        digest((ROOT / "runtime-private.env").read_bytes()) == state["runtime_env_sha256"],
         "Prepared private runtime settings changed. No website stopped.",
     )
     require(
@@ -662,8 +661,7 @@ def activate(state):
     )
     wait_checks(CANDIDATE, PORT)
     require(
-        docker("image", "inspect", state["image_id"], "--format", "{{.Id}}")
-        == state["image_id"],
+        docker("image", "inspect", state["image_id"], "--format", "{{.Id}}") == state["image_id"],
         "Prepared image is missing.",
     )
     print(
@@ -679,9 +677,7 @@ def activate(state):
         docker("rename", WEB, PREVIOUS)
         renamed = True
         labels = dict(state["original_labels"])
-        labels.update(
-            {"dubai.release.stage": "695", "dubai.release.revision": REVISION}
-        )
+        labels.update({"dubai.release.stage": "695", "dubai.release.revision": REVISION})
         create_container(
             WEB,
             state["image_id"],
@@ -699,9 +695,7 @@ def activate(state):
         unchanged(state, live=False)
     except BaseException:
         if created or (renamed and exists(WEB)):
-            docker(
-                "rm", "-f", WEB
-            )  # Container only; never remove or restore the data volume.
+            docker("rm", "-f", WEB)  # Container only; never remove or restore the data volume.
         if renamed:
             docker("rename", PREVIOUS, WEB)
         docker("start", WEB)
@@ -718,18 +712,14 @@ def activate(state):
     try:
         docker("stop", CANDIDATE)
     except Stop:
-        print(
-            "NOTE: The website is active; stopping the private test candidate needs review."
-        )
+        print("NOTE: The website is active; stopping the private test candidate needs review.")
     print(
         "PASS: Patched Next.js 15.5.29 website is live with trusted HTTPS and protected private routes."
     )
     print(
         "PASS: Existing data volume, owner configuration, API service, Caddy and other applications preserved."
     )
-    print(
-        "Previous website retained stopped for rollback; no volumes or records deleted."
-    )
+    print("Previous website retained stopped for rollback; no volumes or records deleted.")
     print(
         "Open https://"
         + HOST
@@ -812,11 +802,11 @@ if __name__ == "__main__":
         main()
     except Stop as error:
         print("STOP:", error)
-        raise SystemExit(1)
-    except Exception as error:  # noqa: BLE001 -- Never expose private command/log details at this CLI boundary.
+        raise SystemExit(1) from None
+    except Exception as error:  # Hide private command/log details at this CLI boundary.
         print(
             "STOP: Release operation needs review ("
             + type(error).__name__
             + "). Private diagnostics and storage preserved."
         )
-        raise SystemExit(1)
+        raise SystemExit(1) from None
