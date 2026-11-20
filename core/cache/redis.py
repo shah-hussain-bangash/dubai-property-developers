@@ -1,4 +1,3 @@
-
 """Redis client factory and health probe (redis-py asyncio)."""
 
 from __future__ import annotations

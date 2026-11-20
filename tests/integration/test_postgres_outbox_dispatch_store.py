@@ -1,4 +1,3 @@
-
 """PostgreSQL integration tests for outbox dispatcher claims.
 
 Requires:
@@ -35,7 +34,6 @@ from database.sessions.engine import (
     create_session_factory,
 )
 
-
 pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.skipif(
@@ -70,18 +68,13 @@ async def dispatch_setup():
     finally:
         try:
             if created_ids:
-                async with factory() as session:
-                    async with session.begin():
-                        await session.execute(
-                            delete(JobOutbox).where(
-                                JobOutbox.job_id.in_(created_ids)
-                            )
-                        )
-                        await session.execute(
-                            delete(BackgroundJob).where(
-                                BackgroundJob.job_id.in_(created_ids)
-                            )
-                        )
+                async with factory() as session, session.begin():
+                    await session.execute(
+                        delete(JobOutbox).where(JobOutbox.job_id.in_(created_ids))
+                    )
+                    await session.execute(
+                        delete(BackgroundJob).where(BackgroundJob.job_id.in_(created_ids))
+                    )
         finally:
             await engine.dispose()
 
@@ -127,9 +120,7 @@ async def test_claim_and_decrypt_message(dispatch_setup):
 
     job = await make_message(publisher, ids)
 
-    claimed = await claim_expected(
-        dispatch, job.job_id, "dispatcher-A"
-    )
+    claimed = await claim_expected(dispatch, job.job_id, "dispatcher-A")
 
     assert claimed.publish_attempts == 1
     assert claimed.lease_token
@@ -154,10 +145,7 @@ async def test_concurrent_claim_is_exclusive(dispatch_setup):
         dispatch.claim_next("dispatcher-B"),
     )
 
-    matches = [
-        claim for claim in claims
-        if claim is not None and claim.job_id == job.job_id
-    ]
+    matches = [claim for claim in claims if claim is not None and claim.job_id == job.job_id]
 
     assert len(matches) == 1
 
@@ -166,9 +154,7 @@ async def test_renewal_requires_correct_owner(dispatch_setup):
     publisher, dispatch, _, _, ids = dispatch_setup
 
     job = await make_message(publisher, ids)
-    claimed = await claim_expected(
-        dispatch, job.job_id, "dispatcher-A"
-    )
+    claimed = await claim_expected(dispatch, job.job_id, "dispatcher-A")
 
     wrong = await dispatch.renew_lease(
         claimed.organization_id,
@@ -193,9 +179,7 @@ async def test_mark_published_rejects_stale_owner(dispatch_setup):
     publisher, dispatch, _, _, ids = dispatch_setup
 
     job = await make_message(publisher, ids)
-    claimed = await claim_expected(
-        dispatch, job.job_id, "dispatcher-A"
-    )
+    claimed = await claim_expected(dispatch, job.job_id, "dispatcher-A")
 
     wrong = await dispatch.mark_published(
         claimed.organization_id,
@@ -224,9 +208,7 @@ async def test_failure_schedules_retry(dispatch_setup):
     publisher, dispatch, factory, _, ids = dispatch_setup
 
     job = await make_message(publisher, ids)
-    claimed = await claim_expected(
-        dispatch, job.job_id, "dispatcher-A"
-    )
+    claimed = await claim_expected(dispatch, job.job_id, "dispatcher-A")
 
     failed = await dispatch.mark_failed(
         claimed.organization_id,
@@ -249,11 +231,7 @@ async def test_failure_schedules_retry(dispatch_setup):
 
         from sqlalchemy import select
 
-        record = await session.scalar(
-            select(JobOutbox).where(
-                JobOutbox.job_id == job.job_id
-            )
-        )
+        record = await session.scalar(select(JobOutbox).where(JobOutbox.job_id == job.job_id))
 
         assert record is not None
         assert record.status == "retrying"
@@ -270,31 +248,20 @@ async def test_expired_claim_can_be_recovered(dispatch_setup):
 
     job = await make_message(publisher, ids)
 
-    original = await claim_expected(
-        dispatch, job.job_id, "dispatcher-A"
-    )
+    original = await claim_expected(dispatch, job.job_id, "dispatcher-A")
 
     # Expire only the fictional test publication.
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(JobOutbox)
-                .where(
-                    JobOutbox.organization_id
-                    == original.organization_id,
-                    JobOutbox.job_id == job.job_id,
-                )
-                .values(
-                    lease_expires_at=(
-                        datetime.now(UTC)
-                        - timedelta(minutes=5)
-                    )
-                )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(JobOutbox)
+            .where(
+                JobOutbox.organization_id == original.organization_id,
+                JobOutbox.job_id == job.job_id,
             )
+            .values(lease_expires_at=(datetime.now(UTC) - timedelta(minutes=5)))
+        )
 
-    recovered = await claim_expected(
-        dispatch, job.job_id, "dispatcher-B"
-    )
+    recovered = await claim_expected(dispatch, job.job_id, "dispatcher-B")
 
     assert recovered.lease_token != original.lease_token
     assert recovered.publish_attempts == 2

@@ -23,7 +23,9 @@ class CRMFindLeadsTool(BaseTool):
         self._client = client
 
     async def execute(self, payload: dict[str, Any]) -> dict[str, Any]:
-        leads = await self._client.find_leads(email=payload.get("email"), phone=payload.get("phone"))
+        leads = await self._client.find_leads(
+            email=payload.get("email"), phone=payload.get("phone")
+        )
         return {"leads": leads}
 
 

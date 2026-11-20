@@ -1,4 +1,3 @@
-
 """Tests for encrypted background-job envelopes."""
 
 from __future__ import annotations

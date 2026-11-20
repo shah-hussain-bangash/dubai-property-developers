@@ -78,6 +78,8 @@ export function BrowserAccountSession({ enabled = false }: { enabled?: boolean }
 
   return (
     <section aria-label="Account session">
+      {/* OAuth needs a full navigation; prefetch would start an unused login flow. */}
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       {!account && !loading && <a href="/api/v1/auth/google/start">Sign in with Google</a>}
       {error && <p role="alert">{error}</p>}
       <AccountApprovalGate account={account} loading={loading} failed={!!error && !account}

@@ -1,4 +1,3 @@
-
 """Real PostgreSQL and Redis guarded recovery integration tests.
 
 Development-only tests.
@@ -50,7 +49,6 @@ from database.sessions.engine import (
     create_engine,
     create_session_factory,
 )
-
 
 pytestmark = [
     pytest.mark.asyncio,
@@ -118,22 +116,15 @@ async def environment():
         finally:
             try:
                 if created_job_ids:
-                    async with factory() as session:
-                        async with session.begin():
-                            await session.execute(
-                                delete(JobRecoveryOperation).where(
-                                    JobRecoveryOperation.job_id.in_(
-                                        created_job_ids
-                                    )
-                                )
+                    async with factory() as session, session.begin():
+                        await session.execute(
+                            delete(JobRecoveryOperation).where(
+                                JobRecoveryOperation.job_id.in_(created_job_ids)
                             )
-                            await session.execute(
-                                delete(BackgroundJob).where(
-                                    BackgroundJob.job_id.in_(
-                                        created_job_ids
-                                    )
-                                )
-                            )
+                        )
+                        await session.execute(
+                            delete(BackgroundJob).where(BackgroundJob.job_id.in_(created_job_ids))
+                        )
             finally:
                 await client.aclose()
                 await engine.dispose()
@@ -170,22 +161,14 @@ async def create_case(environment):
     )
     assert original_token is not None
 
-    async with environment["factory"]() as session:
-        async with session.begin():
-            await session.execute(
-                update(BackgroundJob)
-                .where(BackgroundJob.id == record.id)
-                .values(
-                    lease_expires_at=(
-                        datetime.now(UTC)
-                        - timedelta(minutes=5)
-                    )
-                )
-            )
+    async with environment["factory"]() as session, session.begin():
+        await session.execute(
+            update(BackgroundJob)
+            .where(BackgroundJob.id == record.id)
+            .values(lease_expires_at=(datetime.now(UTC) - timedelta(minutes=5)))
+        )
 
-    operation_id = await environment[
-        "recovery"
-    ].begin_expired_recovery(
+    operation_id = await environment["recovery"].begin_expired_recovery(
         TENANT,
         job_id,
     )
@@ -204,9 +187,7 @@ async def create_case(environment):
     pending_key = prefix + ":pending"
     evidence_key = recovery_evidence_key(operation_id)
 
-    environment["redis_keys"].extend(
-        [processing_key, pending_key, evidence_key]
-    )
+    environment["redis_keys"].extend([processing_key, pending_key, evidence_key])
 
     # Only these unique test keys are removed.
     await environment["redis"].delete(
@@ -238,9 +219,7 @@ async def invoke(environment, case, *, token=None):
         raw=case["raw"],
         operation_id=case["operation_id"],
         worker_id=WORKER,
-        lease_token=(
-            case["token"] if token is None else token
-        ),
+        lease_token=(case["token"] if token is None else token),
         processing_key=case["processing_key"],
         pending_key=case["pending_key"],
     )
@@ -266,17 +245,11 @@ async def test_real_redis_valid_owner_moves_reservation(
 
     assert result == "moved"
 
-    assert await client.lrange(
-        case["processing_key"], 0, -1
-    ) == []
+    assert await client.lrange(case["processing_key"], 0, -1) == []
 
-    assert await client.lrange(
-        case["pending_key"], 0, -1
-    ) == [case["raw"]]
+    assert await client.lrange(case["pending_key"], 0, -1) == [case["raw"]]
 
-    assert await client.get(
-        case["evidence_key"]
-    ) == "moved"
+    assert await client.get(case["evidence_key"]) == "moved"
 
 
 # ---------------------------------------------------------
@@ -301,15 +274,11 @@ async def test_real_redis_replay_does_not_duplicate_job(
     assert first_result == "moved"
     assert second_result == "already_moved"
 
-    pending = await client.lrange(
-        case["pending_key"], 0, -1
-    )
+    pending = await client.lrange(case["pending_key"], 0, -1)
 
     assert pending == [case["raw"]]
 
-    assert await client.llen(
-        case["processing_key"]
-    ) == 0
+    assert await client.llen(case["processing_key"]) == 0
 
 
 # ---------------------------------------------------------
@@ -338,17 +307,11 @@ async def test_real_redis_wrong_token_cannot_move_reservation(
             token="incorrect-lease-token",
         )
 
-    assert await client.lrange(
-        case["processing_key"], 0, -1
-    ) == [case["raw"]]
+    assert await client.lrange(case["processing_key"], 0, -1) == [case["raw"]]
 
-    assert await client.llen(
-        case["pending_key"]
-    ) == 0
+    assert await client.llen(case["pending_key"]) == 0
 
-    assert await client.exists(
-        case["evidence_key"]
-    ) == 0
+    assert await client.exists(case["evidence_key"]) == 0
 
 
 # ---------------------------------------------------------
@@ -368,13 +331,9 @@ async def test_real_redis_missing_reservation_is_uncertain(
     ):
         await invoke(environment, case)
 
-    assert await client.llen(
-        case["pending_key"]
-    ) == 0
+    assert await client.llen(case["pending_key"]) == 0
 
-    assert await client.exists(
-        case["evidence_key"]
-    ) == 0
+    assert await client.exists(case["evidence_key"]) == 0
 
 
 # ---------------------------------------------------------
@@ -400,17 +359,11 @@ async def test_real_redis_duplicate_reservation_is_ambiguous(
     ):
         await invoke(environment, case)
 
-    assert await client.llen(
-        case["processing_key"]
-    ) == 2
+    assert await client.llen(case["processing_key"]) == 2
 
-    assert await client.llen(
-        case["pending_key"]
-    ) == 0
+    assert await client.llen(case["pending_key"]) == 0
 
-    assert await client.exists(
-        case["evidence_key"]
-    ) == 0
+    assert await client.exists(case["evidence_key"]) == 0
 
 
 # ---------------------------------------------------------
@@ -455,9 +408,7 @@ async def test_postgres_row_lock_blocks_competing_recovery(
         paused_requeue,
     )
 
-    transition_task = asyncio.create_task(
-        invoke(environment, case)
-    )
+    transition_task = asyncio.create_task(invoke(environment, case))
 
     lock_rejected = False
 
@@ -474,24 +425,17 @@ async def test_postgres_row_lock_blocks_competing_recovery(
                 async with session.begin():
                     await session.scalar(
                         select(JobRecoveryOperation)
-                        .where(
-                            JobRecoveryOperation.id
-                            == case["operation_id"]
-                        )
+                        .where(JobRecoveryOperation.id == case["operation_id"])
                         .with_for_update(nowait=True)
                     )
             except DBAPIError as exc:
-                sqlstate = (
-                    getattr(exc.orig, "sqlstate", None)
-                    or getattr(exc.orig, "pgcode", None)
-                )
+                sqlstate = getattr(exc.orig, "sqlstate", None) or getattr(exc.orig, "pgcode", None)
 
                 assert sqlstate == "55P03"
                 lock_rejected = True
 
         assert lock_rejected, (
-            "Competing coordinator unexpectedly acquired "
-            "the recovery-operation row lock"
+            "Competing coordinator unexpectedly acquired the recovery-operation row lock"
         )
 
     finally:
@@ -503,7 +447,7 @@ async def test_postgres_row_lock_blocks_competing_recovery(
                     transition_task,
                     timeout=15,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 transition_task.cancel()
 
                 await asyncio.gather(
@@ -514,11 +458,14 @@ async def test_postgres_row_lock_blocks_competing_recovery(
 
     assert transition_task.result() == "moved"
 
-    assert await client.lrange(
-        case["processing_key"],
-        0,
-        -1,
-    ) == []
+    assert (
+        await client.lrange(
+            case["processing_key"],
+            0,
+            -1,
+        )
+        == []
+    )
 
     assert await client.lrange(
         case["pending_key"],
@@ -526,9 +473,7 @@ async def test_postgres_row_lock_blocks_competing_recovery(
         -1,
     ) == [case["raw"]]
 
-    assert await client.get(
-        case["evidence_key"]
-    ) == "moved"
+    assert await client.get(case["evidence_key"]) == "moved"
 
 
 # ---------------------------------------------------------
@@ -559,21 +504,12 @@ async def test_expired_lease_takeover_rejects_stale_owner(
     )
 
     # Simulate expiration of Coordinator A's lease.
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(JobRecoveryOperation)
-                .where(
-                    JobRecoveryOperation.id
-                    == case["operation_id"]
-                )
-                .values(
-                    lease_expires_at=(
-                        datetime.now(UTC)
-                        - timedelta(minutes=5)
-                    )
-                )
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(JobRecoveryOperation)
+            .where(JobRecoveryOperation.id == case["operation_id"])
+            .values(lease_expires_at=(datetime.now(UTC) - timedelta(minutes=5)))
+        )
 
     # Coordinator B claims the expired recovery operation.
     new_token = await environment["leases"].claim(
@@ -603,13 +539,9 @@ async def test_expired_lease_takeover_rejects_stale_owner(
         -1,
     ) == [case["raw"]]
 
-    assert await client.llen(
-        case["pending_key"]
-    ) == 0
+    assert await client.llen(case["pending_key"]) == 0
 
-    assert await client.exists(
-        case["evidence_key"]
-    ) == 0
+    assert await client.exists(case["evidence_key"]) == 0
 
     # Coordinator B now performs the authorized transition.
     result = await environment["guarded"].requeue(
@@ -625,11 +557,14 @@ async def test_expired_lease_takeover_rejects_stale_owner(
 
     assert result == "moved"
 
-    assert await client.lrange(
-        case["processing_key"],
-        0,
-        -1,
-    ) == []
+    assert (
+        await client.lrange(
+            case["processing_key"],
+            0,
+            -1,
+        )
+        == []
+    )
 
     assert await client.lrange(
         case["pending_key"],
@@ -637,9 +572,8 @@ async def test_expired_lease_takeover_rejects_stale_owner(
         -1,
     ) == [case["raw"]]
 
-    assert await client.get(
-        case["evidence_key"]
-    ) == "moved"
+    assert await client.get(case["evidence_key"]) == "moved"
+
 
 # ---------------------------------------------------------
 # TEST 8: REDIS TIMEOUT RELEASES POSTGRESQL ROW LOCK
@@ -696,26 +630,17 @@ async def test_redis_timeout_releases_postgres_lock(
     assert cancelled_redis.is_set()
 
     # Confirm the timed-out transaction released its row lock.
-    async with environment["factory"]() as session:
-        async with session.begin():
-            operation = await session.scalar(
-                select(JobRecoveryOperation)
-                .where(
-                    JobRecoveryOperation.id == case["operation_id"]
-                )
-                .with_for_update(nowait=True)
-            )
-            assert operation is not None
+    async with environment["factory"]() as session, session.begin():
+        operation = await session.scalar(
+            select(JobRecoveryOperation)
+            .where(JobRecoveryOperation.id == case["operation_id"])
+            .with_for_update(nowait=True)
+        )
+        assert operation is not None
 
     # The simulated stall issued no Redis transition.
-    assert await client.lrange(
-        case["processing_key"], 0, -1
-    ) == [case["raw"]]
+    assert await client.lrange(case["processing_key"], 0, -1) == [case["raw"]]
 
-    assert await client.llen(
-        case["pending_key"]
-    ) == 0
+    assert await client.llen(case["pending_key"]) == 0
 
-    assert await client.exists(
-        case["evidence_key"]
-    ) == 0
+    assert await client.exists(case["evidence_key"]) == 0

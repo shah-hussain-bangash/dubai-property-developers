@@ -6,32 +6,38 @@ Existing API routes retain their existing authorization requirements.
 """
 
 import hmac
+from typing import cast
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, FastAPI, Response
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.routing import Match
 
 from apps.api.app.api.v1.routes.account_google import create_google_auth_router
-from apps.api.app.api.v1.routes.accounts import AccountActor, create_accounts_router
+from apps.api.app.api.v1.routes.accounts import AccountActor, AccountService, create_accounts_router
 from apps.api.app.dependencies.account_browser import create_browser_session_transport
+from core.security.account_contracts import Dependency
+from core.security.google_oauth_flows import GoogleOAuthFlowStore
+from core.security.google_oidc import GoogleOIDC
+from database.repositories.account_authentication import AccountAuthentication
+from database.repositories.account_sessions import AccountSessions
 
 
 def install_browser_auth(
-    app,
+    app: FastAPI,
     *,
-    enabled=False,
-    trusted_origin=None,
-    csrf_secret=None,
-    oauth_session_secret=None,
-    organization_dependency=None,
-    provider=None,
-    authentication=None,
-    sessions=None,
-    flow_store=None,
-    account_service=None,
-    rate_guard=None,
-    allow_local_http=False,
-):
+    enabled: bool = False,
+    trusted_origin: str | None = None,
+    csrf_secret: bytes | None = None,
+    oauth_session_secret: str | None = None,
+    organization_dependency: Dependency | None = None,
+    provider: GoogleOIDC | None = None,
+    authentication: AccountAuthentication | None = None,
+    sessions: AccountSessions | None = None,
+    flow_store: GoogleOAuthFlowStore | None = None,
+    account_service: AccountService | None = None,
+    rate_guard: Dependency | None = None,
+    allow_local_http: bool = False,
+) -> bool:
     if type(enabled) is not bool:
         raise ValueError("explicit browser authentication setting required")
     if not enabled:
@@ -40,7 +46,7 @@ def install_browser_auth(
         raise ValueError("install browser authentication before startup")
     if getattr(app.state, "browser_auth_installed", False):
         raise ValueError("browser authentication already installed")
-    if any(item.cls is SessionMiddleware for item in app.user_middleware):
+    if any(cast(object, item.cls) is SessionMiddleware for item in app.user_middleware):
         raise ValueError("existing session middleware requires explicit review")
     if not isinstance(oauth_session_secret, str) or len(oauth_session_secret.encode()) < 32:
         raise ValueError("dedicated OAuth session secret of at least 32 bytes required")
@@ -63,22 +69,22 @@ def install_browser_auth(
         if not all(callable(getattr(service, name, None)) for name in methods):
             raise ValueError("complete reviewed browser authentication services required")
 
-    async def get_provider():
+    async def get_provider() -> GoogleOIDC | None:
         return provider
 
-    async def get_authentication():
+    async def get_authentication() -> AccountAuthentication | None:
         return authentication
 
-    async def get_sessions():
+    async def get_sessions() -> AccountSessions | None:
         return sessions
 
-    async def get_flow_store():
+    async def get_flow_store() -> GoogleOAuthFlowStore | None:
         return flow_store
 
-    async def get_account_service():
+    async def get_account_service() -> AccountService | None:
         return account_service
 
-    async def no_store(response: Response):
+    async def no_store(response: Response) -> None:
         response.headers["Cache-Control"] = "no-store"
         response.headers["Pragma"] = "no-cache"
         response.headers["Referrer-Policy"] = "no-referrer"
@@ -92,6 +98,8 @@ def install_browser_auth(
         rate_guard=rate_guard,
         allow_local_http=allow_local_http,
     )
+    # The transport constructor above validates the exact origin before use.
+    trusted_origin = cast(str, trusted_origin)
     router = APIRouter(prefix="/api/v1", dependencies=[Depends(no_store)])
     router.include_router(
         create_google_auth_router(

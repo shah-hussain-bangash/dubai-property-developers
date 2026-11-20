@@ -30,20 +30,14 @@ def make_repository(
     factory = MagicMock(return_value=session)
     repository = PostgresToolExecutionClaimStore(factory)
 
-    repository._organization_id = AsyncMock(
-        return_value=uuid.uuid4()
-    )
+    repository._organization_id = AsyncMock(return_value=uuid.uuid4())
 
     return repository, session
 
 
 def compiled_sql(session: MagicMock) -> str:
     statement = session.scalar.call_args.args[0]
-    return str(
-        statement.compile(
-            dialect=postgresql.dialect()
-        )
-    ).lower()
+    return str(statement.compile(dialect=postgresql.dialect())).lower()
 
 
 @pytest.mark.asyncio
@@ -51,10 +45,8 @@ async def test_claim_uses_atomic_postgres_insert() -> None:
     repository, session = make_repository(uuid.uuid4())
 
     owner = await repository.claim(
-        "demo-org",
-        "test:key-1",
-        "test.send",
-     request_fingerprint="a" * 64)
+        "demo-org", "test:key-1", "test.send", request_fingerprint="a" * 64
+    )
 
     assert owner is not None
     assert len(owner) == 32
@@ -73,10 +65,8 @@ async def test_duplicate_claim_returns_none() -> None:
     repository, session = make_repository(None)
 
     owner = await repository.claim(
-        "demo-org",
-        "test:key-1",
-        "test.send",
-     request_fingerprint="a" * 64)
+        "demo-org", "test:key-1", "test.send", request_fingerprint="a" * 64
+    )
 
     assert owner is None
     session.scalar.assert_awaited_once()
@@ -97,9 +87,7 @@ async def test_completion_requires_owner_and_state() -> None:
 
     statement = session.scalar.call_args.args[0]
     sql = compiled_sql(session)
-    values = statement.compile(
-        dialect=postgresql.dialect()
-    ).params
+    values = statement.compile(dialect=postgresql.dialect()).params
 
     assert "update tool_execution_ledger" in sql
     assert "organization_id" in sql
@@ -124,9 +112,7 @@ async def test_uncertain_transition_requires_owner() -> None:
 
     statement = session.scalar.call_args.args[0]
     sql = compiled_sql(session)
-    values = statement.compile(
-        dialect=postgresql.dialect()
-    ).params
+    values = statement.compile(dialect=postgresql.dialect()).params
 
     assert "update tool_execution_ledger" in sql
     assert "organization_id" in sql
@@ -141,24 +127,12 @@ async def test_invalid_claim_inputs_are_rejected() -> None:
     repository, session = make_repository(uuid.uuid4())
 
     with pytest.raises(ValueError):
-        await repository.claim(
-            "",
-            "test:key-1",
-            "test.send",
-         request_fingerprint="a" * 64)
+        await repository.claim("", "test:key-1", "test.send", request_fingerprint="a" * 64)
 
     with pytest.raises(ValueError):
-        await repository.claim(
-            "demo-org",
-            "",
-            "test.send",
-         request_fingerprint="a" * 64)
+        await repository.claim("demo-org", "", "test.send", request_fingerprint="a" * 64)
 
     with pytest.raises(ValueError):
-        await repository.claim(
-            "demo-org",
-            "test:key-1",
-            "",
-         request_fingerprint="a" * 64)
+        await repository.claim("demo-org", "test:key-1", "", request_fingerprint="a" * 64)
 
     session.scalar.assert_not_awaited()

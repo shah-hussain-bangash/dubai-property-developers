@@ -1,4 +1,3 @@
-
 """Experimental Redis generation-fenced recovery transition.
 
 Development-only. Not connected to the production worker.
@@ -10,7 +9,6 @@ This module does not synchronize PostgreSQL ownership with Redis.
 from __future__ import annotations
 
 from typing import Any, Literal
-
 
 FencedRecoveryResult = Literal[
     "moved",
@@ -111,10 +109,7 @@ async def requeue_with_fencing(
         fencing_key,
     ]
 
-    if any(
-        not isinstance(key, str) or not key.strip()
-        for key in keys
-    ):
+    if any(not isinstance(key, str) or not key.strip() for key in keys):
         raise ValueError("All Redis keys are required")
 
     if len(set(keys)) != 4:
@@ -134,7 +129,7 @@ async def requeue_with_fencing(
         generation,
     )
 
-    outcomes = {
+    outcomes: dict[int, FencedRecoveryResult] = {
         0: "missing",
         1: "moved",
         2: "already_moved",
@@ -146,6 +141,4 @@ async def requeue_with_fencing(
     try:
         return outcomes[int(result)]
     except (KeyError, TypeError, ValueError) as exc:
-        raise RuntimeError(
-            "Unexpected fenced recovery result"
-        ) from exc
+        raise RuntimeError("Unexpected fenced recovery result") from exc

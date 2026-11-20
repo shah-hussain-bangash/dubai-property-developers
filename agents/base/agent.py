@@ -81,7 +81,7 @@ class AgentResult(BaseModel):
         }
 
 
-class BaseAgent(ABC, Generic[InT, OutT]):
+class BaseAgent(ABC, Generic[InT, OutT]):  # noqa: UP046 -- Retain the public Generic/TypeVar API and runtime introspection.
     spec: ClassVar[AgentSpec]
     input_model: ClassVar[type[BaseModel]]
     output_model: ClassVar[type[BaseModel]]
@@ -131,13 +131,18 @@ class BaseAgent(ABC, Generic[InT, OutT]):
 
         if not self.config.enabled:
             result = _result(
-                AgentRunStatus.FAILED, error=AgentError(code="agent_disabled", message="agent is disabled")
+                AgentRunStatus.FAILED,
+                error=AgentError(code="agent_disabled", message="agent is disabled"),
             )
             await self._record(result, started_at)
             return result
 
         try:
-            data = payload if isinstance(payload, self.input_model) else self.input_model.model_validate(payload)
+            data = (
+                payload
+                if isinstance(payload, self.input_model)
+                else self.input_model.model_validate(payload)
+            )
         except ValidationError as exc:
             result = _result(
                 AgentRunStatus.FAILED,
@@ -156,7 +161,9 @@ class BaseAgent(ABC, Generic[InT, OutT]):
 
         logger.info("agent started", extra=log_extra)
         try:
-            with self.deps.tracer.span(f"agent.{agent_id}", agent=agent_id, correlation_id=ctx.correlation_id):
+            with self.deps.tracer.span(
+                f"agent.{agent_id}", agent=agent_id, correlation_id=ctx.correlation_id
+            ):
                 output = await asyncio.wait_for(
                     self.execute(data, ctx),  # type: ignore[arg-type]
                     timeout=self.timeout_seconds,

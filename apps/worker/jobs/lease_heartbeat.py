@@ -1,4 +1,3 @@
-
 """Lease renewal while a PostgreSQL-backed job handler runs.
 
 This helper is not wired into the deployed worker.
@@ -21,7 +20,6 @@ from database.repositories.postgres_background_job_store import (
     PostgresBackgroundJobStore,
 )
 
-
 T = TypeVar("T")
 
 
@@ -29,7 +27,7 @@ class LeaseHeartbeatLost(RuntimeError):
     """The worker could not confirm continued job ownership."""
 
 
-async def run_with_lease_heartbeat(
+async def run_with_lease_heartbeat(  # noqa: UP047 -- Retain the existing shared TypeVar signature.
     handler_coroutine: Coroutine[Any, Any, T],
     *,
     store: PostgresBackgroundJobStore,
@@ -55,19 +53,12 @@ async def run_with_lease_heartbeat(
         raise ValueError("lease_seconds must be a positive integer")
 
     interval = (
-        lease_seconds / 3
-        if heartbeat_interval_seconds is None
-        else heartbeat_interval_seconds
+        lease_seconds / 3 if heartbeat_interval_seconds is None else heartbeat_interval_seconds
     )
 
-    if not isinstance(interval, (int, float)) or not (
-        0 < interval < lease_seconds
-    ):
+    if not isinstance(interval, (int, float)) or not (0 < interval < lease_seconds):
         handler_coroutine.close()
-        raise ValueError(
-            "Heartbeat interval must be greater than zero "
-            "and shorter than the lease"
-        )
+        raise ValueError("Heartbeat interval must be greater than zero and shorter than the lease")
 
     async def renew_lease() -> None:
         while True:
@@ -82,9 +73,7 @@ async def run_with_lease_heartbeat(
             )
 
             if not renewed:
-                raise LeaseHeartbeatLost(
-                    "PostgreSQL processing lease renewal was rejected"
-                )
+                raise LeaseHeartbeatLost("PostgreSQL processing lease renewal was rejected")
 
     handler_task = asyncio.create_task(
         handler_coroutine,
@@ -111,13 +100,9 @@ async def run_with_lease_heartbeat(
             except LeaseHeartbeatLost:
                 raise
             except Exception as exc:
-                raise LeaseHeartbeatLost(
-                    "PostgreSQL heartbeat failed"
-                ) from exc
+                raise LeaseHeartbeatLost("PostgreSQL heartbeat failed") from exc
 
-            raise LeaseHeartbeatLost(
-                "Heartbeat task ended unexpectedly"
-            )
+            raise LeaseHeartbeatLost("Heartbeat task ended unexpectedly")
 
         # The handler finished before heartbeat failure.
         # Its own exception, if any, is propagated.

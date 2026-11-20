@@ -1,4 +1,3 @@
-
 """Real Redis integration tests for atomic recovery snapshots.
 
 Development-only.
@@ -18,10 +17,6 @@ import pytest
 from apps.worker.jobs.redis_recovery_snapshot import (
     inspect_recovery_snapshot,
 )
-from tests.integration.test_redis_recovery_evidence import (
-    redis_recovery_setup,
-)
-
 
 pytestmark = [
     pytest.mark.asyncio,
@@ -48,9 +43,7 @@ async def test_snapshot_single_processing(redis_recovery_setup):
 
     await client.lpush(processing, raw)
 
-    assert await inspect(
-        client, raw, processing, pending, evidence
-    ) == "processing"
+    assert await inspect(client, raw, processing, pending, evidence) == "processing"
 
 
 async def test_snapshot_single_pending(redis_recovery_setup):
@@ -59,18 +52,14 @@ async def test_snapshot_single_pending(redis_recovery_setup):
 
     await client.lpush(pending, raw)
 
-    assert await inspect(
-        client, raw, processing, pending, evidence
-    ) == "pending"
+    assert await inspect(client, raw, processing, pending, evidence) == "pending"
 
 
 async def test_snapshot_missing(redis_recovery_setup):
     client, processing, pending, evidence = redis_recovery_setup
     raw = '{"job_id":"snapshot-missing"}'
 
-    assert await inspect(
-        client, raw, processing, pending, evidence
-    ) == "missing"
+    assert await inspect(client, raw, processing, pending, evidence) == "missing"
 
 
 async def test_snapshot_duplicate_processing(redis_recovery_setup):
@@ -79,9 +68,7 @@ async def test_snapshot_duplicate_processing(redis_recovery_setup):
 
     await client.lpush(processing, raw, raw)
 
-    assert await inspect(
-        client, raw, processing, pending, evidence
-    ) == "ambiguous"
+    assert await inspect(client, raw, processing, pending, evidence) == "ambiguous"
 
 
 async def test_snapshot_duplicate_pending(redis_recovery_setup):
@@ -90,9 +77,7 @@ async def test_snapshot_duplicate_pending(redis_recovery_setup):
 
     await client.lpush(pending, raw, raw)
 
-    assert await inspect(
-        client, raw, processing, pending, evidence
-    ) == "ambiguous"
+    assert await inspect(client, raw, processing, pending, evidence) == "ambiguous"
 
 
 async def test_snapshot_processing_and_pending(redis_recovery_setup):
@@ -102,9 +87,7 @@ async def test_snapshot_processing_and_pending(redis_recovery_setup):
     await client.lpush(processing, raw)
     await client.lpush(pending, raw)
 
-    assert await inspect(
-        client, raw, processing, pending, evidence
-    ) == "ambiguous"
+    assert await inspect(client, raw, processing, pending, evidence) == "ambiguous"
 
 
 async def test_snapshot_valid_evidence_with_pending(redis_recovery_setup):
@@ -114,9 +97,7 @@ async def test_snapshot_valid_evidence_with_pending(redis_recovery_setup):
     await client.lpush(pending, raw)
     await client.set(evidence, "moved")
 
-    assert await inspect(
-        client, raw, processing, pending, evidence
-    ) == "evidence_present"
+    assert await inspect(client, raw, processing, pending, evidence) == "evidence_present"
 
 
 async def test_snapshot_valid_evidence_without_queue_copy(
@@ -127,9 +108,7 @@ async def test_snapshot_valid_evidence_without_queue_copy(
 
     await client.set(evidence, "moved")
 
-    assert await inspect(
-        client, raw, processing, pending, evidence
-    ) == "evidence_present"
+    assert await inspect(client, raw, processing, pending, evidence) == "evidence_present"
 
 
 async def test_snapshot_evidence_with_processing_is_uncertain(
@@ -141,9 +120,7 @@ async def test_snapshot_evidence_with_processing_is_uncertain(
     await client.lpush(processing, raw)
     await client.set(evidence, "moved")
 
-    assert await inspect(
-        client, raw, processing, pending, evidence
-    ) == "uncertain"
+    assert await inspect(client, raw, processing, pending, evidence) == "uncertain"
 
 
 async def test_snapshot_unknown_evidence_is_uncertain(
@@ -154,9 +131,7 @@ async def test_snapshot_unknown_evidence_is_uncertain(
 
     await client.set(evidence, "unexpected")
 
-    assert await inspect(
-        client, raw, processing, pending, evidence
-    ) == "uncertain"
+    assert await inspect(client, raw, processing, pending, evidence) == "uncertain"
 
 
 async def test_snapshot_inspection_does_not_modify_redis(
@@ -172,18 +147,12 @@ async def test_snapshot_inspection_does_not_modify_redis(
     before_pending = await client.lrange(pending, 0, -1)
     before_evidence = await client.get(evidence)
 
-    result = await inspect(
-        client, raw, processing, pending, evidence
-    )
+    result = await inspect(client, raw, processing, pending, evidence)
 
     assert result == "uncertain"
 
-    assert await client.lrange(
-        processing, 0, -1
-    ) == before_processing
+    assert await client.lrange(processing, 0, -1) == before_processing
 
-    assert await client.lrange(
-        pending, 0, -1
-    ) == before_pending
+    assert await client.lrange(pending, 0, -1) == before_pending
 
     assert await client.get(evidence) == before_evidence

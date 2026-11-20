@@ -4,6 +4,21 @@ No engines, routes, configuration files, or project modules are loaded.
 Supply reviewed dependencies and a dummy hash generated with the real hasher.
 Public routes must supply server-selected organization IDs and apply rate limits.
 """
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import TYPE_CHECKING
+
+from starlette.requests import Request
+
+from core.security.account_contracts import AccountRecord, SessionFactory
+
+if TYPE_CHECKING:
+    from core.security.google_oidc import GoogleOIDC
+    from database.repositories.account_registration import PendingAccountRegistration
+    from database.repositories.account_sessions import AccountSessions
+
 import asyncio
 from uuid import UUID
 
@@ -26,11 +41,18 @@ organizations = sa.table(
     sa.column("is_active", sa.Boolean()),
 )
 
+
 class AccountAuthentication:
     def __init__(
-        self, session_factory, *, password_verifier, dummy_hash,
-        registration_service, session_service, google_provider,
-    ):
+        self,
+        session_factory: SessionFactory,
+        *,
+        password_verifier: Callable[[str, str], bool],
+        dummy_hash: str,
+        registration_service: PendingAccountRegistration,
+        session_service: AccountSessions,
+        google_provider: GoogleOIDC,
+    ) -> None:
         if not callable(session_factory) or not callable(password_verifier):
             raise ValueError("trusted database factory and verifier required")
         if not isinstance(dummy_hash, str) or not 1 <= len(dummy_hash) <= 255:
@@ -42,32 +64,41 @@ class AccountAuthentication:
         self._sessions = session_service
         self._google = google_provider
 
-    def _organization(self, organization_id):
+    def _organization(self, organization_id: UUID) -> None:
         if not isinstance(organization_id, UUID) or organization_id.int == 0:
             raise ValueError("trusted organization UUID required")
 
-    async def login_password(self, organization_id, *, email, password):
+    async def login_password(self, organization_id: UUID, *, email: str, password: str) -> str:
         self._organization(organization_id)
         if (
-            not isinstance(email, str) or len(email) > 254
-            or not isinstance(password, str) or len(password) > 1024
+            not isinstance(email, str)
+            or len(email) > 254
+            or not isinstance(password, str)
+            or len(password) > 1024
         ):
             raise HTTPException(401, "invalid sign-in")
         try:
             normalized = validate_email(
-                email, check_deliverability=False,
+                email,
+                check_deliverability=False,
             ).normalized
         except EmailNotValidError:
             raise HTTPException(401, "invalid sign-in") from None
 
         statement = (
             sa.select(
-                users.c.id, users.c.organization_id, users.c.password_hash,
-                users.c.is_active, users.c.approval_status,
+                users.c.id,
+                users.c.organization_id,
+                users.c.password_hash,
+                users.c.is_active,
+                users.c.approval_status,
             )
-            .select_from(users.join(
-                organizations, users.c.organization_id == organizations.c.id,
-            ))
+            .select_from(
+                users.join(
+                    organizations,
+                    users.c.organization_id == organizations.c.id,
+                )
+            )
             .where(
                 users.c.organization_id == organization_id,
                 users.c.email == normalized,
@@ -75,49 +106,58 @@ class AccountAuthentication:
             )
             .with_for_update(read=True)
         )
-        async with self._factory() as session:
-            async with session.begin():
-                row = (await session.execute(statement)).mappings().first()
-                stored = row["password_hash"] if row is not None else None
-                usable = isinstance(stored, str) and bool(stored)
-                digest = stored if usable else self._dummy_hash
-                try:
-                    valid = await asyncio.to_thread(
-                        self._verify_password, password, digest,
-                    )
-                except (ValueError, TypeError, UnicodeError, OverflowError):
-                    valid = False
-                if (
-                    valid is not True or row is None or not usable
-                    or row["is_active"] is not True
-                    or row["approval_status"] not in {"pending", "approved"}
-                ):
-                    raise HTTPException(401, "invalid sign-in")
-                user_id = row["id"]
-                tenant_id = row["organization_id"]
+        async with self._factory() as session, session.begin():
+            row = (await session.execute(statement)).mappings().first()
+            stored = row["password_hash"] if row is not None else None
+            usable = isinstance(stored, str) and bool(stored)
+            digest = stored if isinstance(stored, str) and usable else self._dummy_hash
+            try:
+                valid = await asyncio.to_thread(
+                    self._verify_password,
+                    password,
+                    digest,
+                )
+            except (ValueError, TypeError, UnicodeError, OverflowError):
+                valid = False
+            if (
+                valid is not True
+                or row is None
+                or not usable
+                or row["is_active"] is not True
+                or row["approval_status"] not in {"pending", "approved"}
+            ):
+                raise HTTPException(401, "invalid sign-in")
+            user_id = row["id"]
+            tenant_id = row["organization_id"]
 
         # Session service rechecks current account and organization eligibility.
         return await self._sessions.issue_authenticated(
-            user_id, tenant_id, auth_method="password",
+            user_id,
+            tenant_id,
+            auth_method="password",
         )
 
-    async def register_password(self, organization_id, **credentials):
+    async def register_password(self, organization_id: UUID, **credentials: str) -> AccountRecord:
         self._organization(organization_id)
         return await self._registration.register_password(
-            organization_id, **credentials,
+            organization_id,
+            **credentials,
         )
 
-    async def login_google(self, organization_id, *, request):
+    async def login_google(self, organization_id: UUID, *, request: Request) -> str:
         self._organization(organization_id)
         identity = await self._google.complete(request)
         account = await self._registration.google_account(
-            organization_id, verified_identity=identity,
+            organization_id,
+            verified_identity=identity,
         )
         if account["organization_id"] != organization_id:
             raise HTTPException(403, "account access denied")
         return await self._sessions.issue_authenticated(
-            account["account_id"], organization_id, auth_method="google",
+            account["account_id"],
+            organization_id,
+            auth_method="google",
         )
 
-    async def logout(self, token):
+    async def logout(self, token: str) -> bool:
         return await self._sessions.revoke(token)

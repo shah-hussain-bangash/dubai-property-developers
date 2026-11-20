@@ -1,4 +1,3 @@
-
 """FastAPI application factory.
 
 Run locally:
@@ -19,8 +18,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from apps.api.app.api.v1.routes import health
 from apps.api.app.api.v1.router import build_v1_router
+from apps.api.app.api.v1.routes import health
 from apps.api.app.exception_handlers.handlers import (
     register_exception_handlers,
 )
@@ -34,11 +33,9 @@ from apps.api.app.middleware.rate_limit import (
 from apps.api.app.middleware.security_headers import (
     SecurityHeadersMiddleware,
 )
-
 from core.config.settings import Settings, get_settings
 from core.exceptions.errors import ConfigurationError
 from core.observability.logging import configure_logging
-
 from workflows.runtime import PlatformRuntime, build_runtime
 
 
@@ -62,9 +59,7 @@ def create_app(
     problems = settings.validate_for_runtime()
 
     if problems:
-        raise ConfigurationError(
-            "unsafe configuration: " + "; ".join(problems)
-        )
+        raise ConfigurationError("unsafe configuration: " + "; ".join(problems))
 
     # ---------------------------------------------------------------
     # 3. Configure logging
@@ -115,16 +110,8 @@ def create_app(
             "only in development."
         ),
         lifespan=lifespan,
-        docs_url=(
-            "/docs"
-            if not settings.is_production
-            else None
-        ),
-        redoc_url=(
-            "/redoc"
-            if not settings.is_production
-            else None
-        ),
+        docs_url=("/docs" if not settings.is_production else None),
+        redoc_url=("/redoc" if not settings.is_production else None),
     )
 
     # ---------------------------------------------------------------
@@ -147,9 +134,7 @@ def create_app(
     # Starlette executes the last-added middleware first:
     # correlation -> rate limit -> CORS -> security headers.
 
-    app.add_middleware(
-        SecurityHeadersMiddleware
-    )
+    app.add_middleware(SecurityHeadersMiddleware)
 
     app.add_middleware(
         CORSMiddleware,
@@ -174,14 +159,10 @@ def create_app(
 
     app.add_middleware(
         RateLimitMiddleware,
-        limiter=InMemoryFixedWindowRateLimiter(
-            settings.rate_limit_per_minute
-        ),
+        limiter=InMemoryFixedWindowRateLimiter(settings.rate_limit_per_minute),
     )
 
-    app.add_middleware(
-        CorrelationIdMiddleware
-    )
+    app.add_middleware(CorrelationIdMiddleware)
 
     # ---------------------------------------------------------------
     # 8. Register exception handlers
@@ -193,17 +174,13 @@ def create_app(
     # 9. Register health routes
     # ---------------------------------------------------------------
 
-    app.include_router(
-        health.router
-    )
+    app.include_router(health.router)
 
     # ---------------------------------------------------------------
     # 10. Register API v1 routes
     # ---------------------------------------------------------------
 
-    app.include_router(
-        build_v1_router(settings)
-    )
+    app.include_router(build_v1_router(settings))
 
     return app
 

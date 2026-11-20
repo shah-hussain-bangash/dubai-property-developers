@@ -1,4 +1,5 @@
 """Isolated service tests: fake sessions, no database or project imports."""
+
 import runpy
 import unittest
 from pathlib import Path
@@ -10,14 +11,14 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql.dml import Insert, Update
 
 ROOT = Path(__file__).resolve().parents[2]
-namespace = runpy.run_path(
-    str(ROOT / "database/repositories/account_approval_service.py")
-)
+namespace = runpy.run_path(str(ROOT / "database/repositories/account_approval_service.py"))
 Service = namespace["TransactionalAccountService"]
 ORG, OWNER, USER, OTHER = [UUID(int=i) for i in range(1, 5)]
 
+
 def actor(user=OWNER):
     return SimpleNamespace(user_id=user, organization_id=ORG)
+
 
 def row(status="approved"):
     return {
@@ -27,38 +28,50 @@ def row(status="approved"):
         "approval_status": status,
     }
 
+
 class Result:
     def __init__(self, value):
         self.value = value
+
     def mappings(self):
         return self
+
     def first(self):
         return self.value
+
     def all(self):
         return self.value
+
 
 class Transaction:
     def __init__(self, session):
         self.session = session
+
     async def __aenter__(self):
         self.session.events.append("begin")
+
     async def __aexit__(self, kind, error, traceback):
         self.session.events.append("rollback" if kind else "commit")
         return False
+
 
 class Session:
     def __init__(self, replies):
         self.replies = list(replies)
         self.statements = []
         self.events = []
+
     async def __aenter__(self):
         self.events.append("open")
         return self
+
     async def __aexit__(self, kind, error, traceback):
         self.events.append("close")
         return False
+
     def begin(self):
         return Transaction(self)
+
     async def execute(self, statement):
         self.statements.append(statement)
         if not self.replies:
@@ -68,26 +81,32 @@ class Session:
             raise value
         return Result(value)
 
+
 def setup_service(replies):
     session = Session(replies)
     service = Service(lambda: session, owners={ORG: OWNER})
     return service, session
 
+
 def compiled(statement):
     return statement.compile(dialect=postgresql.dialect())
+
 
 class Tests(unittest.IsolatedAsyncioTestCase):
     async def test_decision_and_audit_share_transaction(self):
         for approve, status in ((True, "approved"), (False, "rejected")):
             with self.subTest(status=status):
-                service, session = setup_service([
-                    {"id": ORG}, {"id": OWNER}, row(status), None,
-                ])
+                service, session = setup_service(
+                    [
+                        {"id": ORG},
+                        {"id": OWNER},
+                        row(status),
+                        None,
+                    ]
+                )
                 result = await service.decide(actor(), USER, approve=approve)
                 self.assertEqual(result["approval_status"], status)
-                self.assertEqual(
-                    session.events, ["open", "begin", "commit", "close"]
-                )
+                self.assertEqual(session.events, ["open", "begin", "commit", "close"])
                 self.assertEqual(len(session.statements), 4)
                 self.assertIsInstance(session.statements[2], Update)
                 self.assertIsInstance(session.statements[3], Insert)
@@ -98,14 +117,17 @@ class Tests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(parameters["outcome"], status)
 
     async def test_audit_failure_exits_with_rollback(self):
-        service, session = setup_service([
-            {"id": ORG}, {"id": OWNER}, row(), RuntimeError("audit unavailable"),
-        ])
+        service, session = setup_service(
+            [
+                {"id": ORG},
+                {"id": OWNER},
+                row(),
+                RuntimeError("audit unavailable"),
+            ]
+        )
         with self.assertRaisesRegex(RuntimeError, "audit unavailable"):
             await service.decide(actor(), USER, approve=True)
-        self.assertEqual(
-            session.events, ["open", "begin", "rollback", "close"]
-        )
+        self.assertEqual(session.events, ["open", "begin", "rollback", "close"])
 
     async def test_no_eligible_target_returns_conflict_without_audit(self):
         service, session = setup_service([{"id": ORG}, {"id": OWNER}, None])
@@ -122,10 +144,9 @@ class Tests(unittest.IsolatedAsyncioTestCase):
                 with self.assertRaises(HTTPException) as caught:
                     await service.decide(actor(), USER, approve=True)
                 self.assertEqual(caught.exception.status_code, 403)
-                self.assertFalse(any(
-                    isinstance(stmt, (Insert, Update))
-                    for stmt in session.statements
-                ))
+                self.assertFalse(
+                    any(isinstance(stmt, (Insert, Update)) for stmt in session.statements)
+                )
 
     async def test_invalid_decisions_rejected_before_session(self):
         cases = [
@@ -142,9 +163,14 @@ class Tests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(session.events, [])
 
     async def test_postgresql_lock_and_update_sql(self):
-        service, session = setup_service([
-            {"id": ORG}, {"id": OWNER}, row(), None,
-        ])
+        service, session = setup_service(
+            [
+                {"id": ORG},
+                {"id": OWNER},
+                row(),
+                None,
+            ]
+        )
         await service.decide(actor(), USER, approve=True)
         for statement in session.statements[:2]:
             self.assertIn("FOR SHARE", str(compiled(statement)))
@@ -160,9 +186,13 @@ class Tests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("password_hash", sql)
 
     async def test_pending_listing_and_bounds(self):
-        service, session = setup_service([
-            {"id": ORG}, {"id": OWNER}, [row("pending")],
-        ])
+        service, session = setup_service(
+            [
+                {"id": ORG},
+                {"id": OWNER},
+                [row("pending")],
+            ]
+        )
         result = await service.list_pending(actor(), limit=10)
         self.assertEqual(result[0]["approval_status"], "pending")
         self.assertEqual(len(result), 1)
@@ -189,7 +219,7 @@ class Tests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn(ORG, parameters.values())
 
     async def test_missing_self_denied(self):
-        service, session = setup_service([{"id": ORG}, None])
+        service, _session = setup_service([{"id": ORG}, None])
         with self.assertRaises(HTTPException) as caught:
             await service.get_self(actor(USER))
         self.assertEqual(caught.exception.status_code, 403)
@@ -200,6 +230,7 @@ class Tests(unittest.IsolatedAsyncioTestCase):
         owners[ORG] = OTHER
         self.assertEqual(service.owner_subject(ORG), OWNER)
         self.assertIsNone(service.owner_subject(OTHER))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

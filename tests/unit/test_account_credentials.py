@@ -1,4 +1,5 @@
 """Real synthetic-password hashing plus fake-database registration tests."""
+
 import base64
 import runpy
 import unittest
@@ -10,19 +11,24 @@ from sqlalchemy.dialects import postgresql
 
 ROOT = Path(__file__).resolve().parents[2]
 credentials = runpy.run_path(str(ROOT / "core/security/account_credentials.py"))
-registration = runpy.run_path(
-    str(ROOT / "database/repositories/account_registration.py")
-)
+registration = runpy.run_path(str(ROOT / "database/repositories/account_registration.py"))
 hash_password = credentials["hash_password"]
 verify_password = credentials["verify_password"]
 Registration = registration["PendingAccountRegistration"]
 
+
 def encoded(salt=b"\0" * 16, key=b"\0" * 64):
-    return "$".join([
-        "scrypt", "16384", "8", "1",
-        base64.b64encode(salt).decode(),
-        base64.b64encode(key).decode(),
-    ])
+    return "$".join(
+        [
+            "scrypt",
+            "16384",
+            "8",
+            "1",
+            base64.b64encode(salt).decode(),
+            base64.b64encode(key).decode(),
+        ]
+    )
+
 
 class Tests(unittest.IsolatedAsyncioTestCase):
     async def test_real_scrypt_roundtrip_and_wrong_password(self):
@@ -51,13 +57,14 @@ class Tests(unittest.IsolatedAsyncioTestCase):
             encoded(key=b"\0" * 65),
             "$".join(bad_salt),
             "$".join(bad_key),
-            "$".join(fields[:4] + ["", fields[5]]),
-            "$".join(fields[:5] + [""]),
+            "$".join([*fields[:4], "", fields[5]]),
+            "$".join([*fields[:5], ""]),
             "x" * 257,
             None,
         ]
         with patch.object(
-            credentials["hashlib"], "scrypt",
+            credentials["hashlib"],
+            "scrypt",
             side_effect=AssertionError("malformed input reached scrypt"),
         ) as kdf:
             for value in cases:
@@ -77,7 +84,9 @@ class Tests(unittest.IsolatedAsyncioTestCase):
 
     async def test_supported_parameters_are_fixed(self):
         with patch.object(
-            credentials["hashlib"], "scrypt", return_value=b"\0" * 64,
+            credentials["hashlib"],
+            "scrypt",
+            return_value=b"\0" * 64,
         ) as kdf:
             self.assertTrue(verify_password("synthetic-password", encoded()))
             arguments = kdf.call_args.kwargs
@@ -104,17 +113,18 @@ class Tests(unittest.IsolatedAsyncioTestCase):
         session.execute = AsyncMock(side_effect=responses)
         service = Registration(lambda: session, password_hasher=hash_password)
         result = await service.register_password(
-            organization, email="user@example.com",
-            full_name="Example User", password="synthetic-password",
+            organization,
+            email="user@example.com",
+            full_name="Example User",
+            password="synthetic-password",
         )
         self.assertEqual(result["approval_status"], "pending")
         statement = session.execute.await_args_list[2].args[0]
         parameters = statement.compile(dialect=postgresql.dialect()).params
         self.assertNotIn("synthetic-password", parameters.values())
-        self.assertTrue(
-            verify_password("synthetic-password", parameters["password_hash"])
-        )
+        self.assertTrue(verify_password("synthetic-password", parameters["password_hash"]))
         self.assertNotIn("password_hash", result)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -1,4 +1,4 @@
-﻿"""Step 364: read-only safety screening of source registry candidates."""
+"""Step 364: read-only safety screening of source registry candidates."""
 
 import csv
 import hashlib
@@ -7,13 +7,12 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 
+from database.project_knowledge.contracts import CandidateReview
+
 ROOT = Path(__file__).resolve().parents[2]
 ROOT_RESOLVED = ROOT.resolve()
 
-MANIFEST = (
-    ROOT / "database" / "project_knowledge" /
-    "reports" / "step363_registration_manifest.csv"
-)
+MANIFEST = ROOT / "database" / "project_knowledge" / "reports" / "step363_registration_manifest.csv"
 
 REPORT_DIR = ROOT / "database" / "project_knowledge" / "reports"
 
@@ -21,22 +20,15 @@ EXPECTED_COUNT = 184
 MAX_SCAN_BYTES = 2 * 1024 * 1024
 
 SECRET_PATTERNS = {
-    "private_key_marker": re.compile(
-        r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----",
-        re.IGNORECASE
-    ),
+    "private_key_marker": re.compile(r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----", re.IGNORECASE),
     "possible_secret_assignment": re.compile(
         r"""(?i)(?:api[_-]?key|client[_-]?secret|
         access[_-]?token|auth[_-]?token|password|
         secret[_-]?key)\s*[:=]\s*["'][^"' \r\n]{8,}["']""",
-        re.VERBOSE
+        re.VERBOSE,
     ),
-    "possible_cloud_access_key": re.compile(
-        r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b"
-    ),
-    "possible_github_token": re.compile(
-        r"\b(?:ghp_|gho_|ghu_|ghs_|ghr_)[A-Za-z0-9_]{20,}\b"
-    ),
+    "possible_cloud_access_key": re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b"),
+    "possible_github_token": re.compile(r"\b(?:ghp_|gho_|ghu_|ghs_|ghr_)[A-Za-z0-9_]{20,}\b"),
 }
 
 FIELDS = [
@@ -50,11 +42,11 @@ FIELDS = [
 ]
 
 
-def validate(row):
+def validate(row: dict[str, str]) -> CandidateReview:
     path_text = row["source_path"].replace("\\", "/")
     status = row["review_status"]
 
-    record = {
+    record: CandidateReview = {
         "source_path": path_text,
         "review_status": status,
         "validation_status": "",
@@ -148,19 +140,15 @@ def validate(row):
     return record
 
 
-def main():
+def main() -> None:
     if not MANIFEST.is_file():
         raise RuntimeError("Step 363 manifest not found")
 
-    with MANIFEST.open(
-        newline="", encoding="utf-8-sig"
-    ) as stream:
+    with MANIFEST.open(newline="", encoding="utf-8-sig") as stream:
         rows = list(csv.DictReader(stream))
 
     if len(rows) != EXPECTED_COUNT:
-        raise RuntimeError(
-            f"Unexpected manifest count: {len(rows)}"
-        )
+        raise RuntimeError(f"Unexpected manifest count: {len(rows)}")
 
     paths = [row["source_path"] for row in rows]
 
@@ -168,20 +156,14 @@ def main():
         raise RuntimeError("Duplicate paths detected")
 
     results = [validate(row) for row in rows]
-    counts = Counter(
-        row["validation_status"] for row in results
-    )
+    counts = Counter(row["validation_status"] for row in results)
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output = REPORT_DIR / (
-        f"step364_candidate_validation_{timestamp}.csv"
-    )
+    output = REPORT_DIR / (f"step364_candidate_validation_{timestamp}.csv")
 
-    with output.open(
-        "x", newline="", encoding="utf-8"
-    ) as stream:
+    with output.open("x", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(stream, fieldnames=FIELDS)
         writer.writeheader()
         writer.writerows(results)
@@ -195,17 +177,10 @@ def main():
 
     print("\nFlagged file paths (first 30):")
 
-    flagged = [
-        row for row in results
-        if row["validation_status"] != "preliminary_scan_clear"
-    ]
+    flagged = [row for row in results if row["validation_status"] != "preliminary_scan_clear"]
 
     for row in flagged[:30]:
-        print(
-            row["validation_status"],
-            row["source_path"],
-            row["security_flags"]
-        )
+        print(row["validation_status"], row["source_path"], row["security_flags"])
 
     print("\nReport:", output)
     print("Approved registrations: 0")

@@ -15,8 +15,19 @@ from tools.base import ToolGateway, ToolRegistry
 from workflows.runtime import PlatformRuntime
 
 EXPECTED_AGENTS = {
-    "supervisor", "lead_intake", "qualification", "property_recommendation", "sales_conversation",
-    "followup", "crm", "email", "whatsapp", "voice", "marketing", "documents", "analytics",
+    "supervisor",
+    "lead_intake",
+    "qualification",
+    "property_recommendation",
+    "sales_conversation",
+    "followup",
+    "crm",
+    "email",
+    "whatsapp",
+    "voice",
+    "marketing",
+    "documents",
+    "analytics",
 }
 
 
@@ -66,25 +77,39 @@ class _ProbeAgent(BaseAgent[_In, _Out]):
 
 
 def _probe(timeout: float = 1.0) -> _ProbeAgent:
-    return _ProbeAgent(AgentDependencies(gateway=ToolGateway(ToolRegistry())), AgentConfig(timeout_seconds=timeout))
+    return _ProbeAgent(
+        AgentDependencies(gateway=ToolGateway(ToolRegistry())), AgentConfig(timeout_seconds=timeout)
+    )
 
 
-async def test_base_agent_success_timeout_error_and_validation(system_ctx: ExecutionContext) -> None:
+async def test_base_agent_success_timeout_error_and_validation(
+    system_ctx: ExecutionContext,
+) -> None:
     ok = await _probe().run({}, system_ctx)
     assert ok.status == AgentRunStatus.SUCCEEDED and ok.output is not None
 
     slow = await _probe(timeout=0.05).run({"delay": 1}, system_ctx)
-    assert slow.status == AgentRunStatus.TIMED_OUT and slow.error and slow.error.code == "agent_timeout"
+    assert (
+        slow.status == AgentRunStatus.TIMED_OUT
+        and slow.error
+        and slow.error.code == "agent_timeout"
+    )
 
     failed = await _probe().run({"fail": True}, system_ctx)
-    assert failed.status == AgentRunStatus.FAILED and failed.error and failed.error.code == "validation_error"
+    assert (
+        failed.status == AgentRunStatus.FAILED
+        and failed.error
+        and failed.error.code == "validation_error"
+    )
 
     invalid = await _probe().run({"delay": "not-a-number"}, system_ctx)
     assert invalid.error and invalid.error.code == "invalid_input"
 
 
 async def test_disabled_agent_does_not_run(system_ctx: ExecutionContext) -> None:
-    agent = _ProbeAgent(AgentDependencies(gateway=ToolGateway(ToolRegistry())), AgentConfig(enabled=False))
+    agent = _ProbeAgent(
+        AgentDependencies(gateway=ToolGateway(ToolRegistry())), AgentConfig(enabled=False)
+    )
     result = await agent.run({}, system_ctx)
     assert result.error and result.error.code == "agent_disabled"
 

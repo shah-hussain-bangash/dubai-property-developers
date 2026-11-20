@@ -1,4 +1,3 @@
-
 """Unit tests for authenticated PostgreSQL job processing.
 
 All dependencies are mocked. No PostgreSQL, Redis or Docker access.
@@ -30,7 +29,7 @@ def make_store(
     job,
     *,
     status="pending",
-    claim_token="test-lease-token",
+    claim_token="test-lease-token",  # noqa: S107 -- Synthetic lease token used only by this test fixture.
     completed=True,
     failure_status="retrying",
 ):
@@ -49,9 +48,7 @@ def make_store(
 
 
 def make_authenticator(job):
-    return SimpleNamespace(
-        authenticate=AsyncMock(return_value=job)
-    )
+    return SimpleNamespace(authenticate=AsyncMock(return_value=job))
 
 
 @pytest.mark.asyncio
@@ -182,9 +179,7 @@ async def test_scheduled_retry_is_deferred():
 async def test_handler_failure_updates_postgres():
     job = make_job()
     store = make_store(job, failure_status="retrying")
-    handler = AsyncMock(
-        side_effect=RuntimeError("Fictional handler failure")
-    )
+    handler = AsyncMock(side_effect=RuntimeError("Fictional handler failure"))
 
     with patch(
         "apps.worker.jobs.postgres_processor.get_handler",
@@ -210,22 +205,24 @@ async def test_expired_lease_prevents_completion():
     store = make_store(job, completed=False)
     handler = AsyncMock(return_value={"ok": True})
 
-    with patch(
-        "apps.worker.jobs.postgres_processor.get_handler",
-        return_value=handler,
-    ):
-        with pytest.raises(
+    with (
+        patch(
+            "apps.worker.jobs.postgres_processor.get_handler",
+            return_value=handler,
+        ),
+        pytest.raises(
             RuntimeError,
             match="completion lease is no longer valid",
-        ):
-            await process_postgres_job(
-                object(),
-                object(),
-                job.model_dump_json(),
-                store,
-                authenticator=make_authenticator(job),
-                worker_id="worker-A",
-            )
+        ),
+    ):
+        await process_postgres_job(
+            object(),
+            object(),
+            job.model_dump_json(),
+            store,
+            authenticator=make_authenticator(job),
+            worker_id="worker-A",
+        )
 
     store.complete.assert_awaited_once()
 
@@ -236,25 +233,23 @@ async def test_forged_payload_is_rejected_before_claim():
     store = make_store(job)
     authenticator = make_authenticator(job)
 
-    authenticator.authenticate.side_effect = (
-        JobPayloadAuthenticationError("Forged Redis payload")
-    )
+    authenticator.authenticate.side_effect = JobPayloadAuthenticationError("Forged Redis payload")
 
-    with patch(
-        "apps.worker.jobs.postgres_processor.get_handler"
-    ) as handler_lookup:
-        with pytest.raises(
+    with (
+        patch("apps.worker.jobs.postgres_processor.get_handler") as handler_lookup,
+        pytest.raises(
             JobPayloadAuthenticationError,
             match="Forged Redis payload",
-        ):
-            await process_postgres_job(
-                object(),
-                object(),
-                job.model_dump_json(),
-                store,
-                authenticator=authenticator,
-                worker_id="worker-A",
-            )
+        ),
+    ):
+        await process_postgres_job(
+            object(),
+            object(),
+            job.model_dump_json(),
+            store,
+            authenticator=authenticator,
+            worker_id="worker-A",
+        )
 
     store.get.assert_not_awaited()
     store.claim.assert_not_awaited()
@@ -267,27 +262,25 @@ async def test_mismatching_authenticated_result_is_rejected():
     job = make_job()
     store = make_store(job)
 
-    different_job = job.model_copy(
-        update={"payload": {"document_id": "other-document"}}
-    )
+    different_job = job.model_copy(update={"payload": {"document_id": "other-document"}})
 
     authenticator = make_authenticator(different_job)
 
-    with patch(
-        "apps.worker.jobs.postgres_processor.get_handler"
-    ) as handler_lookup:
-        with pytest.raises(
+    with (
+        patch("apps.worker.jobs.postgres_processor.get_handler") as handler_lookup,
+        pytest.raises(
             JobPayloadAuthenticationError,
             match="does not match Redis delivery",
-        ):
-            await process_postgres_job(
-                object(),
-                object(),
-                job.model_dump_json(),
-                store,
-                authenticator=authenticator,
-                worker_id="worker-A",
-            )
+        ),
+    ):
+        await process_postgres_job(
+            object(),
+            object(),
+            job.model_dump_json(),
+            store,
+            authenticator=authenticator,
+            worker_id="worker-A",
+        )
 
     store.get.assert_not_awaited()
     store.claim.assert_not_awaited()

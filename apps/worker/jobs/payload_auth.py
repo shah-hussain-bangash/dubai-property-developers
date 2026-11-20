@@ -1,4 +1,3 @@
-
 """Authenticate Redis jobs against their encrypted PostgreSQL outbox.
 
 A Redis job is untrusted until its complete envelope matches the
@@ -43,9 +42,7 @@ class PostgresJobPayloadAuthenticator:
         """
 
         if not job.tenant_id or not job.job_id:
-            raise JobPayloadAuthenticationError(
-                "Missing job identity"
-            )
+            raise JobPayloadAuthenticationError("Missing job identity")
 
         async with self.session_factory() as session:
             row = (
@@ -56,8 +53,7 @@ class PostgresJobPayloadAuthenticator:
                     )
                     .join(
                         Organization,
-                        Organization.id
-                        == JobOutbox.organization_id,
+                        Organization.id == JobOutbox.organization_id,
                     )
                     .where(
                         Organization.slug == job.tenant_id,
@@ -68,9 +64,7 @@ class PostgresJobPayloadAuthenticator:
             ).one_or_none()
 
         if row is None:
-            raise JobPayloadAuthenticationError(
-                "Encrypted job publication not found"
-            )
+            raise JobPayloadAuthenticationError("Encrypted job publication not found")
 
         ciphertext, key_id = row
 
@@ -82,17 +76,13 @@ class PostgresJobPayloadAuthenticator:
                 job_id=job.job_id,
             )
         except JobEncryptionError as exc:
-            raise JobPayloadAuthenticationError(
-                "Encrypted job authentication failed"
-            ) from exc
+            raise JobPayloadAuthenticationError("Encrypted job authentication failed") from exc
 
         # Compare the entire original envelope, including payload.
         # PostgreSQL remains authoritative for processing attempts;
         # the new worker must use the original publication envelope,
         # not mutate its Redis delivery copy.
         if original != job:
-            raise JobPayloadAuthenticationError(
-                "Redis job differs from authenticated publication"
-            )
+            raise JobPayloadAuthenticationError("Redis job differs from authenticated publication")
 
         return original

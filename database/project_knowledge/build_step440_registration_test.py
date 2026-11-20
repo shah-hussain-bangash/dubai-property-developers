@@ -1,4 +1,4 @@
-﻿import csv
+import csv
 import hashlib
 import re
 from pathlib import Path
@@ -27,11 +27,13 @@ EXPECTED_TYPES = {
     "tools/calendar/tools.py": ".py",
 }
 
-def read_csv(path):
+
+def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f))
 
-def main():
+
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 440 output already exists.")
 
@@ -41,10 +43,9 @@ def main():
     if len(batch) != 10 or len(reviews) != 10:
         raise RuntimeError("Unexpected batch or review count.")
 
-    if (
-        {x["source_path"] for x in batch} != set(EXPECTED_TYPES)
-        or len({x["source_path"] for x in batch}) != 10
-    ):
+    if {x["source_path"] for x in batch} != set(EXPECTED_TYPES) or len(
+        {x["source_path"] for x in batch}
+    ) != 10:
         raise RuntimeError("Unexpected fourteenth-batch selection.")
 
     review_map = {x["source_path"]: x for x in reviews}
@@ -101,9 +102,7 @@ def main():
             "review_status": "fingerprint_and_type_verified",
         }
 
-        if review is None or any(
-            review.get(k) != v for k, v in review_required.items()
-        ):
+        if review is None or any(review.get(k) != v for k, v in review_required.items()):
             raise RuntimeError(f"Safety review mismatch: {path}")
 
         current = ROOT
@@ -157,11 +156,7 @@ def main():
 
     match = matches[0]
 
-    sql = (
-        sql[:match.start(2)]
-        + ",\n".join(tuples)
-        + sql[match.end(2):]
-    )
+    sql = sql[: match.start(2)] + ",\n".join(tuples) + sql[match.end(2) :]
 
     if (
         len(re.findall(r"<> 441\b", sql)) != 4
@@ -190,9 +185,7 @@ def main():
         len(re.findall(r"<> 451\b", sql)) != 4
         or len(re.findall(r"<> 461\b", sql)) != 4
         or len(re.findall(r"\) <> 136\b", sql)) != 1
-        or sql.count(
-            "IF (SELECT COUNT(*) FROM step440_batch) <> 10 THEN"
-        ) != 1
+        or sql.count("IF (SELECT COUNT(*) FROM step440_batch) <> 10 THEN") != 1
         or sql.count("IF v_valid <> 10 THEN") != 1
         or sql.count(new_notice) != 1
         or "Four-table integrity and history verified" not in sql
@@ -205,15 +198,10 @@ def main():
         raise RuntimeError("Generated SQL safety validation failed.")
 
     for item in batch:
-        tuple_text = (
-            f"('{item['source_path']}', "
-            f"'{item['sha256']}', {item['size_bytes']})"
-        )
+        tuple_text = f"('{item['source_path']}', '{item['sha256']}', {item['size_bytes']})"
 
         if sql.count(tuple_text) != 1:
-            raise RuntimeError(
-                f"Unexpected tuple count: {item['source_path']}"
-            )
+            raise RuntimeError(f"Unexpected tuple count: {item['source_path']}")
 
     OUTPUT.write_text(sql, encoding="utf-8")
 
@@ -226,6 +214,7 @@ def main():
     print("PASS: Rollback-only SQL generated.")
     print("PASS: No registered project source files executed.")
     print("File:", OUTPUT)
+
 
 if __name__ == "__main__":
     main()

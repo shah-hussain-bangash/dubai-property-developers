@@ -1,4 +1,4 @@
-﻿"""Build guarded, rollback-only seventh-batch registration SQL."""
+"""Build guarded, rollback-only seventh-batch registration SQL."""
 
 import csv
 import hashlib
@@ -18,12 +18,12 @@ DB = "dubai_ai_knowledge_verify_20261019_095633"
 EXPECTED_TYPES = {".py": 3, ".yml": 3, ".md": 4}
 
 
-def read_csv(path):
+def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f))
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 398 SQL already exists. Stop.")
 
@@ -75,13 +75,15 @@ def main():
 
         priorities[priority] += 1
 
-        if any([
-            item["file_type"] != suffix,
-            item["registration_mode"] != "metadata_only",
-            item["execute_source"] != "false",
-            item["status"] != "pending_safety_review",
-            item["approved_for_live_registration"] != "false",
-        ]):
+        if any(
+            [
+                item["file_type"] != suffix,
+                item["registration_mode"] != "metadata_only",
+                item["execute_source"] != "false",
+                item["status"] != "pending_safety_review",
+                item["approved_for_live_registration"] != "false",
+            ]
+        ):
             raise RuntimeError(f"Manifest status mismatch: {path}")
 
         review = review_map.get(path)
@@ -97,10 +99,7 @@ def main():
             "review_status": "fingerprint_and_type_verified",
         }
 
-        if review is None or any(
-            review.get(k) != v
-            for k, v in expected_review.items()
-        ):
+        if review is None or any(review.get(k) != v for k, v in expected_review.items()):
             raise RuntimeError(f"Safety review mismatch: {path}")
 
         current = ROOT
@@ -151,11 +150,7 @@ def main():
     if match is None:
         raise RuntimeError("Template VALUES clause missing.")
 
-    sql = (
-        sql[:match.start(1)]
-        + ",\n".join(values)
-        + sql[match.end(1):]
-    )
+    sql = sql[: match.start(1)] + ",\n".join(values) + sql[match.end(1) :]
 
     if (
         len(re.findall(r"<> 375\b", sql)) != 4

@@ -32,7 +32,26 @@ it('rejects inbound spoofed fields, bad URLs and future timestamps',()=>{for(con
 it('deduplicates provider message retries by account and ID',async()=>{const {a,c}=await received();expect(await receiveOutreachReply(a.id!,a.key!,reply())).toEqual({id:c.id,duplicate:true});const w=await outreachWorkspace(admin);expect(w.accounts[0].received).toBe(1);expect(w.conversations).toHaveLength(1);});
 it('requires human interest review before lead promotion',async()=>{const {c}=await received();await expect(promote(c)).rejects.toMatchObject({status:409});expect((await adminEnquiryWorkspace(admin)).enquiries).toEqual([]);});
 it('requires explicit confirmation and current conversation version',async()=>{const {c}=await received();await expect(call('review',{id:c.id,version:c.version,classification:'interested',note:'QA',confirmed:false})).rejects.toThrow();await expect(call('review',{id:c.id,version:999,classification:'interested',note:'QA',confirmed:true})).rejects.toMatchObject({status:409});});
-it('atomically promotes once and leaves calling/marketing permission unknown',async()=>{const {c}=await reviewed();const results=await Promise.all([promote(c),promote(c)]);expect(results[0].reference).toBe(results[1].reference);expect(results.map(r=>r.duplicate).sort()).toEqual([false,true]);const e=(await adminEnquiryWorkspace(admin)).enquiries;expect(e).toHaveLength(1);expect(e[0]).toMatchObject({permission:'unknown',assignedTo:'',status:'New',sourceLabel:'instagram · QA business'});expect((await outreachWorkspace(admin)).conversations[0].reference).toBe(e[0].reference);});
+it('atomically promotes once, rejects a stale concurrent save and safely replays after reload',async()=>{
+ const {c}=await reviewed(),revision=(await outreachWorkspace(admin)).revision;
+ const input={id:c.id,version:c.version,confirmed:true,interest:'Dubai apartment enquiry',purpose:'Sale'};
+ const results=await Promise.allSettled([
+  outreachMutation(admin,'promote',input,revision),
+  outreachMutation(admin,'promote',input,revision),
+ ]);
+ expect(results.filter(r=>r.status==='fulfilled')).toHaveLength(1);
+ const conflict=results.find(r=>r.status==='rejected');
+ expect(conflict).toMatchObject({status:'rejected',reason:{status:409}});
+ const saved=results.find(r=>r.status==='fulfilled');
+ if(saved?.status!=='fulfilled')throw new Error('Expected one saved enquiry');
+ expect(saved.value.duplicate).toBe(false);
+ const replay=await promote(c);
+ expect(replay).toMatchObject({reference:saved.value.reference,duplicate:true});
+ const e=(await adminEnquiryWorkspace(admin)).enquiries;
+ expect(e).toHaveLength(1);
+ expect(e[0]).toMatchObject({permission:'unknown',assignedTo:'',status:'New',sourceLabel:'instagram · QA business'});
+ expect((await outreachWorkspace(admin)).conversations[0].reference).toBe(e[0].reference);
+});
 it('requires attributable contact details before creating an enquiry',async()=>{const a=await account();await receiveOutreachReply(a.id!,a.key!,reply({email:''}));let c=(await outreachWorkspace(admin)).conversations[0];await call('review',{id:c.id,version:c.version,classification:'interested',confirmed:true,note:'QA'});c=(await outreachWorkspace(admin)).conversations[0];await expect(promote(c)).rejects.toThrow();});
 it('propagates opt-outs to linked enquiries and does not clear them on later replies',async()=>{const {a,c}=await reviewed();await promote(c);await receiveOutreachReply(a.id!,a.key!,reply({eventId:'stop',message:'Stop contacting me',optOut:true}));expect((await adminEnquiryWorkspace(admin)).enquiries[0].permission).toBe('opted_out');await receiveOutreachReply(a.id!,a.key!,reply({eventId:'later'}));const latest=(await outreachWorkspace(admin)).conversations[0];expect(latest.classification).toBe('opted_out');await expect(call('review',{id:latest.id,version:latest.version,classification:'interested',note:'QA',confirmed:true})).rejects.toMatchObject({status:409});});
 it('suppresses matching contact email across account adapters',async()=>{const first=await account(),second=await call('account',{channel:'facebook',name:'QA FB',handle:'page-1'});await receiveOutreachReply(first.id!,first.key!,reply({optOut:true}));await receiveOutreachReply(second.id!,second.key!,reply());expect((await outreachWorkspace(admin)).conversations.every(c=>c.classification==='opted_out')).toBe(true);});

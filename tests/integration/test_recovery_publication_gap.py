@@ -1,4 +1,3 @@
-
 """Demonstrate the PostgreSQL-to-Redis fencing publication gap.
 
 Development-only integration test.
@@ -27,9 +26,7 @@ from database.models.job_recovery_operation import (
 from tests.integration.test_guarded_recovery_real_redis import (
     TENANT,
     create_case,
-    environment,
 )
-
 
 pytestmark = [
     pytest.mark.asyncio,
@@ -72,17 +69,12 @@ async def test_old_generation_cannot_move_after_postgres_takeover(
     await client.set(fencing, "1")
 
     # Expire this fictional operation's PostgreSQL lease.
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(JobRecoveryOperation)
-                .where(JobRecoveryOperation.id == operation_id)
-                .values(
-                    lease_expires_at=(
-                        datetime.now(UTC) - timedelta(minutes=5)
-                    )
-                )
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(JobRecoveryOperation)
+            .where(JobRecoveryOperation.id == operation_id)
+            .values(lease_expires_at=(datetime.now(UTC) - timedelta(minutes=5)))
+        )
 
     # Coordinator B takes over and receives generation 2.
     takeover = await leases.claim_with_generation(

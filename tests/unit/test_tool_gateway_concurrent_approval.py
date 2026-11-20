@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import asyncio
 from typing import Any, ClassVar
@@ -83,18 +83,14 @@ async def test_concurrent_approved_action_executes_only_once() -> None:
         decided_by="manager",
     )
 
-    first_task = asyncio.create_task(
-        gateway.execute_approved(pending.approval_id, approver)
-    )
+    first_task = asyncio.create_task(gateway.execute_approved(pending.approval_id, approver))
 
     second_task = None
 
     try:
         await asyncio.wait_for(tool.started.wait(), timeout=2)
 
-        second_task = asyncio.create_task(
-            gateway.execute_approved(pending.approval_id, approver)
-        )
+        second_task = asyncio.create_task(gateway.execute_approved(pending.approval_id, approver))
 
         # Allow the second invocation to reach execution or wait.
         await asyncio.sleep(0.05)
@@ -119,11 +115,7 @@ async def test_concurrent_approved_action_executes_only_once() -> None:
     finally:
         tool.release.set()
 
-        tasks = [
-            task
-            for task in (first_task, second_task)
-            if task is not None
-        ]
+        tasks = [task for task in (first_task, second_task) if task is not None]
 
         for task in tasks:
             if not task.done():

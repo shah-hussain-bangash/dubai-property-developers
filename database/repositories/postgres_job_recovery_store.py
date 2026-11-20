@@ -1,4 +1,3 @@
-
 """Atomic PostgreSQL recovery of expired background-job leases.
 
 This module changes only PostgreSQL job metadata.
@@ -60,68 +59,55 @@ class PostgresJobRecoveryStore:
         if len(job_id) > 64:
             raise ValueError("job_id exceeds 64 characters")
 
-        if (
-            not isinstance(retry_delay_seconds, int)
-            or retry_delay_seconds < 0
-        ):
-            raise ValueError(
-                "retry_delay_seconds must be nonnegative"
+        if not isinstance(retry_delay_seconds, int) or retry_delay_seconds < 0:
+            raise ValueError("retry_delay_seconds must be nonnegative")
+
+        async with self.session_factory() as session, session.begin():
+            record = await session.scalar(
+                select(BackgroundJob)
+                .join(
+                    Organization,
+                    Organization.id == BackgroundJob.organization_id,
+                )
+                .where(
+                    Organization.slug == tenant_id,
+                    Organization.is_active.is_(True),
+                    BackgroundJob.job_id == job_id,
+                )
+                .with_for_update(of=BackgroundJob)
             )
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                record = await session.scalar(
-                    select(BackgroundJob)
-                    .join(
-                        Organization,
-                        Organization.id
-                        == BackgroundJob.organization_id,
-                    )
-                    .where(
-                        Organization.slug == tenant_id,
-                        Organization.is_active.is_(True),
-                        BackgroundJob.job_id == job_id,
-                    )
-                    .with_for_update(of=BackgroundJob)
-                )
+            if record is None:
+                return None
 
-                if record is None:
-                    return None
+            # Evaluate expiry after obtaining the row lock.
+            # Another worker may have renewed the lease
+            # while this transaction was waiting.
+            now = datetime.now(UTC)
 
-                # Evaluate expiry after obtaining the row lock.
-                # Another worker may have renewed the lease
-                # while this transaction was waiting.
-                now = datetime.now(UTC)
+            if (
+                record.status != "processing"
+                or record.lease_expires_at is None
+                or record.lease_expires_at > now
+            ):
+                return None
 
-                if (
-                    record.status != "processing"
-                    or record.lease_expires_at is None
-                    or record.lease_expires_at > now
-                ):
-                    return None
+            exhausted = record.attempts >= record.max_attempts
 
-                exhausted = (
-                    record.attempts >= record.max_attempts
-                )
+            # Invalidate the original worker's ownership.
+            record.worker_id = None
+            record.lease_token = None
+            record.lease_expires_at = None
+            record.error_code = "timeout"
 
-                # Invalidate the original worker's ownership.
-                record.worker_id = None
-                record.lease_token = None
-                record.lease_expires_at = None
-                record.error_code = "timeout"
+            if exhausted:
+                record.status = "failed"
+                record.next_retry_at = None
+                record.finished_at = now
+                return "failed"
 
-                if exhausted:
-                    record.status = "failed"
-                    record.next_retry_at = None
-                    record.finished_at = now
-                    return "failed"
+            record.status = "retrying"
+            record.next_retry_at = now + timedelta(seconds=retry_delay_seconds)
+            record.finished_at = None
 
-                record.status = "retrying"
-                record.next_retry_at = (
-                    now + timedelta(
-                        seconds=retry_delay_seconds
-                    )
-                )
-                record.finished_at = None
-
-                return "retrying"
+            return "retrying"

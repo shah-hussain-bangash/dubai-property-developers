@@ -26,12 +26,12 @@ EXPECTED_PATHS = {
 }
 
 
-def read_csv(path):
+def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as file:
         return list(csv.DictReader(file))
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 410 SQL already exists. Stop.")
 
@@ -97,10 +97,7 @@ def main():
             "review_status": "fingerprint_and_type_verified",
         }
 
-        if review is None or any(
-            review.get(k) != v
-            for k, v in required_review.items()
-        ):
+        if review is None or any(review.get(k) != v for k, v in required_review.items()):
             raise RuntimeError(f"Safety review mismatch: {path}")
 
         current = ROOT
@@ -145,11 +142,7 @@ def main():
     if match is None:
         raise RuntimeError("Step 404 values clause missing.")
 
-    sql = (
-        sql[:match.start(1)]
-        + ",\n".join(values)
-        + sql[match.end(1):]
-    )
+    sql = sql[: match.start(1)] + ",\n".join(values) + sql[match.end(1) :]
 
     if (
         len(re.findall(r"<> 395\b", sql)) != 4

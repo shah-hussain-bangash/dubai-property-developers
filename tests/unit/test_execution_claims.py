@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import asyncio
 
@@ -14,9 +14,7 @@ from core.resilience.execution_claims import (
 async def test_only_one_concurrent_claim_succeeds() -> None:
     store = InMemoryExecutionClaimStore()
 
-    claims = await asyncio.gather(
-        *(store.claim("tenant-a:action-1") for _ in range(20))
-    )
+    claims = await asyncio.gather(*(store.claim("tenant-a:action-1") for _ in range(20)))
 
     assert sum(claim is not None for claim in claims) == 1
 

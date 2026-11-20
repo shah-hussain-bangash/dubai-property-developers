@@ -26,12 +26,34 @@ class ContentSource(StrEnum):
 
 
 _INJECTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("override_instructions", re.compile(r"(?i)\b(ignore|disregard|forget)\b.{0,40}\b(instructions|rules|policy|prompt)s?\b")),
-    ("role_reassignment", re.compile(r"(?i)\byou are now\b|\bact as (an? )?(admin|system|developer)\b")),
-    ("system_prompt_probe", re.compile(r"(?i)\b(system prompt|hidden instructions|developer message)\b")),
-    ("tool_coercion", re.compile(r"(?i)\b(call|invoke|run|execute)\b.{0,30}\b(tool|function|api)\b")),
-    ("approval_bypass", re.compile(r"(?i)\b(without|skip|bypass)\b.{0,20}\b(approval|review|confirmation)\b")),
-    ("exfiltration", re.compile(r"(?i)\b(send|forward|email|export)\b.{0,40}\b(all|every|list of)\b.{0,20}\b(leads|customers|contacts|data)\b")),
+    (
+        "override_instructions",
+        re.compile(
+            r"(?i)\b(ignore|disregard|forget)\b.{0,40}\b(instructions|rules|policy|prompt)s?\b"
+        ),
+    ),
+    (
+        "role_reassignment",
+        re.compile(r"(?i)\byou are now\b|\bact as (an? )?(admin|system|developer)\b"),
+    ),
+    (
+        "system_prompt_probe",
+        re.compile(r"(?i)\b(system prompt|hidden instructions|developer message)\b"),
+    ),
+    (
+        "tool_coercion",
+        re.compile(r"(?i)\b(call|invoke|run|execute)\b.{0,30}\b(tool|function|api)\b"),
+    ),
+    (
+        "approval_bypass",
+        re.compile(r"(?i)\b(without|skip|bypass)\b.{0,20}\b(approval|review|confirmation)\b"),
+    ),
+    (
+        "exfiltration",
+        re.compile(
+            r"(?i)\b(send|forward|email|export)\b.{0,40}\b(all|every|list of)\b.{0,20}\b(leads|customers|contacts|data)\b"
+        ),
+    ),
     ("fake_delimiter", re.compile(r"(?i)</?(untrusted|system|policy)[^>]*>")),
 )
 

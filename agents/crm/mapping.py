@@ -26,7 +26,9 @@ def to_espocrm_lead(lead: NormalizedLead, score: LeadScore | None) -> dict[str, 
     first, last = split_name(lead.full_name)
     description_lines = [f"Platform lead id: {lead.lead_id}", f"Source: {lead.source.value}"]
     if score:
-        description_lines.append(f"AI score: {score.score} ({score.category.value}, {score.model_version})")
+        description_lines.append(
+            f"AI score: {score.score} ({score.category.value}, {score.model_version})"
+        )
     if lead.preferred_locations:
         description_lines.append("Preferred locations: " + ", ".join(lead.preferred_locations))
     data: dict[str, Any] = {

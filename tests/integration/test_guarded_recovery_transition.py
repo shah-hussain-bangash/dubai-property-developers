@@ -1,4 +1,3 @@
-
 """Integration tests for guarded recovery authorization.
 
 Uses real development PostgreSQL records and mocked Redis.
@@ -36,7 +35,6 @@ from database.repositories.postgres_recovery_lease_store import (
 )
 from database.sessions.engine import create_engine, create_session_factory
 
-
 pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.skipif(
@@ -70,18 +68,15 @@ async def setup():
     finally:
         try:
             if created_ids:
-                async with factory() as session:
-                    async with session.begin():
-                        await session.execute(
-                            delete(JobRecoveryOperation).where(
-                                JobRecoveryOperation.job_id.in_(created_ids)
-                            )
+                async with factory() as session, session.begin():
+                    await session.execute(
+                        delete(JobRecoveryOperation).where(
+                            JobRecoveryOperation.job_id.in_(created_ids)
                         )
-                        await session.execute(
-                            delete(BackgroundJob).where(
-                                BackgroundJob.job_id.in_(created_ids)
-                            )
-                        )
+                    )
+                    await session.execute(
+                        delete(BackgroundJob).where(BackgroundJob.job_id.in_(created_ids))
+                    )
         finally:
             await engine.dispose()
 
@@ -114,16 +109,12 @@ async def create_case(setup, *, max_attempts=3):
     )
     assert original_token is not None
 
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(BackgroundJob)
-                .where(BackgroundJob.id == record.id)
-                .values(
-                    lease_expires_at=datetime.now(UTC)
-                    - timedelta(minutes=5)
-                )
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(BackgroundJob)
+            .where(BackgroundJob.id == record.id)
+            .values(lease_expires_at=datetime.now(UTC) - timedelta(minutes=5))
+        )
 
     operation_id = await recovery.begin_expired_recovery(
         TENANT,
@@ -185,16 +176,12 @@ async def test_expired_lease_cannot_access_redis(setup):
     redis = AsyncMock()
     factory = setup[4]
 
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(JobRecoveryOperation)
-                .where(JobRecoveryOperation.id == operation_id)
-                .values(
-                    lease_expires_at=datetime.now(UTC)
-                    - timedelta(minutes=5)
-                )
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(JobRecoveryOperation)
+            .where(JobRecoveryOperation.id == operation_id)
+            .values(lease_expires_at=datetime.now(UTC) - timedelta(minutes=5))
+        )
 
     with pytest.raises(
         GuardedRecoveryError,

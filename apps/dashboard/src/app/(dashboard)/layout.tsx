@@ -6,6 +6,6 @@ import { ownerSession, SESSION_COOKIE } from '@/lib/portalAuth';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  if (!await ownerSession(cookies().get(SESSION_COOKIE)?.value).catch(()=>null)) redirect('/admin/login');
+  if (!await ownerSession((await cookies()).get(SESSION_COOKIE)?.value).catch(()=>null)) redirect('/admin/login');
   return <AppShell>{children}</AppShell>;
 }

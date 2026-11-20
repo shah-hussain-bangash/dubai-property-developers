@@ -1,11 +1,10 @@
-
 """Integration tests for Redis recovery evidence.
 
 These tests use real Redis with isolated test keys.
 They do not access PostgreSQL or application job queues.
 
 Run with:
-    python -m pytest tests/integration/test_redis_recovery_evidence.py -v
+    RUN_INTEGRATION_TESTS=1 python -m pytest tests/integration/test_redis_recovery_evidence.py -v
 """
 
 from __future__ import annotations
@@ -21,8 +20,14 @@ from apps.worker.jobs.redis_recovery_evidence import (
     requeue_with_evidence,
 )
 
-
-pytestmark = pytest.mark.asyncio
+pytestmark = [
+    pytest.mark.asyncio,
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        os.getenv("RUN_INTEGRATION_TESTS") != "1",
+        reason="Redis integration tests are disabled",
+    ),
+]
 
 
 @pytest.fixture
@@ -68,9 +73,7 @@ async def redis_recovery_setup():
 async def test_real_redis_successful_transition(
     redis_recovery_setup,
 ):
-    client, processing, pending, evidence = (
-        redis_recovery_setup
-    )
+    client, processing, pending, evidence = redis_recovery_setup
 
     raw = '{"job_id":"test-success"}'
 
@@ -94,9 +97,7 @@ async def test_real_redis_successful_transition(
 async def test_real_redis_repeat_does_not_duplicate(
     redis_recovery_setup,
 ):
-    client, processing, pending, evidence = (
-        redis_recovery_setup
-    )
+    client, processing, pending, evidence = redis_recovery_setup
 
     raw = '{"job_id":"test-idempotency"}'
 
@@ -126,9 +127,7 @@ async def test_real_redis_repeat_does_not_duplicate(
 async def test_real_redis_missing_reservation(
     redis_recovery_setup,
 ):
-    client, processing, pending, evidence = (
-        redis_recovery_setup
-    )
+    client, processing, pending, evidence = redis_recovery_setup
 
     result = await requeue_with_evidence(
         client,
@@ -146,9 +145,7 @@ async def test_real_redis_missing_reservation(
 async def test_real_redis_duplicate_processing_is_ambiguous(
     redis_recovery_setup,
 ):
-    client, processing, pending, evidence = (
-        redis_recovery_setup
-    )
+    client, processing, pending, evidence = redis_recovery_setup
 
     raw = '{"job_id":"test-duplicates"}'
 
@@ -171,9 +168,7 @@ async def test_real_redis_duplicate_processing_is_ambiguous(
 async def test_real_redis_existing_pending_is_ambiguous(
     redis_recovery_setup,
 ):
-    client, processing, pending, evidence = (
-        redis_recovery_setup
-    )
+    client, processing, pending, evidence = redis_recovery_setup
 
     raw = '{"job_id":"test-existing-pending"}'
 
@@ -197,9 +192,7 @@ async def test_real_redis_existing_pending_is_ambiguous(
 async def test_real_redis_pending_without_processing_is_ambiguous(
     redis_recovery_setup,
 ):
-    client, processing, pending, evidence = (
-        redis_recovery_setup
-    )
+    client, processing, pending, evidence = redis_recovery_setup
 
     raw = '{"job_id":"test-only-pending"}'
 
@@ -221,9 +214,7 @@ async def test_real_redis_pending_without_processing_is_ambiguous(
 async def test_real_redis_other_jobs_are_unchanged(
     redis_recovery_setup,
 ):
-    client, processing, pending, evidence = (
-        redis_recovery_setup
-    )
+    client, processing, pending, evidence = redis_recovery_setup
 
     target = '{"job_id":"target"}'
     other = '{"job_id":"other"}'
@@ -246,9 +237,7 @@ async def test_real_redis_other_jobs_are_unchanged(
 async def test_real_redis_existing_evidence_prevents_second_move(
     redis_recovery_setup,
 ):
-    client, processing, pending, evidence = (
-        redis_recovery_setup
-    )
+    client, processing, pending, evidence = redis_recovery_setup
 
     raw = '{"job_id":"test-evidence-first"}'
 

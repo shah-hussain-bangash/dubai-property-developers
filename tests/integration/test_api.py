@@ -36,7 +36,10 @@ def test_list_agents(client: TestClient) -> None:
     assert body["total"] == 13
     ids = {a["agent_id"] for a in body["items"]}
     assert {"supervisor", "voice", "analytics"} <= ids
-    assert all(a["implementation_status"] in {"functional", "partial", "interface_only"} for a in body["items"])
+    assert all(
+        a["implementation_status"] in {"functional", "partial", "interface_only"}
+        for a in body["items"]
+    )
 
 
 def test_list_workflows(client: TestClient) -> None:
@@ -72,7 +75,10 @@ def test_rbac_denies_viewer(client: TestClient) -> None:
 
 
 def test_approvals_require_permission_and_list(client: TestClient) -> None:
-    assert client.get("/api/v1/approvals/pending", headers={"X-Dev-Roles": "analyst"}).status_code == 403
+    assert (
+        client.get("/api/v1/approvals/pending", headers={"X-Dev-Roles": "analyst"}).status_code
+        == 403
+    )
     assert client.get("/api/v1/approvals/pending").json() == []
 
 

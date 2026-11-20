@@ -1,4 +1,4 @@
-﻿import csv
+import csv
 import hashlib
 import re
 from pathlib import Path
@@ -22,16 +22,19 @@ EXPECTED_PATHS = {
     "tools/whatsapp/tools.py",
 }
 
-def read_csv(path):
+
+def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f))
 
-def replace_exact(text, old, new, count=1):
+
+def replace_exact(text: str, old: str, new: str, count: int = 1) -> str:
     if text.count(old) != count:
         raise RuntimeError(f"Expected {count} occurrences: {old}")
     return text.replace(old, new)
 
-def main():
+
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Output SQL already exists.")
 
@@ -94,9 +97,7 @@ def main():
 
         review = review_map[path]
 
-        if any(
-            review.get(k) != v for k, v in expected_review.items()
-        ):
+        if any(review.get(k) != v for k, v in expected_review.items()):
             raise RuntimeError(f"Safety review mismatch: {path}")
 
         current = ROOT
@@ -114,10 +115,7 @@ def main():
         # Read bytes only. Never import the source module.
         data = current.read_bytes()
 
-        if (
-            hashlib.sha256(data).hexdigest() != sha
-            or len(data) != int(size)
-        ):
+        if hashlib.sha256(data).hexdigest() != sha or len(data) != int(size):
             raise RuntimeError(f"Fingerprint/size mismatch: {path}")
 
         tuples.append(f"('{path}', '{sha}', {size})")
@@ -138,11 +136,7 @@ def main():
         raise RuntimeError("Template VALUES section not unique.")
 
     match = matches[0]
-    sql = (
-        sql[:match.start(2)]
-        + ",\n".join(tuples)
-        + sql[match.end(2):]
-    )
+    sql = sql[: match.start(2)] + ",\n".join(tuples) + sql[match.end(2) :]
 
     if (
         len(re.findall(r"<> 461\b", sql)) != 4
@@ -161,9 +155,7 @@ def main():
         "IF (SELECT COUNT(*) FROM step446_batch) <> 10 THEN",
         "IF (SELECT COUNT(*) FROM step452_batch) <> 5 THEN",
     )
-    sql = replace_exact(
-        sql, "IF v_valid <> 10 THEN", "IF v_valid <> 5 THEN"
-    )
+    sql = replace_exact(sql, "IF v_valid <> 10 THEN", "IF v_valid <> 5 THEN")
     sql = sql.replace("step446_batch", "step452_batch")
 
     sql = replace_exact(
@@ -176,9 +168,7 @@ def main():
         len(re.findall(r"<> 471\b", sql)) != 4
         or len(re.findall(r"<> 476\b", sql)) != 4
         or len(re.findall(r"\) <> 151\b", sql)) != 1
-        or sql.count(
-            "IF (SELECT COUNT(*) FROM step452_batch) <> 5 THEN"
-        ) != 1
+        or sql.count("IF (SELECT COUNT(*) FROM step452_batch) <> 5 THEN") != 1
         or sql.count("IF v_valid <> 5 THEN") != 1
         or "step446_batch" in sql
         or "__NEW_TOTAL__" in sql
@@ -190,10 +180,7 @@ def main():
         raise RuntimeError("Generated SQL validation failed.")
 
     for item in batch:
-        entry = (
-            f"('{item['source_path']}', "
-            f"'{item['sha256']}', {item['size_bytes']})"
-        )
+        entry = f"('{item['source_path']}', '{item['sha256']}', {item['size_bytes']})"
         if sql.count(entry) != 1:
             raise RuntimeError("Manifest-to-SQL tuple mismatch.")
 
@@ -210,6 +197,7 @@ def main():
     print("PASS: Final rollback-only SQL generated.")
     print("PASS: No source modules executed.")
     print("SQL:", OUTPUT)
+
 
 if __name__ == "__main__":
     main()

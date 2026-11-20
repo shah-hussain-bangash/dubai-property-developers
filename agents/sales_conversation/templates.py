@@ -36,5 +36,9 @@ ESCALATION_ACK = {
 
 def render_reply(language: str, intent: CustomerIntent, name: str, context: str = "") -> str:
     table = REPLY_TEMPLATES.get(language, REPLY_TEMPLATES["en"])
-    template = table.get(intent) or table.get(CustomerIntent.GENERAL) or REPLY_TEMPLATES["en"][CustomerIntent.GENERAL]
+    template = (
+        table.get(intent)
+        or table.get(CustomerIntent.GENERAL)
+        or REPLY_TEMPLATES["en"][CustomerIntent.GENERAL]
+    )
     return template.format(name=name, context=context)

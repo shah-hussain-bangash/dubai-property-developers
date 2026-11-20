@@ -37,7 +37,8 @@ class WhatsAppAgent(BaseAgent[WhatsAppAgentInput, WhatsAppAgentOutput]):
     async def execute(self, data: WhatsAppAgentInput, ctx: ExecutionContext) -> WhatsAppAgentOutput:
         intent = detect_intent(data.text)
         await self.deps.memory.append(
-            data.conversation_id, MemoryMessage(role="customer", content=data.text, channel="whatsapp")
+            data.conversation_id,
+            MemoryMessage(role="customer", content=data.text, channel="whatsapp"),
         )
         state = await self.deps.memory.get_state(data.conversation_id)
         state["last_inbound_at"] = data.received_at.isoformat()
@@ -49,7 +50,9 @@ class WhatsAppAgent(BaseAgent[WhatsAppAgentInput, WhatsAppAgentOutput]):
                 intent=intent,
                 reply_mode=ReplyMode.NO_REPLY,
                 escalate=True,
-                notes=["Customer opted out: record consent withdrawal in CRM; no further messages."],
+                notes=[
+                    "Customer opted out: record consent withdrawal in CRM; no further messages."
+                ],
             )
         await self.deps.memory.set_state(data.conversation_id, state)
 
@@ -82,7 +85,9 @@ class WhatsAppAgent(BaseAgent[WhatsAppAgentInput, WhatsAppAgentOutput]):
             else:
                 payload["template_name"] = output.template_name
                 payload["language_code"] = "en"
-            sent = await self.use_tool(ctx, "whatsapp.send_message", payload, reason="Reply to customer")
+            sent = await self.use_tool(
+                ctx, "whatsapp.send_message", payload, reason="Reply to customer"
+            )
             output.send_status = sent.status.value
             output.approval_id = sent.approval_id
         return output

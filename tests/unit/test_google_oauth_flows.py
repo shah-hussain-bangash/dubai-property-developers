@@ -1,4 +1,5 @@
 """Redis command-contract tests with an in-memory fake; no server connection."""
+
 import asyncio
 import runpy
 import secrets
@@ -13,6 +14,7 @@ Store = module["GoogleOAuthFlowStore"]
 FlowError = module["OAuthFlowError"]
 ORG, OTHER = UUID(int=1), UUID(int=2)
 STATE = "synthetic_google_state_1234567890"
+
 
 class FakeRedis:
     def __init__(self):
@@ -35,6 +37,7 @@ class FakeRedis:
                 del self.records[key]
                 return 1
             return 0
+
 
 class Tests(unittest.IsolatedAsyncioTestCase):
     async def test_reservation_uses_expiry_and_no_overwrite(self):
@@ -72,9 +75,13 @@ class Tests(unittest.IsolatedAsyncioTestCase):
         binding = secrets.token_urlsafe(32)
         await store.reserve(STATE, ORG, binding)
         self.assertFalse(await store.consume(STATE, OTHER, binding))
-        self.assertFalse(await store.consume(
-            STATE, ORG, secrets.token_urlsafe(32),
-        ))
+        self.assertFalse(
+            await store.consume(
+                STATE,
+                ORG,
+                secrets.token_urlsafe(32),
+            )
+        )
         self.assertTrue(await store.consume(STATE, ORG, binding))
 
     async def test_concurrent_consumers_have_one_winner_in_fake(self):
@@ -82,9 +89,7 @@ class Tests(unittest.IsolatedAsyncioTestCase):
         store = Store(redis)
         binding = secrets.token_urlsafe(32)
         await store.reserve(STATE, ORG, binding)
-        results = await asyncio.gather(*[
-            store.consume(STATE, ORG, binding) for _ in range(10)
-        ])
+        results = await asyncio.gather(*[store.consume(STATE, ORG, binding) for _ in range(10)])
         self.assertEqual(sum(results), 1)
 
     async def test_missing_or_expired_record_denied(self):
@@ -122,6 +127,7 @@ class Tests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(FlowError) as caught:
             await store.consume(STATE, ORG, binding)
         self.assertNotIn("private", str(caught.exception))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
