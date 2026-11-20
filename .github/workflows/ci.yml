@@ -36,7 +36,17 @@ jobs:
       - name: Mypy
         run: python -m mypy agents core tools integrations schemas database knowledge workflows apps/api apps/worker
       - name: Tests with coverage
-        run: python -m pytest --cov --cov-report=xml --cov-report=term
+        run: python -m pytest --cov --cov-report=xml --cov-report=term --junitxml=backend-results.xml
+      - name: Upload backend reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: backend-python-${{ matrix.python }}
+          path: |
+            backend-results.xml
+            coverage.xml
+          retention-days: 7
+          if-no-files-found: ignore
       - name: Alembic offline SQL
         run: python -m alembic upgrade head --sql > /dev/null
       - name: Dependency audit
@@ -95,6 +105,14 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://dubai_ai:dubai_ai_ci@localhost:5432/dubai_ai_test
       - name: Integration tests
         run: python -m pytest tests/integration --junitxml=integration-results.xml
+      - name: Upload database integration report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: integration-python-${{ matrix.python }}
+          path: integration-results.xml
+          retention-days: 7
+          if-no-files-found: ignore
       - name: Reject unexpected integration skips
         run: |
           python - <<'PY'
@@ -123,7 +141,15 @@ jobs:
         run: npm audit --audit-level=moderate
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm test
+      - run: npm test -- --reporter=default --reporter=github-actions --reporter=junit --outputFile.junit=frontend-results.xml
+      - name: Upload frontend report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: frontend-tests
+          path: apps/dashboard/frontend-results.xml
+          retention-days: 7
+          if-no-files-found: ignore
       - run: npm run build
 
   compose-config:
