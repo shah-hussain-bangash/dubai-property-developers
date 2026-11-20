@@ -1,4 +1,4 @@
-﻿import csv
+import csv
 import hashlib
 import re
 from pathlib import Path
@@ -28,21 +28,19 @@ EXPECTED_PATHS = {
 }
 
 
-def load_csv(path):
+def load_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as stream:
         return list(csv.DictReader(stream))
 
 
-def replace_exact(text, old, new, expected=1):
+def replace_exact(text: str, old: str, new: str, expected: int = 1) -> str:
     count = text.count(old)
     if count != expected:
-        raise RuntimeError(
-            f"Expected {expected} instances of {old!r}; found {count}"
-        )
+        raise RuntimeError(f"Expected {expected} instances of {old!r}; found {count}")
     return text.replace(old, new)
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 416 output already exists.")
 
@@ -116,9 +114,7 @@ def main():
             "review_status": "fingerprint_and_type_verified",
         }
 
-        if checked is None or any(
-            checked.get(k) != v for k, v in review_required.items()
-        ):
+        if checked is None or any(checked.get(k) != v for k, v in review_required.items()):
             raise RuntimeError(f"Safety review mismatch: {path}")
 
         current = ROOT
@@ -167,11 +163,7 @@ def main():
 
     match = matches[0]
 
-    sql = (
-        sql[:match.start(2)]
-        + ",\n".join(values)
-        + sql[match.end(2):]
-    )
+    sql = sql[: match.start(2)] + ",\n".join(values) + sql[match.end(2) :]
 
     sql = replace_exact(
         sql,
@@ -210,9 +202,7 @@ def main():
         len(re.findall(r"<> 411\b", sql)) != 4
         or len(re.findall(r"<> 421\b", sql)) != 4
         or len(re.findall(r"\) <> 96\b", sql)) != 1
-        or sql.count(
-            "IF (SELECT COUNT(*) FROM step416_batch) <> 10 THEN"
-        ) != 1
+        or sql.count("IF (SELECT COUNT(*) FROM step416_batch) <> 10 THEN") != 1
         or sql.count("IF v_valid <> 10 THEN") != 1
         or "All ten tenth-batch registrations validated" not in sql
         or "Four-table integrity and history verified" not in sql

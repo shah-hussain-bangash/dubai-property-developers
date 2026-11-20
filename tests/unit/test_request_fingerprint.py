@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import math
 
@@ -33,13 +33,9 @@ def test_same_payload_different_key_order() -> None:
 
 
 def test_different_payload_changes_fingerprint() -> None:
-    first = make_request_fingerprint(
-        "tenant-a", "crm.create_lead", {"budget": 1000000}
-    )
+    first = make_request_fingerprint("tenant-a", "crm.create_lead", {"budget": 1000000})
 
-    second = make_request_fingerprint(
-        "tenant-a", "crm.create_lead", {"budget": 2000000}
-    )
+    second = make_request_fingerprint("tenant-a", "crm.create_lead", {"budget": 2000000})
 
     assert first != second
 
@@ -47,13 +43,9 @@ def test_different_payload_changes_fingerprint() -> None:
 def test_different_tool_changes_fingerprint() -> None:
     payload = {"id": "123"}
 
-    first = make_request_fingerprint(
-        "tenant-a", "crm.create_lead", payload
-    )
+    first = make_request_fingerprint("tenant-a", "crm.create_lead", payload)
 
-    second = make_request_fingerprint(
-        "tenant-a", "crm.update_lead", payload
-    )
+    second = make_request_fingerprint("tenant-a", "crm.update_lead", payload)
 
     assert first != second
 
@@ -61,13 +53,9 @@ def test_different_tool_changes_fingerprint() -> None:
 def test_different_tenant_changes_fingerprint() -> None:
     payload = {"id": "123"}
 
-    first = make_request_fingerprint(
-        "tenant-a", "crm.create_lead", payload
-    )
+    first = make_request_fingerprint("tenant-a", "crm.create_lead", payload)
 
-    second = make_request_fingerprint(
-        "tenant-b", "crm.create_lead", payload
-    )
+    second = make_request_fingerprint("tenant-b", "crm.create_lead", payload)
 
     assert first != second
 
@@ -82,18 +70,12 @@ def test_different_tenant_changes_fingerprint() -> None:
 )
 def test_invalid_payload_rejected(payload) -> None:
     with pytest.raises(ValueError):
-        make_request_fingerprint(
-            "tenant-a", "crm.create_lead", payload
-        )
+        make_request_fingerprint("tenant-a", "crm.create_lead", payload)
 
 
 def test_invalid_identity_rejected() -> None:
     with pytest.raises(ValueError):
-        make_request_fingerprint(
-            "", "crm.create_lead", {}
-        )
+        make_request_fingerprint("", "crm.create_lead", {})
 
     with pytest.raises(ValueError):
-        make_request_fingerprint(
-            "tenant-a", "", {}
-        )
+        make_request_fingerprint("tenant-a", "", {})

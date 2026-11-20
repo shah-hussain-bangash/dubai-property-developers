@@ -1,4 +1,3 @@
-
 """Persistent background-job tracking model.
 
 Tracks job ownership, lease expiry, retries, and final outcomes.

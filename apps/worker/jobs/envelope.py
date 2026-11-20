@@ -1,4 +1,3 @@
-
 """Job envelope and reliable Redis queue helpers.
 
 Pending:     queue:jobs
@@ -16,10 +15,9 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, Field
-
 
 QUEUE_KEY = "queue:jobs"
 PROCESSING_KEY = "queue:jobs:processing"
@@ -53,22 +51,16 @@ return 1
 class JobEnvelope(BaseModel):
     """Validated background-job message."""
 
-    job_id: str = Field(
-        default_factory=lambda: uuid.uuid4().hex
-    )
+    job_id: str = Field(default_factory=lambda: uuid.uuid4().hex)
     job_type: str
     tenant_id: str
 
-    payload: dict[str, Any] = Field(
-        default_factory=dict
-    )
+    payload: dict[str, Any] = Field(default_factory=dict)
 
     attempts: int = Field(default=0, ge=0)
     max_attempts: int = Field(default=3, ge=1)
 
-    enqueued_at: datetime = Field(
-        default_factory=lambda: datetime.now(UTC)
-    )
+    enqueued_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     correlation_id: str | None = None
 
 
@@ -84,17 +76,18 @@ async def enqueue(redis: Any, job: JobEnvelope) -> str:
 
 async def reserve_job(
     redis: Any,
-    timeout: int = 5,
+    timeout: int = 5,  # noqa: ASYNC109 -- This is a Redis blocking timeout or a parametrized timeout fixture, not a task deadline.
 ) -> str | None:
     """Atomically move the oldest pending job into processing."""
 
-    return await redis.blmove(
+    result = await redis.blmove(
         QUEUE_KEY,
         PROCESSING_KEY,
         timeout,
         "RIGHT",
         "LEFT",
     )
+    return cast(str | None, result)
 
 
 async def acknowledge_job(
@@ -124,17 +117,9 @@ async def transition_job(
     The original reservation must still exist.
     """
 
-    destination = (
-        DEAD_LETTER_KEY
-        if dead_letter
-        else QUEUE_KEY
-    )
+    destination = DEAD_LETTER_KEY if dead_letter else QUEUE_KEY
 
-    updated_raw = (
-        updated_job
-        if isinstance(updated_job, str)
-        else updated_job.model_dump_json()
-    )
+    updated_raw = updated_job if isinstance(updated_job, str) else updated_job.model_dump_json()
 
     moved = await redis.eval(
         TRANSITION_SCRIPT,

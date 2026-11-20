@@ -25,7 +25,7 @@ class RetryPolicy:
         delay = min(self.max_delay_seconds, self.base_delay_seconds * (2 ** (attempt - 1)))
         if self.jitter:
             delay *= random.uniform(0.5, 1.0)  # noqa: S311 - not security sensitive
-        return delay
+        return float(delay)
 
 
 def _is_retryable(exc: BaseException) -> bool:
@@ -34,7 +34,7 @@ def _is_retryable(exc: BaseException) -> bool:
     return isinstance(exc, TimeoutError | ConnectionError)
 
 
-async def retry_async(
+async def retry_async(  # noqa: UP047 -- Retain the existing shared TypeVar signature.
     func: Callable[[], Awaitable[T]],
     policy: RetryPolicy,
     *,

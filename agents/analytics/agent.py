@@ -46,7 +46,9 @@ class AnalyticsAgent(BaseAgent[AnalyticsInput, AnalyticsOutput]):
 
     async def execute(self, data: AnalyticsInput, ctx: ExecutionContext) -> AnalyticsOutput:
         sales = await self.use_tool(
-            ctx, "analytics.sales_summary", {"leads": [lead.model_dump(mode="json") for lead in data.leads]}
+            ctx,
+            "analytics.sales_summary",
+            {"leads": [lead.model_dump(mode="json") for lead in data.leads]},
         )
         performance: list[AgentPerformance] = []
         recorder = self.deps.executions

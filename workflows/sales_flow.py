@@ -36,7 +36,9 @@ async def detect_intent(state: SalesFlowState, ctx: WorkflowContext) -> StepOutc
     result = await ctx.run_agent(
         "supervisor",
         SupervisorRequest(
-            request_type=RequestType.CUSTOMER_MESSAGE, text=state.message.text, channel=state.message.channel
+            request_type=RequestType.CUSTOMER_MESSAGE,
+            text=state.message.text,
+            channel=state.message.channel,
         ),
     )
     state.plan = SupervisorPlan.model_validate(result.output, from_attributes=True)
@@ -46,7 +48,9 @@ async def detect_intent(state: SalesFlowState, ctx: WorkflowContext) -> StepOutc
 async def draft_reply(state: SalesFlowState, ctx: WorkflowContext) -> StepOutcome:
     result = await ctx.run_agent(
         "sales_conversation",
-        SalesConversationInput(message=state.message, customer_first_name=state.customer_first_name),
+        SalesConversationInput(
+            message=state.message, customer_first_name=state.customer_first_name
+        ),
     )
     state.reply = SalesConversationOutput.model_validate(result.output, from_attributes=True)
     if state.reply.draft.escalate or (state.plan and state.plan.requires_human):

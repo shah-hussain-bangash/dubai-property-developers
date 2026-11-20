@@ -26,7 +26,9 @@ class PropertyRecommendationAgent(BaseAgent[RecommendationInput, RecommendationO
     input_model = RecommendationInput
     output_model = RecommendationOutput
 
-    async def execute(self, data: RecommendationInput, ctx: ExecutionContext) -> RecommendationOutput:
+    async def execute(
+        self, data: RecommendationInput, ctx: ExecutionContext
+    ) -> RecommendationOutput:
         result = await self.use_tool(ctx, "property.match", data.criteria.model_dump(mode="json"))
         recs = [PropertyRecommendation.model_validate(r) for r in result.data["recommendations"]]
         return RecommendationOutput(

@@ -1,4 +1,4 @@
-﻿"""Build synthetic source-sync SQL for an isolated PostgreSQL test."""
+"""Build synthetic source-sync SQL for an isolated PostgreSQL test."""
 
 import hashlib
 import json
@@ -17,12 +17,12 @@ NEW_CONTENT = b"UPDATED_TEST_CONTENT = 2\n"
 ADDED_CONTENT = b"NEW_TEST_MODULE = True\n"
 
 
-def fingerprint(content):
+def fingerprint(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
-def run_tool(path):
-    result = subprocess.run(
+def run_tool(path: Path) -> None:
+    result = subprocess.run(  # noqa: S603 -- Trusted local executable and argument list; no shell or request input.
         [sys.executable, str(path)],
         capture_output=True,
         text=True,
@@ -31,28 +31,18 @@ def run_tool(path):
     )
 
     if result.returncode != 0:
-        raise RuntimeError(
-            f"{path.name} failed:\n"
-            f"{result.stdout}\n{result.stderr}"
-        )
+        raise RuntimeError(f"{path.name} failed:\n{result.stdout}\n{result.stderr}")
 
     print(result.stdout)
 
 
-def main():
+def main() -> None:
     if DESTINATION.exists():
-        raise RuntimeError(
-            "Synthetic SQL already exists. Do not overwrite."
-        )
+        raise RuntimeError("Synthetic SQL already exists. Do not overwrite.")
 
-    with tempfile.TemporaryDirectory(
-        prefix="knowledge_pg_sync_"
-    ) as directory:
-
+    with tempfile.TemporaryDirectory(prefix="knowledge_pg_sync_") as directory:
         test_root = Path(directory)
-        test_folder = (
-            test_root / "database" / "project_knowledge"
-        )
+        test_folder = test_root / "database" / "project_knowledge"
         test_folder.mkdir(parents=True)
 
         for name in (
@@ -79,21 +69,14 @@ def main():
             ],
         }
 
-        (
-            test_folder / "source_versions_baseline.json"
-        ).write_text(
+        (test_folder / "source_versions_baseline.json").write_text(
             json.dumps(baseline),
             encoding="utf-8",
         )
 
-        run_tool(
-            test_folder / "detect_source_changes.py"
-        )
+        run_tool(test_folder / "detect_source_changes.py")
 
-        report = json.loads(
-            (test_folder / "source_change_report.json")
-            .read_text(encoding="utf-8")
-        )
+        report = json.loads((test_folder / "source_change_report.json").read_text(encoding="utf-8"))
 
         assert report["summary"] == {
             "added": 1,
@@ -102,13 +85,9 @@ def main():
             "missing": 0,
         }
 
-        run_tool(
-            test_folder / "prepare_source_sync.py"
-        )
+        run_tool(test_folder / "prepare_source_sync.py")
 
-        source_sql = (
-            test_folder / "008_incremental_source_sync.sql"
-        )
+        source_sql = test_folder / "008_incremental_source_sync.sql"
 
         if not source_sql.is_file():
             raise RuntimeError("Synchronization SQL missing")
@@ -123,9 +102,7 @@ def main():
             "core/new_module.py",
         ):
             if expected not in sql:
-                raise RuntimeError(
-                    "Expected test evidence missing from SQL"
-                )
+                raise RuntimeError("Expected test evidence missing from SQL")
 
         shutil.copy2(source_sql, DESTINATION)
 

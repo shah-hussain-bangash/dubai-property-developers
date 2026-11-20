@@ -1,4 +1,3 @@
-
 """Integration tests for Redis recovery generation fencing.
 
 Development-only prototype tests.
@@ -20,7 +19,6 @@ import redis.asyncio as redis_async
 from apps.worker.jobs.redis_recovery_fenced import (
     requeue_with_fencing,
 )
-
 
 pytestmark = [
     pytest.mark.asyncio,
@@ -78,9 +76,7 @@ async def test_stale_generation_cannot_move_reservation(
 ):
     """Verify the isolated Redis fencing test setup."""
 
-    client, processing, pending, evidence, fencing = (
-        fenced_redis_setup
-    )
+    client, processing, pending, evidence, fencing = fenced_redis_setup
 
     raw = '{"job_id":"fictional-stale-generation"}'
 
@@ -105,9 +101,7 @@ async def test_fenced_transition_rejects_stale_generation(
 ):
     """Reject generation 1 when Redis stores generation 2."""
 
-    client, processing, pending, evidence, fencing = (
-        fenced_redis_setup
-    )
+    client, processing, pending, evidence, fencing = fenced_redis_setup
 
     raw = '{"job_id":"fictional-fenced-stale"}'
 

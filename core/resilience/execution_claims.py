@@ -1,4 +1,4 @@
-﻿"""Experimental execution ownership primitives.
+"""Experimental execution ownership primitives.
 
 This module is an isolated in-memory prototype.
 It is NOT a durable cross-process execution coordinator.
@@ -66,9 +66,7 @@ class InMemoryExecutionClaimStore:
             current = self._require_owner(key, owner_token)
 
             if current.state != ExecutionState.IN_PROGRESS:
-                raise ValueError(
-                    "Only an in-progress execution can complete"
-                )
+                raise ValueError("Only an in-progress execution can complete")
 
             completed = ExecutionRecord(
                 key=key,
@@ -89,9 +87,7 @@ class InMemoryExecutionClaimStore:
             current = self._require_owner(key, owner_token)
 
             if current.state != ExecutionState.IN_PROGRESS:
-                raise ValueError(
-                    "Only an in-progress execution can become uncertain"
-                )
+                raise ValueError("Only an in-progress execution can become uncertain")
 
             uncertain = ExecutionRecord(
                 key=key,
@@ -113,8 +109,6 @@ class InMemoryExecutionClaimStore:
             raise KeyError(f"Execution claim not found: {key}")
 
         if current.owner_token != owner_token:
-            raise PermissionError(
-                "Execution claim belongs to another owner"
-            )
+            raise PermissionError("Execution claim belongs to another owner")
 
         return current

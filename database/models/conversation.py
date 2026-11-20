@@ -20,7 +20,9 @@ class Conversation(UUIDPrimaryKeyMixin, TenantMixin, TimestampMixin, Base):
     contact_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("contacts.id", ondelete="SET NULL")
     )
-    lead_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("leads.id", ondelete="SET NULL"))
+    lead_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("leads.id", ondelete="SET NULL")
+    )
     channel: Mapped[str] = mapped_column(String(32))
     status: Mapped[str] = mapped_column(String(32), default="open")
     external_thread_id: Mapped[str | None] = mapped_column(String(128))

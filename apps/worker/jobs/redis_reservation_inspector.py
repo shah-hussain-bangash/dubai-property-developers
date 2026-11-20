@@ -1,4 +1,3 @@
-
 """Read-only Redis reservation inspection for job recovery.
 
 Development-only. This module does not change Redis queue state.
@@ -12,7 +11,6 @@ Callers must authenticate the original job envelope separately.
 from __future__ import annotations
 
 from typing import Any, Literal
-
 
 ReservationLocation = Literal[
     "processing",

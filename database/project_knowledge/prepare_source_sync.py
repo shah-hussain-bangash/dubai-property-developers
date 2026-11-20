@@ -1,4 +1,4 @@
-﻿"""Prepare source-version SQL from a reviewed change report.
+"""Prepare source-version SQL from a reviewed change report.
 
 Does not connect to PostgreSQL or execute SQL.
 Never deletes source history.
@@ -38,19 +38,14 @@ modified = report["modified"]
 missing = report["missing"]
 
 if missing:
-    raise RuntimeError(
-        "Missing files require manual review before synchronization."
-    )
+    raise RuntimeError("Missing files require manual review before synchronization.")
 
 if not added and not modified:
     print("PASS: No changes to synchronize")
     print("No SQL generated and no database writes required.")
     raise SystemExit(0)
 
-known = {
-    item["source_path"]: item["sha256"]
-    for item in baseline["files"]
-}
+known = {item["source_path"]: item["sha256"] for item in baseline["files"]}
 
 if len(known) != len(baseline["files"]):
     raise RuntimeError("Duplicate paths in baseline")
@@ -69,16 +64,10 @@ for item in added + modified:
         or "\\" in path
         or path in seen
         or any(
-            part.lower() in {
-                ".git", ".venv", "node_modules",
-                "__pycache__", ".next", "backups"
-            }
+            part.lower() in {".git", ".venv", "node_modules", "__pycache__", ".next", "backups"}
             for part in parsed.parts
         )
-        or any(
-            term in parsed.name.lower()
-            for term in ("secret", "credential", "password")
-        )
+        or any(term in parsed.name.lower() for term in ("secret", "credential", "password"))
         or parsed.name.lower().startswith(".env")
     ):
         raise RuntimeError(f"Unsafe or duplicate path: {path}")
@@ -114,12 +103,14 @@ for item in added + modified:
     if not re.fullmatch(r"[0-9a-f]{64}", digest):
         raise RuntimeError(f"Invalid fingerprint: {path}")
 
-    records.append({
-        "source_path": path,
-        "sha256": digest,
-        "size_bytes": size,
-        "previous_sha256": previous,
-    })
+    records.append(
+        {
+            "source_path": path,
+            "sha256": digest,
+            "size_bytes": size,
+            "previous_sha256": previous,
+        }
+    )
 
 payload = json.dumps(records, ensure_ascii=True, separators=(",", ":"))
 
@@ -208,7 +199,7 @@ ON CONFLICT (project_id, source_path, content_sha256)
 DO NOTHING;
 
 COMMIT;
-"""
+"""  # noqa: S608 -- Escaped JSON/fixed metadata in an offline SQL generator.
 
 OUTPUT.write_text(sql, encoding="utf-8")
 
@@ -217,4 +208,3 @@ print("New files:", len(added))
 print("Modified files:", len(modified))
 print("SQL file:", OUTPUT)
 print("SQL has NOT been executed.")
-

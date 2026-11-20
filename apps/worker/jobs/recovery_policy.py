@@ -1,4 +1,3 @@
-
 """Read-only policy for PostgreSQL-backed Redis reservation recovery.
 
 This module only classifies a job's state. It does not:
@@ -19,7 +18,6 @@ from datetime import UTC, datetime
 from typing import Any, Literal
 
 from apps.worker.jobs.envelope import JobEnvelope
-
 
 RecoveryAction = Literal[
     "active_lease",
@@ -83,11 +81,7 @@ def classify_reservation(
     if status == "processing":
         expiry = getattr(record, "lease_expires_at", None)
 
-        if (
-            expiry is None
-            or expiry.tzinfo is None
-            or expiry.utcoffset() is None
-        ):
+        if expiry is None or expiry.tzinfo is None or expiry.utcoffset() is None:
             return RecoveryDecision(
                 "manual_review",
                 "Processing lease has no valid expiry",
@@ -107,11 +101,7 @@ def classify_reservation(
     if status == "retrying":
         retry_at = getattr(record, "next_retry_at", None)
 
-        if (
-            retry_at is None
-            or retry_at.tzinfo is None
-            or retry_at.utcoffset() is None
-        ):
+        if retry_at is None or retry_at.tzinfo is None or retry_at.utcoffset() is None:
             return RecoveryDecision(
                 "manual_review",
                 "Retry schedule is missing or invalid",

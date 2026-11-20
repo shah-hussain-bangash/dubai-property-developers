@@ -1,4 +1,3 @@
-
 """Simulation of a Redis-first recovery ownership handoff.
 
 Development-only. No external services are accessed.
@@ -38,18 +37,14 @@ class HandoffState:
     def publish_new_generation(self) -> None:
         """Publish PostgreSQL generation while gate is closed."""
         if self.redis_gate_open:
-            raise RuntimeError(
-                "Cannot publish while Redis gate is open"
-            )
+            raise RuntimeError("Cannot publish while Redis gate is open")
 
         self.redis_generation = self.postgres_generation
 
     def open_redis_gate(self) -> None:
         """Reopen only if Redis and PostgreSQL generations agree."""
         if self.redis_generation != self.postgres_generation:
-            raise RuntimeError(
-                "Generation mismatch prevents opening gate"
-            )
+            raise RuntimeError("Generation mismatch prevents opening gate")
 
         self.redis_gate_open = True
 

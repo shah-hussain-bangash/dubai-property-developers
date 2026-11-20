@@ -1,4 +1,5 @@
 """Registration tests using fake sessions and a synthetic password hasher."""
+
 import runpy
 import unittest
 from pathlib import Path
@@ -19,6 +20,7 @@ GOOGLE = {
     "email": "user@example.com",
     "full_name": "Example User",
 }
+
 
 def setup(replies):
     session = MagicMock()
@@ -42,17 +44,26 @@ def setup(replies):
     service = Registration(factory, password_hasher=hasher)
     return service, session, transaction, factory, hasher
 
+
 def parameters(session, index):
     statement = session.execute.await_args_list[index].args[0]
     return statement.compile(dialect=postgresql.dialect()).params
 
+
 class Tests(unittest.IsolatedAsyncioTestCase):
     async def test_password_account_starts_pending_without_roles(self):
-        service, session, transaction, factory, hasher = setup([
-            {"id": ORG}, None, None, None,
-        ])
+        service, session, _transaction, _factory, hasher = setup(
+            [
+                {"id": ORG},
+                None,
+                None,
+                None,
+            ]
+        )
         result = await service.register_password(
-            ORG, email="user@example.com", full_name=" Example User ",
+            ORG,
+            email="user@example.com",
+            full_name=" Example User ",
             password="synthetic-password",
         )
         self.assertEqual(result["approval_status"], "pending")
@@ -65,16 +76,24 @@ class Tests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(stored["approval_decided_by"])
         self.assertIsNone(stored["approval_decided_at"])
         tables = [
-            call.args[0].table.name for call in session.execute.await_args_list
+            call.args[0].table.name
+            for call in session.execute.await_args_list
             if isinstance(call.args[0], Insert)
         ]
         self.assertEqual(tables, ["users", "audit_logs"])
         hasher.assert_called_once_with("synthetic-password")
 
     async def test_google_account_created_with_mapping_and_no_password(self):
-        service, session, transaction, factory, hasher = setup([
-            {"id": ORG}, None, None, None, None, None,
-        ])
+        service, session, _transaction, _factory, hasher = setup(
+            [
+                {"id": ORG},
+                None,
+                None,
+                None,
+                None,
+                None,
+            ]
+        )
         result = await service.google_account(ORG, verified_identity=GOOGLE)
         self.assertEqual(result["approval_status"], "pending")
         stored = parameters(session, 3)
@@ -89,50 +108,71 @@ class Tests(unittest.IsolatedAsyncioTestCase):
         for status in ("pending", "approved"):
             with self.subTest(status=status):
                 existing = {
-                    "id": USER, "organization_id": ORG,
+                    "id": USER,
+                    "organization_id": ORG,
                     "full_name": "Existing User",
-                    "approval_status": status, "is_active": True,
+                    "approval_status": status,
+                    "is_active": True,
                 }
-                service, session, transaction, factory, hasher = setup([
-                    {"id": ORG}, existing,
-                ])
+                service, session, _transaction, _factory, _hasher = setup(
+                    [
+                        {"id": ORG},
+                        existing,
+                    ]
+                )
                 result = await service.google_account(ORG, verified_identity=GOOGLE)
                 self.assertEqual(result["account_id"], USER)
                 self.assertEqual(result["approval_status"], status)
                 self.assertEqual(session.execute.await_count, 2)
 
     async def test_matching_email_does_not_link_google_automatically(self):
-        service, session, transaction, factory, hasher = setup([
-            {"id": ORG}, None, {"id": USER},
-        ])
+        service, session, _transaction, _factory, _hasher = setup(
+            [
+                {"id": ORG},
+                None,
+                {"id": USER},
+            ]
+        )
         with self.assertRaises(HTTPException) as caught:
             await service.google_account(ORG, verified_identity=GOOGLE)
         self.assertEqual(caught.exception.status_code, 409)
-        self.assertFalse(any(
-            isinstance(call.args[0], Insert)
-            for call in session.execute.await_args_list
-        ))
+        self.assertFalse(
+            any(isinstance(call.args[0], Insert) for call in session.execute.await_args_list)
+        )
 
     async def test_rejected_or_disabled_google_account_denied(self):
         for status, active in (("rejected", True), (None, True), ("approved", False)):
             with self.subTest(status=status, active=active):
-                service, session, transaction, factory, hasher = setup([
-                    {"id": ORG},
-                    {"id": USER, "organization_id": ORG,
-                     "full_name": "Existing User",
-                     "approval_status": status, "is_active": active},
-                ])
+                service, _session, _transaction, _factory, _hasher = setup(
+                    [
+                        {"id": ORG},
+                        {
+                            "id": USER,
+                            "organization_id": ORG,
+                            "full_name": "Existing User",
+                            "approval_status": status,
+                            "is_active": active,
+                        },
+                    ]
+                )
                 with self.assertRaises(HTTPException) as caught:
                     await service.google_account(ORG, verified_identity=GOOGLE)
                 self.assertEqual(caught.exception.status_code, 403)
 
     async def test_audit_failure_exits_transaction_with_error(self):
-        service, session, transaction, factory, hasher = setup([
-            {"id": ORG}, None, None, RuntimeError("synthetic audit failure"),
-        ])
+        service, _session, transaction, _factory, _hasher = setup(
+            [
+                {"id": ORG},
+                None,
+                None,
+                RuntimeError("synthetic audit failure"),
+            ]
+        )
         with self.assertRaises(RuntimeError):
             await service.register_password(
-                ORG, email="user@example.com", full_name="Example User",
+                ORG,
+                email="user@example.com",
+                full_name="Example User",
                 password="synthetic-password",
             )
         self.assertIs(transaction.__aexit__.await_args.args[0], RuntimeError)
@@ -140,21 +180,24 @@ class Tests(unittest.IsolatedAsyncioTestCase):
     async def test_invalid_password_denied_before_hash_or_database(self):
         for password in ("short", "x" * 1025, "\ud800" * 12, None):
             with self.subTest(password_type=type(password).__name__):
-                service, session, transaction, factory, hasher = setup([])
+                service, _session, _transaction, factory, hasher = setup([])
                 with self.assertRaises(ValueError):
                     await service.register_password(
-                        ORG, email="user@example.com", full_name="Example User",
+                        ORG,
+                        email="user@example.com",
+                        full_name="Example User",
                         password=password,
                     )
                 hasher.assert_not_called()
                 factory.assert_not_called()
 
     async def test_inactive_organization_denied(self):
-        service, session, transaction, factory, hasher = setup([None])
+        service, session, _transaction, _factory, _hasher = setup([None])
         with self.assertRaises(HTTPException) as caught:
             await service.google_account(ORG, verified_identity=GOOGLE)
         self.assertEqual(caught.exception.status_code, 403)
         self.assertEqual(session.execute.await_count, 1)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

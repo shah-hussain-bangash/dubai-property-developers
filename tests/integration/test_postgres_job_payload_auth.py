@@ -1,4 +1,3 @@
-
 """Integration tests for Redis job-envelope authentication.
 
 Requires:
@@ -33,7 +32,6 @@ from database.sessions.engine import (
     create_engine,
     create_session_factory,
 )
-
 
 pytestmark = [
     pytest.mark.asyncio,
@@ -73,19 +71,14 @@ async def auth_setup():
     finally:
         try:
             if created_ids:
-                async with factory() as session:
-                    async with session.begin():
-                        await session.execute(
-                            delete(JobOutbox).where(
-                                JobOutbox.job_id.in_(created_ids)
-                            )
-                        )
+                async with factory() as session, session.begin():
+                    await session.execute(
+                        delete(JobOutbox).where(JobOutbox.job_id.in_(created_ids))
+                    )
 
-                        await session.execute(
-                            delete(BackgroundJob).where(
-                                BackgroundJob.job_id.in_(created_ids)
-                            )
-                        )
+                    await session.execute(
+                        delete(BackgroundJob).where(BackgroundJob.job_id.in_(created_ids))
+                    )
         finally:
             await engine.dispose()
 
@@ -143,9 +136,7 @@ async def test_forged_job_id_is_rejected(auth_setup):
 
     job = await create_test_job(publisher, ids)
 
-    forged = job.model_copy(
-        update={"job_id": "forged-" + uuid.uuid4().hex}
-    )
+    forged = job.model_copy(update={"job_id": "forged-" + uuid.uuid4().hex})
 
     with pytest.raises(
         JobPayloadAuthenticationError,
@@ -159,9 +150,7 @@ async def test_incorrect_tenant_is_rejected(auth_setup):
 
     job = await create_test_job(publisher, ids)
 
-    wrong_tenant = job.model_copy(
-        update={"tenant_id": "another-tenant"}
-    )
+    wrong_tenant = job.model_copy(update={"tenant_id": "another-tenant"})
 
     with pytest.raises(
         JobPayloadAuthenticationError,
@@ -175,9 +164,7 @@ async def test_modified_job_type_is_rejected(auth_setup):
 
     job = await create_test_job(publisher, ids)
 
-    modified = job.model_copy(
-        update={"job_type": "followup.scan"}
-    )
+    modified = job.model_copy(update={"job_type": "followup.scan"})
 
     with pytest.raises(
         JobPayloadAuthenticationError,
@@ -193,9 +180,7 @@ async def test_tampered_stored_ciphertext_is_rejected(auth_setup):
 
     async with factory() as session:
         original = await session.scalar(
-            select(JobOutbox.payload_ciphertext).where(
-                JobOutbox.job_id == job.job_id
-            )
+            select(JobOutbox.payload_ciphertext).where(JobOutbox.job_id == job.job_id)
         )
 
     assert original is not None
@@ -204,13 +189,12 @@ async def test_tampered_stored_ciphertext_is_rejected(auth_setup):
     tampered[-1] ^= 1
 
     # Change only this fictional test record.
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(JobOutbox)
-                .where(JobOutbox.job_id == job.job_id)
-                .values(payload_ciphertext=bytes(tampered))
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(JobOutbox)
+            .where(JobOutbox.job_id == job.job_id)
+            .values(payload_ciphertext=bytes(tampered))
+        )
 
     with pytest.raises(
         JobPayloadAuthenticationError,

@@ -1,4 +1,4 @@
-﻿"""Build a rollback-only registration test from Step 367's manifest."""
+"""Build a rollback-only registration test from Step 367's manifest."""
 
 import csv
 import hashlib
@@ -10,10 +10,12 @@ MANIFEST = ROOT / "database/project_knowledge/reports/step367_registration_batch
 OUTPUT = ROOT / "database/project_knowledge/022_test_registration_batch.sql"
 DB = "dubai_ai_knowledge_verify_20261019_095633"
 
-def sql_quote(value):
+
+def sql_quote(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
-def main():
+
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 368 SQL already exists. Stop.")
 
@@ -67,9 +69,7 @@ def main():
         if len(data) != int(row["size_bytes"]):
             raise RuntimeError(f"File size changed: {path}")
 
-        values.append(
-            f"({sql_quote(path)}, {sql_quote(sha)}, {len(data)})"
-        )
+        values.append(f"({sql_quote(path)}, {sql_quote(sha)}, {len(data)})")
 
     sql = r"""
 -- Step 368: temporary 10-file registration test.
@@ -228,14 +228,13 @@ $verify$;
 
 -- Never commit this test batch.
 ROLLBACK;
-""".replace("__TARGET_DB__", DB).replace(
-        "__VALUES__", ",\n".join(values)
-    )
+""".replace("__TARGET_DB__", DB).replace("__VALUES__", ",\n".join(values))
 
     OUTPUT.write_text(sql, encoding="utf-8")
     print("PASS: All 10 files rehashed and validated")
     print("PASS: Rollback-only SQL generated")
     print("SQL:", OUTPUT)
+
 
 if __name__ == "__main__":
     main()

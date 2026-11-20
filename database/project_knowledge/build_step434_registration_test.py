@@ -1,4 +1,4 @@
-﻿import csv
+import csv
 import hashlib
 import re
 from pathlib import Path
@@ -27,11 +27,13 @@ EXPECTED_TYPES = {
     "scripts/development/run-api.ps1": ".ps1",
 }
 
-def read_csv(path):
+
+def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f))
 
-def main():
+
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Output SQL already exists.")
 
@@ -102,9 +104,7 @@ def main():
             "review_status": "fingerprint_and_type_verified",
         }
 
-        if review is None or any(
-            review.get(k) != v for k, v in review_required.items()
-        ):
+        if review is None or any(review.get(k) != v for k, v in review_required.items()):
             raise RuntimeError(f"Safety review mismatch: {path}")
 
         current = ROOT
@@ -149,11 +149,7 @@ def main():
 
     match = matches[0]
 
-    sql = (
-        sql[:match.start(2)]
-        + ",\n".join(tuples)
-        + sql[match.end(2):]
-    )
+    sql = sql[: match.start(2)] + ",\n".join(tuples) + sql[match.end(2) :]
 
     if (
         len(re.findall(r"<> 431\b", sql)) != 4
@@ -182,9 +178,7 @@ def main():
         len(re.findall(r"<> 441\b", sql)) != 4
         or len(re.findall(r"<> 451\b", sql)) != 4
         or len(re.findall(r"\) <> 126\b", sql)) != 1
-        or sql.count(
-            "IF (SELECT COUNT(*) FROM step434_batch) <> 10 THEN"
-        ) != 1
+        or sql.count("IF (SELECT COUNT(*) FROM step434_batch) <> 10 THEN") != 1
         or sql.count("IF v_valid <> 10 THEN") != 1
         or new_notice not in sql
         or "Four-table integrity and history verified" not in sql
@@ -197,15 +191,10 @@ def main():
         raise RuntimeError("Generated SQL safety validation failed.")
 
     for item in batch:
-        entry = (
-            f"('{item['source_path']}', "
-            f"'{item['sha256']}', {item['size_bytes']})"
-        )
+        entry = f"('{item['source_path']}', '{item['sha256']}', {item['size_bytes']})"
 
         if sql.count(entry) != 1:
-            raise RuntimeError(
-                f"Unexpected SQL tuple count: {item['source_path']}"
-            )
+            raise RuntimeError(f"Unexpected SQL tuple count: {item['source_path']}")
 
     OUTPUT.write_text(sql, encoding="utf-8")
 
@@ -218,6 +207,7 @@ def main():
     print("PASS: Rollback-only SQL generated.")
     print("PASS: No project source files executed.")
     print("File:", OUTPUT)
+
 
 if __name__ == "__main__":
     main()

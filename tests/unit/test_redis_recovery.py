@@ -1,4 +1,3 @@
-
 """Unit tests for isolated Redis recovery operations.
 
 No real Redis or PostgreSQL access.
@@ -11,12 +10,11 @@ from unittest.mock import AsyncMock
 import pytest
 
 from apps.worker.jobs.redis_recovery import (
-    RECOVER_SCRIPT,
     ACK_STALE_SCRIPT,
+    RECOVER_SCRIPT,
     acknowledge_stale_reservation,
     requeue_reserved_job,
 )
-
 
 PROCESSING = "queue:jobs:processing:test"
 PENDING = "queue:jobs:pending:test"

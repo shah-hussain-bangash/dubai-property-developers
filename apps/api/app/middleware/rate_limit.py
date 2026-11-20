@@ -63,7 +63,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if not await self._limiter.hit(key):
             return JSONResponse(
                 status_code=429,
-                content={"error": {"code": "rate_limited", "message": "Too many requests", "details": {}}},
+                content={
+                    "error": {"code": "rate_limited", "message": "Too many requests", "details": {}}
+                },
                 headers={"Retry-After": "60"},
             )
         return await call_next(request)

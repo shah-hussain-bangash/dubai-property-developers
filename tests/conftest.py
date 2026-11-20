@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator, Iterator
 from datetime import UTC, datetime
 
@@ -11,6 +12,18 @@ from core.config.settings import Environment, Settings
 from core.security.rbac import Principal, Role
 from tests.factories import TENANT
 from workflows.runtime import PlatformRuntime, build_runtime
+
+
+@pytest.fixture(autouse=True)
+def restore_logging_configuration() -> Iterator[None]:
+    """App startup replaces root handlers; keep that configuration test-local."""
+    root = logging.getLogger()
+    handlers, level = list(root.handlers), root.level
+    try:
+        yield
+    finally:
+        root.handlers = handlers
+        root.setLevel(level)
 
 
 @pytest.fixture
@@ -41,7 +54,9 @@ def manager() -> Principal:
 
 @pytest.fixture
 def ctx(manager: Principal) -> ExecutionContext:
-    return ExecutionContext(principal=manager, tenant_id=TENANT, correlation_id="test-correlation-0001")
+    return ExecutionContext(
+        principal=manager, tenant_id=TENANT, correlation_id="test-correlation-0001"
+    )
 
 
 @pytest.fixture

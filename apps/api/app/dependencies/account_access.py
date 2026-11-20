@@ -5,14 +5,24 @@ Identity subjects and tenant IDs must be internal UUID strings. External OIDC
 subjects require a trusted server-side identity mapping before this adapter.
 No application registration, engine creation, or token verification is installed.
 """
+
+from typing import NoReturn, cast
 from uuid import UUID
+
 from fastapi import Depends, HTTPException, Request
 
-def build_account_dependencies(*, principal_dependency, actor_factory):
+from apps.api.app.api.v1.routes.accounts import AccountService
+from core.security.account_contracts import AccountRecord, ActorFactory, Dependency, VerifiedActor
+from core.security.rbac import Principal
+
+
+def build_account_dependencies(
+    *, principal_dependency: Dependency, actor_factory: ActorFactory
+) -> dict[str, Dependency]:
     if not callable(principal_dependency) or not callable(actor_factory):
         raise ValueError("trusted principal dependency and actor factory required")
 
-    async def verified_principal(request: Request):
+    async def verified_principal(request: Request) -> Principal:
         settings = getattr(request.app.state, "settings", None)
         mode = getattr(settings, "auth_mode", None)
         if getattr(mode, "value", mode) != "token":
@@ -26,9 +36,9 @@ def build_account_dependencies(*, principal_dependency, actor_factory):
         verifier = getattr(request.app.state, "token_verifier", None)
         if not callable(getattr(verifier, "verify", None)):
             raise HTTPException(401, "token verification unavailable")
-        return await principal_dependency(request)
+        return cast(Principal, await principal_dependency(request))
 
-    async def get_actor(principal=Depends(verified_principal)):
+    async def get_actor(principal: Principal = Depends(verified_principal)) -> VerifiedActor:
         subject = getattr(principal, "subject", None)
         tenant = getattr(principal, "tenant_id", None)
         try:
@@ -42,24 +52,28 @@ def build_account_dependencies(*, principal_dependency, actor_factory):
             raise HTTPException(401, "account identity unavailable") from None
         return actor_factory(user_id=user_id, organization_id=organization_id)
 
-    async def get_service():
+    async def get_service() -> NoReturn:
         raise HTTPException(503, "account service unavailable")
 
-    async def configured_service(request: Request):
+    async def configured_service(request: Request) -> AccountService:
         service = getattr(request.app.state, "account_service", None)
         methods = (
-            "owner_subject", "list_pending", "decide", "get_self",
+            "owner_subject",
+            "list_pending",
+            "decide",
+            "get_self",
             "require_dashboard_access",
         )
         if service is None or not all(
             callable(getattr(service, method, None)) for method in methods
         ):
             return await get_service()
-        return service
+        return cast(AccountService, service)
 
     async def require_dashboard_access(
-        actor=Depends(get_actor), service=Depends(configured_service),
-    ):
+        actor: VerifiedActor = Depends(get_actor),
+        service: AccountService = Depends(configured_service),
+    ) -> AccountRecord:
         return await service.require_dashboard_access(actor)
 
     return {

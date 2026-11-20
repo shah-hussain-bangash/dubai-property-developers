@@ -1,4 +1,3 @@
-
 """Integration tests for PostgreSQL recovery-operation ownership.
 
 Requires PostgreSQL migration 0006 and RUN_INTEGRATION_TESTS=1.
@@ -34,7 +33,6 @@ from database.sessions.engine import (
     create_session_factory,
 )
 
-
 pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.skipif(
@@ -66,23 +64,16 @@ async def recovery_setup():
     finally:
         try:
             if created_ids:
-                async with factory() as session:
-                    async with session.begin():
-                        await session.execute(
-                            delete(JobRecoveryOperation).where(
-                                JobRecoveryOperation.job_id.in_(
-                                    created_ids
-                                )
-                            )
+                async with factory() as session, session.begin():
+                    await session.execute(
+                        delete(JobRecoveryOperation).where(
+                            JobRecoveryOperation.job_id.in_(created_ids)
                         )
+                    )
 
-                        await session.execute(
-                            delete(BackgroundJob).where(
-                                BackgroundJob.job_id.in_(
-                                    created_ids
-                                )
-                            )
-                        )
+                    await session.execute(
+                        delete(BackgroundJob).where(BackgroundJob.job_id.in_(created_ids))
+                    )
         finally:
             await engine.dispose()
 
@@ -110,18 +101,12 @@ async def create_operation(
 
     assert token is not None
 
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(BackgroundJob)
-                .where(BackgroundJob.id == record.id)
-                .values(
-                    lease_expires_at=(
-                        datetime.now(UTC)
-                        - timedelta(minutes=5)
-                    )
-                )
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(BackgroundJob)
+            .where(BackgroundJob.id == record.id)
+            .values(lease_expires_at=(datetime.now(UTC) - timedelta(minutes=5)))
+        )
 
     operation_id = await recovery.begin_expired_recovery(
         "demo-org",
@@ -136,9 +121,7 @@ async def create_operation(
 async def get_operation(factory, operation_id):
     async with factory() as session:
         return await session.scalar(
-            select(JobRecoveryOperation).where(
-                JobRecoveryOperation.id == operation_id
-            )
+            select(JobRecoveryOperation).where(JobRecoveryOperation.id == operation_id)
         )
 
 
@@ -147,9 +130,7 @@ async def test_recovery_operation_can_be_claimed(
 ):
     jobs, recovery, leases, factory, ids = recovery_setup
 
-    operation_id = await create_operation(
-        jobs, recovery, factory, ids
-    )
+    operation_id = await create_operation(jobs, recovery, factory, ids)
 
     token = await leases.claim(
         "demo-org",
@@ -173,9 +154,7 @@ async def test_only_one_coordinator_claims_operation(
 ):
     jobs, recovery, leases, factory, ids = recovery_setup
 
-    operation_id = await create_operation(
-        jobs, recovery, factory, ids
-    )
+    operation_id = await create_operation(jobs, recovery, factory, ids)
 
     results = await asyncio.gather(
         leases.claim(
@@ -203,9 +182,7 @@ async def test_heartbeat_requires_correct_owner(
 ):
     jobs, recovery, leases, factory, ids = recovery_setup
 
-    operation_id = await create_operation(
-        jobs, recovery, factory, ids
-    )
+    operation_id = await create_operation(jobs, recovery, factory, ids)
 
     token = await leases.claim(
         "demo-org",
@@ -239,9 +216,7 @@ async def test_completion_rejects_stale_token(
 ):
     jobs, recovery, leases, factory, ids = recovery_setup
 
-    operation_id = await create_operation(
-        jobs, recovery, factory, ids
-    )
+    operation_id = await create_operation(jobs, recovery, factory, ids)
 
     token = await leases.claim(
         "demo-org",
@@ -276,11 +251,14 @@ async def test_completion_rejects_stale_token(
     assert saved.lease_token is None
     assert saved.worker_id is None
 
-    assert await leases.claim(
-        "demo-org",
-        operation_id,
-        "coordinator-B",
-    ) is None
+    assert (
+        await leases.claim(
+            "demo-org",
+            operation_id,
+            "coordinator-B",
+        )
+        is None
+    )
 
 
 async def test_failed_recovery_respects_retry_delay(
@@ -288,9 +266,7 @@ async def test_failed_recovery_respects_retry_delay(
 ):
     jobs, recovery, leases, factory, ids = recovery_setup
 
-    operation_id = await create_operation(
-        jobs, recovery, factory, ids
-    )
+    operation_id = await create_operation(jobs, recovery, factory, ids)
 
     token = await leases.claim(
         "demo-org",
@@ -326,18 +302,12 @@ async def test_failed_recovery_respects_retry_delay(
     assert early_claim is None
 
     # Simulate the passage of retry time for this test record.
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(JobRecoveryOperation)
-                .where(JobRecoveryOperation.id == operation_id)
-                .values(
-                    next_attempt_at=(
-                        datetime.now(UTC)
-                        - timedelta(seconds=1)
-                    )
-                )
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(JobRecoveryOperation)
+            .where(JobRecoveryOperation.id == operation_id)
+            .values(next_attempt_at=(datetime.now(UTC) - timedelta(seconds=1)))
+        )
 
     new_token = await leases.claim(
         "demo-org",
@@ -357,9 +327,7 @@ async def test_expired_recovery_lease_can_be_reclaimed(
 ):
     jobs, recovery, leases, factory, ids = recovery_setup
 
-    operation_id = await create_operation(
-        jobs, recovery, factory, ids
-    )
+    operation_id = await create_operation(jobs, recovery, factory, ids)
 
     old_token = await leases.claim(
         "demo-org",
@@ -369,18 +337,12 @@ async def test_expired_recovery_lease_can_be_reclaimed(
 
     assert old_token is not None
 
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(JobRecoveryOperation)
-                .where(JobRecoveryOperation.id == operation_id)
-                .values(
-                    lease_expires_at=(
-                        datetime.now(UTC)
-                        - timedelta(minutes=5)
-                    )
-                )
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(JobRecoveryOperation)
+            .where(JobRecoveryOperation.id == operation_id)
+            .values(lease_expires_at=(datetime.now(UTC) - timedelta(minutes=5)))
+        )
 
     new_token = await leases.claim(
         "demo-org",
@@ -412,9 +374,7 @@ async def test_wrong_tenant_cannot_claim_operation(
 ):
     jobs, recovery, leases, factory, ids = recovery_setup
 
-    operation_id = await create_operation(
-        jobs, recovery, factory, ids
-    )
+    operation_id = await create_operation(jobs, recovery, factory, ids)
 
     token = await leases.claim(
         "tenant-isolation-test",
