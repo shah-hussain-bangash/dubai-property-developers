@@ -1,0 +1,35 @@
+OPENAI CONNECTION PROBE - STEP 613
+
+This tool is a single real provider check, separate from the running application.
+It asks for a model identifier from your own API project and an API key through
+a hidden local terminal prompt. Blank input cancels. Do not paste keys in chat.
+Providing a model and nonblank key authorizes one request that may incur usage.
+
+The fixed fictional prompt asks for CONNECTION_OK. The request has at most 256
+output tokens, a 30-second timeout, no tools, store=false and no automatic retry.
+No arbitrary prompt, contact information, file contents or customer data is sent.
+Reasoning-capable models may consume their output budget on reasoning and return
+an incomplete response; that is recorded as a failed text probe, not a success.
+Model access, billing and model compatibility are not established by local tests.
+store=false does not mean all provider data-retention policies are disabled.
+
+No environment files are read for provider settings or modified. No API key,
+model identifier or response text is saved in the result report. No provider or
+messaging setting in the running application is activated by this probe.
+
+A reservation report is created before sending. It is finalized only by the
+same invocation. Success, failure or an unfinished reservation blocks another
+request on repeat, including concurrent launches. Preserve all evidence; do not
+delete it to force another attempt. Interrupted calls/timeouts do not prove no
+provider processing or billing occurred.
+
+Evidence: database/project_knowledge/reports/step613_openai_live_probe_results.json
+Tool verification: step613_openai_probe_tool_results.json in the same directory.
+The tool verification uses 12 tests with simulated provider responses and prompts.
+It does not make real OpenAI requests. The interactive probe is a separate action.
+
+After a passed probe, application activation and a real workflow acceptance test
+still require explicit configuration work. The existing dashboard demo remains
+fictional, and other integrations remain unchanged.
+
+Official API guide: https://developers.openai.com/api/docs/guides/text

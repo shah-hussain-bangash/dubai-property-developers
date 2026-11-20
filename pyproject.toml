@@ -1,0 +1,108 @@
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dubai-real-estate-ai"
+version = "0.1.0"
+description = "Dubai Real Estate Multi-Agent AI Platform (foundation)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+
+dependencies = [
+  "fastapi>=0.115,<1.0",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.8,<3.0",
+  "pydantic-settings>=2.7,<3.0",
+  "email-validator>=2.2",
+  "sqlalchemy[asyncio]>=2.0.30,<2.1",
+  "asyncpg>=0.29",
+  "alembic>=1.13",
+  "pgvector>=0.3",
+  "redis>=5.0",
+  "httpx>=0.27",
+  "authlib>=1.9.1,<2.0",
+  "itsdangerous>=2.2,<3.0",
+  "phonenumbers>=8.13",
+  "cryptography>=45.0,<51.0",
+]
+
+[project.optional-dependencies]
+documents = ["pypdf>=4.3", "reportlab>=4.4.9,<4.5"]
+tracing = ["opentelemetry-api>=1.26", "opentelemetry-sdk>=1.26"]
+
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "pytest-cov>=5.0",
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "pip-audit>=2.7",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+  "apps", "apps.api*", "apps.worker*",
+  "agents*", "core*", "tools*", "integrations*", "schemas*",
+  "database*", "knowledge*", "workflows*",
+]
+exclude = ["tests*", "apps.dashboard*"]
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-ra --strict-markers"
+markers = [
+  "integration: requires running PostgreSQL/Redis (skipped unless RUN_INTEGRATION_TESTS=1)",
+]
+filterwarnings = ["error::pytest.PytestUnraisableExceptionWarning"]
+
+# ---------------------------------------------------------------- coverage
+[tool.coverage.run]
+source = ["agents", "core", "tools", "integrations", "schemas", "database", "knowledge", "workflows", "apps"]
+omit = ["database/migrations/*", "apps/dashboard/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["apps/dashboard", "database/migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "SIM", "RUF"]
+# E501: line length is handled by `ruff format`; long literals are allowed.
+ignore = ["S101", "B008", "RUF012", "E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "S311"]
+"database/seeds/**" = ["S311"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "agents", "core", "tools", "integrations", "schemas", "database", "knowledge", "workflows"]
+
+# ---------------------------------------------------------------- mypy
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+strict = true
+warn_unused_ignores = true
+exclude = ["apps/dashboard/", "database/migrations/"]
+
+[[tool.mypy.overrides]]
+module = ["pgvector.*", "pypdf.*", "phonenumbers.*", "opentelemetry.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false

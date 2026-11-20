@@ -1,0 +1,30 @@
+PROPERTY AVAILABILITY WORDING CORRECTION - STEP 619
+
+A real draft incorrectly said Availability is confirmed even though the
+catalog provides only historical fictional statuses. Step 619 strengthens
+the model prompt and adds a server-side English wording contract.
+
+Accepted explanations must include exactly once:
+Current availability must be confirmed with the developer.
+
+Other unit-availability wording, sold/reserved assertions, in-stock or booking
+claims, and explicit developer/live verification claims cause withholding.
+The catalog phrase payment plan options are available is allowed separately;
+it cannot make an accompanying unit-stock assertion acceptable.
+Checks normalize case, whitespace, compatibility characters and invisible
+format characters. Model output is not silently rewritten or substituted.
+
+A withheld response contains no draft body, marks generation_attempted=true,
+and explains that its availability wording needs review. Catalog matches,
+filters, shortlist and independent confirmation warnings remain accessible.
+There is no automatic model retry or paid-provider fallback.
+
+This is a conservative English wording check, not proof of general factual
+accuracy and not a detector for every possible paraphrase. Accepted output
+still requires human review. The prompt also treats absent bedroom bounds
+as no bedroom preference, rather than inventing a requested bedroom count.
+
+Only the API image is rebuilt/refreshed. Its in-memory demo records reset.
+No dashboard application code, real listings, customer delivery, API keys,
+Ollama settings or the 33 held sources are changed. The existing frontend
+is tested to show withholding feedback without rendering unsafe draft text.

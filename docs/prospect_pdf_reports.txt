@@ -1,0 +1,29 @@
+PROSPECT RESEARCH PDF EXPORTS (STEP 625)
+
+In the prospect review queue, each saved record has Download prospect PDF.
+Download all prospect PDFs (ZIP) exports every saved record, including archived
+records, with manifest.json and README.txt. The current workspace holds at most
+500 records. Reports contain the active organization's saved database snapshot,
+source URL, recorded evidence, review state, unknown contact permissions, record
+ID, workspace revision and timestamps. Keep the files private.
+
+Exports are created on demand in API memory. No PDFs are stored in the database,
+no outbound message is sent and no call is initiated. The ZIP and PDF filenames
+use validated record IDs rather than names, email addresses or phone numbers.
+An outdated page revision is refused: reload before downloading again. One report
+operation runs per API process. Batch generation can take time; there is no retry.
+
+This release embeds ReportLab's licensed Bitstream Vera font. Some writing systems,
+including Arabic and CJK, are not supported by this rendering path. Affected PDFs
+and whole batches are refused explicitly instead of silently replacing characters.
+Use Download private JSON backup to retain the exact original text in those cases.
+The original database record is never changed by PDF generation.
+
+The delivery adds reportlab to the documents optional dependencies used by the
+API Docker image. The project's Windows Python environment is not modified.
+The launcher builds API and dashboard, runs 14 isolated synthetic PDF/ZIP checks
+inside the new API image (including a 500-PDF batch), then refreshes only API and
+dashboard. PostgreSQL and Redis are not recreated; no schema migration is run.
+In-memory fictional demo records reset when the API restarts. Prospect records
+remain in PostgreSQL. The launcher acceptance uses read-only requests and does
+not import records or send messages.

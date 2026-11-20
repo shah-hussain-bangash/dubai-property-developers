@@ -1,0 +1,36 @@
+LOCAL OLLAMA ADAPTER - STEP 614
+
+This provider implements actual text generation through the installed qwen3:8b
+model on http://127.0.0.1:11434/api/chat. It sends no API key, has no cloud URL
+override and accepts only the explicitly supported local qwen3:8b model.
+Cloud model names and OpenAI model names are rejected before any HTTP request.
+Official contract: https://docs.ollama.com/api/chat
+
+Factory registration requires LLM_PROVIDER=ollama, LLM_PRIMARY_MODEL=qwen3:8b
+and no fallback models. Mock remains the global default. No environment files
+or running service settings are changed by installing this step. OpenAI support
+remains available for later explicit configuration; this step makes no paid call.
+Local generation uses your own GPU/CPU, memory and electricity.
+
+Native desktop execution only in this step: 127.0.0.1 refers to the process's
+own host. Inside Docker it refers to that container, not the Windows Ollama
+service. Do not switch the Docker API to this provider without a separate
+container-to-host connection plan. This step does not expose Ollama to a network.
+
+Requests disable streaming and thinking output, cap context at 4096 tokens,
+limit input to 8000 characters, and cap generated output to 2048 tokens.
+The factory permits timeouts up to 180 seconds and zero to two retries.
+The adapter itself never retries or follows redirects or environment proxies.
+Only completed text with valid usage counts is accepted. Length-stopped, empty,
+tool-call and malformed output are rejected. Responses are bounded to 2 MiB.
+Keep-alive is five minutes. No logs or reports include prompt/response bodies.
+
+Step 614's local acceptance sends one fixed fictional connection prompt with
+32 generated tokens, temperature zero and a 120-second timeout. It reports only
+whether the expected acknowledgement and nonmock provider response were seen.
+If Ollama is unavailable, preserve the report and use a later recovery step.
+No paid-provider fallback, model download or automatic inference retry occurs.
+
+The running dashboard's demo panels remain explicitly fictional mock workflows.
+This adapter and a native local check do not yet connect those panels to real
+generation. Application integration is separate from this provider acceptance.

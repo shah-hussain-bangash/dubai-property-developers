@@ -1,0 +1,102 @@
+PROSPECT RESEARCH OBJECTIVE AND COMBINED PDF - STEP 631
+
+
+
+Requested goal: research relevant public business profiles for CEOs, property
+
+agents, investors, directors and entrepreneurs; target 500 records; one dated PDF;
+
+then handle replies by notifying the owner/agent and creating a callback task.
+
+The user's selected reply action is notification plus human callback task, not an
+
+automatic AI call. Owner alert address supplied: owner@example.com.
+
+The email account is not connected to this application for sending or reply sync.
+
+
+
+Delivered in this stage: Download all prospects in one PDF. This exports all
+
+saved records, up to 500, including archived profiles, in one private PDF with a
+
+summary, counts, Dubai batch date, source evidence, status, unknown permission
+
+labels and profile bookmarks. Profile page numbers restart inside each profile.
+
+The summary explicitly reports the actual count; a PDF is not evidence that 500
+
+people were automatically researched. Records are not changed by downloading.
+
+Generation remains tenant/revision scoped and limited to one report at a time.
+
+Unsupported writing systems still fail explicitly; JSON backup remains available.
+
+
+
+Not active: automatic LinkedIn/social collection, a 24-hour scheduler, qualification
+
+of buying ability, marketing campaigns, reply synchronization, callback creation,
+
+owner notifications and AI calling. A job title is not proof of wealth, investment
+
+capacity or intent. Missing contact details must stay unknown rather than guessed.
+
+Public profile/contact availability does not establish marketing permission.
+
+
+
+NEXT IMPLEMENTATION STAGES
+
+1. Configure an approved search/data source and an explicit search/spending budget.
+
+   Current manual SerpApi allowance remains 1 attempt per organization per Dubai
+
+   day. ChatGPT Business is not a substitute for external search-provider credits.
+
+   Local Qwen can assist analysis without OpenAI API use. OpenAI API usage is
+
+   separate from ChatGPT subscription usage: https://learn.chatgpt.com/docs/pricing
+
+2. Build persisted research jobs with start/pause/cancel, source/query history,
+
+   relevance evidence, duplicates, actual counts, quota stops and completion or
+
+   partial-result status. Public search scope is not logged-in LinkedIn scraping.
+
+3. Review data and channel permissions before outreach. Once a validated batch
+
+   completes or stops partially, create a dated combined PDF with its true count.
+
+   No promise of 500 usable contacts per day without sufficient sources/quota.
+
+4. Connect an authenticated email/WhatsApp provider and incoming-reply webhooks.
+
+   Keep delivery permissions, suppression, unsubscribe and duplicate prevention.
+
+5. Match a reply to the correct campaign/prospect, notify the assigned owner/agent,
+
+   and create a callback task. A reply alone must not start an AI phone call.
+
+6. Record task ownership, due time, callback outcome and meeting notifications.
+
+
+
+INSTALLATION
+
+Source backups and 33 review holds are verified. API/dashboard images refresh;
+
+PostgreSQL and Redis remain running, so saved prospect data/quota are preserved.
+
+Fictional in-memory demo records reset with the API. If SerpApi is configured,
+
+a masked Paste key window asks for your private key again before building. The
+
+key is passed only through a child environment to the container; Docker admins
+
+can inspect container configuration. No host key file, provider request or
+
+outreach is created. Cancel leaves service state unchanged, although new source
+
+files may already have been installed. Re-run the installer to finish refreshing.
+

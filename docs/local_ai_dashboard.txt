@@ -1,0 +1,31 @@
+LOCAL AI DASHBOARD PANEL - STEP 616
+
+Conversations includes Try real local AI. Clicking Generate local AI draft
+calls the development-only /api/v1/local-ai/draft route and the local
+qwen3:8b model. Replies are real model output, not template responses.
+They are unverified drafts for human review and are never delivered to a
+customer. No customer database, knowledge corpus, tools or live integration
+is passed to the model. Use fictional enquiries for this development panel.
+
+Default settings keep this route disabled (LOCAL_AI_ENABLED=false).
+The supplied local Docker override enables only this panel and selects
+LOCAL_AI_CONNECTION=docker-desktop. The general LLM_PROVIDER stays mock,
+so existing fictional demos still work. Native Windows tests can use the
+native connection. Arbitrary endpoint overrides and cloud models are refused.
+The only endpoints are loopback and Docker Desktop's host address on 11434.
+No API key or paid-provider fallback is used.
+
+Generation is limited to a 1000-character message, 256 output tokens and
+one active request per API process. The frontend allows 130 seconds and
+never automatically retries. The backend timeout is 125 seconds, and the
+adapter timeout is 120 seconds. Keep Ollama running. The frontend displays
+plain text, clears stale results on edits, and has no send control.
+
+The launcher rebuilds and refreshes API and dashboard only. API in-memory
+demo records reset when its container is recreated. PostgreSQL, Redis,
+worker, authentication registration and all 33 source holds are unchanged.
+After readiness checks, one fixed fictional local generation verifies the
+running endpoint. Its response text is not recorded in the evidence.
+
+Official networking: https://docs.docker.com/desktop/features/networking/
+Official chat contract: https://docs.ollama.com/api/chat

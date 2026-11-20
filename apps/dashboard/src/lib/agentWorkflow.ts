@@ -1,0 +1,13 @@
+/** Browser-safe workflow types and deterministic matching/calendar utilities. */
+import type {AgentProperty} from './agentPropertyStore';
+export type ClientInput={name:string;email:string;phone:string;purpose:string;budgetMin:number;budgetMax:number;community:string;type:string;minBeds:number;stage:string;notes:string};
+export type AgentClient=ClientInput&{id:string;agentId:string;version:number;createdAt:number;updatedAt:number;archivedAt:number|null;shortlist:string[]};
+export type TaskInput={title:string;kind:string;clientId:string;propertyId:string;startAt:number;endAt:number;notes:string;status:string};
+export type AgentTask=TaskInput&{id:string;agentId:string;version:number;createdAt:number;updatedAt:number};
+export const clientStages=['New','Qualified','Viewing','Offer','Won','Lost'];
+export function matchesClient(p:AgentProperty,c:ClientInput){return p.deletedAt===null&&p.status==='Available'&&p.purpose===c.purpose&&p.price>=c.budgetMin&&p.price<=c.budgetMax&&p.beds>=c.minBeds&&(c.type==='Any'||p.type===c.type)&&(!c.community||p.location.toLowerCase().includes(c.community.toLowerCase()));}
+export function dubaiInput(at:number){return new Date(at+4*3600000).toISOString().slice(0,16);}
+export function fromDubai(value:string){return Date.parse(value+':00+04:00');}
+export const dubaiDate=(at:number)=>new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Dubai',dateStyle:'medium',timeStyle:'short'}).format(at)+' GST';
+export function calendarFile(task:AgentTask){const escape=(s:string)=>s.replace(/\\/g,'\\\\').replace(/\r\n|\r|\n/g,'\\n').replace(/;/g,'\\;').replace(/,/g,'\\,');const stamp=(n:number)=>new Date(n).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Dubai Property Developers//Agent Planner//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT','UID:'+task.id+'@local.dubai-property-developers','DTSTAMP:'+stamp(task.updatedAt),'DTSTART:'+stamp(task.startAt),'DTEND:'+stamp(task.endAt),'SUMMARY:'+escape(task.title),'DESCRIPTION:'+escape(task.notes),'STATUS:'+(task.status==='Cancelled'?'CANCELLED':'CONFIRMED'),'END:VEVENT','END:VCALENDAR'];return lines.map(line=>{const chunks:string[]=[];let current='',length=0;for(const ch of line){const n=new TextEncoder().encode(ch).length;if(length+n>73){chunks.push(current);current=' ';length=1;}current+=ch;length+=n;}chunks.push(current);return chunks.join('\r\n');}).join('\r\n')+'\r\n';}
+export function downloadText(name:string,text:string,type:string){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}

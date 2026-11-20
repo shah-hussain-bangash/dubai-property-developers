@@ -1,0 +1,3 @@
+import {enquiryApi} from '@/lib/enquiryApi';
+export const runtime='nodejs';export const dynamic='force-dynamic';
+export async function GET(r:Request){return enquiryApi(r,'mine');}

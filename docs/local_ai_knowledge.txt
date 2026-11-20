@@ -1,0 +1,27 @@
+SOURCE-ASSISTED LOCAL KNOWLEDGE - STEP 617
+
+Knowledge now offers Ask local AI from fictional sources. The existing
+public, tenant-filtered document workflow retrieves relevant passages before
+Qwen generates an answer. Sources are passed as structured data. Restricted
+commission material is never supplied to the customer-facing model prompt.
+Missing, uncertain or stale retrieval returns a staff-confirmation result
+without calling the model. Questions remain limited to 1000 characters.
+
+Model generation is real local qwen3:8b with no paid API. It shares the
+one-active-request guard with the Conversations local AI panel. Output is
+limited to 256 tokens with the existing local timeout. Source labels must
+refer to a supplied passage, but labels do not prove every statement is
+supported. All generated answers remain unverified drafts for human review.
+A server-supplied developer-confirmation caveat remains visible independently
+of the generated wording. Nothing is delivered to a customer.
+
+The panel is available only with LOCAL_AI_ENABLED and the existing isolated
+development settings. Existing mock workflows and public demo knowledge
+answers remain available. This does not activate the Document Agent globally
+or connect company documents, external sources, customer records or messaging.
+
+The launcher rebuilds API and dashboard only; their API memory records reset.
+It checks one fixed fictional payment-plan question against the running API,
+requiring actual local-model provenance and source labels. It records checks,
+not generated answer or passage bodies. A second generation is not attempted
+automatically on failure. Existing evidence and all 33 review holds remain.

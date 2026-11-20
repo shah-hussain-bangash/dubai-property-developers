@@ -1,0 +1,89 @@
+STEP 650 - Social outreach workspace and interested-reply lead pool
+
+LOCAL FEATURES INSTALLED
+Admin > Prospect Research now links to /prospect-research/outreach and Integrations.
+The new workspace saves audience roles, location, industry, keywords and target,
+channel-specific template drafts, illustrative message previews, campaign draft
+snapshots, manually recorded replies, adapter reply events and human classifications.
+All seven requested channels are listed: Instagram, Facebook, TikTok, LinkedIn,
+WhatsApp, Telegram and Twitter/X. Multiple account adapters may be registered.
+A registered adapter is NOT an authorized social account. Provider status always
+remains unverified in this stage, even after a local adapter event is received.
+
+ACCOUNT SETUP
+Open /integrations#social-connections. Register the business label and public handle
+or account ID; no provider password, App Secret or access token belongs in these fields.
+Save the one-time reply-adapter key privately. This key is scoped to one account's
+reply endpoint and cannot read records or send messages. It is unrelated to the
+existing EspoCRM enquiry-intake key. Rotation invalidates the old key; disabling
+rejects new inbound events. No social account authorization is performed on install.
+The downloaded n8n starter is inactive, has no provider trigger or credentials,
+and uses Bearer Auth. In that credential paste only the adapter key. Its default
+host.docker.internal URL is for this Windows Docker Desktop topology, not cloud use.
+
+REPLIES AND LEADS
+POST bounded JSON to /api/outreach/inbound/ACCOUNT_ID using Bearer authentication:
+eventId, contactId, name, email, phone, source, message, receivedAt, optOut.
+receivedAt is the actual timestamp in milliseconds. email and phone may be blank.
+Use stable provider message IDs for retries and a stable provider-scoped contact ID.
+The n8n/provider adapter must verify provider webhook signatures, identity, ignore
+message echoes, preserve timestamps/IDs and correctly map opt-outs BEFORE forwarding.
+This endpoint does not implement a native Meta verification challenge or signature
+check. Its Bearer key verifies the adapter only. Do not expose it as a raw Meta webhook.
+
+Replies arrive pending human review; positive interest is not guessed by an LLM or
+keyword. Admin confirms the actual reply, identity, classification and review note.
+Opt-outs apply immediately and remain sticky across matching account contact ID,
+email or phone. They propagate to matching saved enquiries. An opt-out cannot be
+cleared in this workspace. Out-of-order normal replies cannot replace newer text;
+older opt-outs still suppress contact. New replies require fresh human review.
+Admin explicitly promotes an interested reply with attributable email/phone and
+stated property interest/purpose to the shared enquiry inbox. Promotion and receipt
+recording share the existing portal lock. Retries return the saved reference; matching
+contact email/phone avoids duplicate outreach enquiries. Contact permission stays
+unknown. Admin can then assign an approved agent using the existing enquiry flow.
+A social-only interested reply remains in the pool until contact details are supplied.
+
+WHAT IS NOT CONNECTED
+No social OAuth login, native provider inbox sync, people-search API, delivery queue,
+automatic messages, provider template approval, notifications or calling is activated.
+Campaigns are draft/paused only; there is no send endpoint. Criteria save separately
+from existing PostgreSQL research targets and do not alter jobs or quotas. Use the
+existing public-source research page for actual source searches and human review.
+Public profiles, search results and job titles do not establish messaging eligibility,
+financial capacity or permission to contact. No personal-account scraping is added.
+
+META FIRST - USER HAS AN EXISTING APP
+Before the next connection stage, confirm the App ID, Development/Live mode,
+Instagram professional account, Facebook Page, granted permissions, and an approved
+public HTTPS OAuth callback and webhook endpoint. App Secrets and access tokens must
+be entered privately into the adapter credential store. Localhost is not reachable
+by Meta cloud callbacks. Instagram messaging requires an eligible customer-initiated
+conversation; Facebook messaging eligibility is enforced by its product rules.
+Other channels likewise need their own approved product scopes and capabilities.
+
+DATA AND RECOVERY
+Outreach records live under an optional outreach field in the existing private
+agent-portal.json store, not in a new PostgreSQL table. Existing portal locks,
+atomic writes, private file permissions, size limits and encrypted portal backup
+validation apply. No migration, real records or account registrations occur on install.
+Limits: 28 account adapters, 100 templates, 100 campaign drafts, 1000 conversations,
+5000 unique reply receipts, plus the existing 6 MB portal-store limit and intake limits.
+UI counters describe local records, never claimed provider connections or messages sent.
+
+INSTALL
+Run step650_apply.ps1 from the delivery directory after Step648 is installed/serving.
+The guarded installer checks source hashes, backs up changed sources and preserves
+33 pending review holds. Strict TypeScript, application tests and dashboard refresh
+simulations run before refreshing only the dashboard. Existing owner account, API,
+PostgreSQL, Redis, n8n, search configuration, research runner and records are preserved.
+No new password or SerpApi key is requested. Real Meta connection remains a next stage.
+
+PRIMARY CAPABILITY REFERENCES (checked 2026-10-30)
+https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api
+https://developers.facebook.com/docs/messenger-platform/
+https://business-api.tiktok.com/portal/docs
+https://learn.microsoft.com/en-us/linkedin/shared/authentication/getting-access
+https://developers.facebook.com/docs/whatsapp/cloud-api/overview
+https://core.telegram.org/bots/faq
+https://docs.x.com/overview

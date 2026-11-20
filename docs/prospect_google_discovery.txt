@@ -1,0 +1,110 @@
+PUBLIC BUSINESS PROFILE DISCOVERY (STEP 627)
+
+
+
+This release prepares a SerpApi-compatible Google-result connector, disabled by
+
+default. No account is created, no API key is installed, no provider call is made
+
+by installation or acceptance, and no contact or campaign is created automatically.
+
+
+
+In Prospect Research, choose Check search connection. If a provider account is
+
+later connected locally, Search public profiles once issues one bounded request.
+
+Choose Google web results or Google-indexed LinkedIn, Facebook or Instagram pages.
+
+The app only receives result links and snippets; it never logs into social accounts,
+
+fetches result pages, extracts private profile data or assumes a verified identity.
+
+
+
+Review a source, then Use source in prospect form. This fills only source evidence.
+
+Existing source/notes require explicit replacement; other unfinished fields remain.
+
+Complete the person's name, company, role and country yourself, check any public
+
+contact details and save explicitly. Search results are not verified contacts,
+
+buying interest, WhatsApp availability or marketing consent.
+
+
+
+Provider and cost context checked on 26 October 2026:
+
+Google's old Custom Search JSON API is closed to new customers and existing users
+
+must migrate by 1 January 2027:
+
+https://developers.google.com/custom-search/v1/overview
+
+SerpApi lists a free plan with 250 searches/month and paid plans:
+
+https://serpapi.com/pricing
+
+This is a search allowance, not a promise of 500 valid contacts per day. Provider
+
+pricing, permissions and account limits must be checked before activation.
+
+Adapter documentation: https://serpapi.com/search-api
+
+
+
+Future local connection settings (do not paste a key into chat or the search box):
+
+PROSPECT_SEARCH_PROVIDER=serpapi
+
+PROSPECT_SEARCH_API_KEY=the private account key entered only locally
+
+PROSPECT_SEARCH_DAILY_LIMIT=1
+
+This delivery overlay deliberately forces provider=disabled and a blank key.
+
+A separate explicit local key/configuration step is required to activate it.
+
+No Windows environment settings, .env file or saved credentials are modified.
+
+
+
+The app reserves one attempt atomically in Redis before each provider request.
+
+Default: one attempt per active organization per Dubai/GST day; maximum setting 10.
+
+Failed attempts consume the app limit and may consume provider credits. There are
+
+no automatic retries or pagination. Redis unavailability blocks provider calls.
+
+This app limit does not govern other apps using the same provider account and
+
+does not guarantee an account can never incur charges. Provider billing remains
+
+under the account owner's control. Search keys are SecretStr settings; provider
+
+metadata/errors and raw request URLs are not returned or logged by the adapter.
+
+
+
+Fixed provider endpoint; HTTPS verification; no redirects, proxy environment,
+
+arbitrary endpoints or source-page fetches. Max 20 seconds and 2 MB per response;
+
+at most ten unique safe source results displayed. Only requested site scopes are
+
+accepted. Source text renders as plain text. Request queries go to SerpApi/Google
+
+only after an explicit search click with a configured account.
+
+
+
+Installation refreshes API/dashboard only, leaving PostgreSQL and Redis containers
+
+and persistent prospect records intact. In-memory fictional demo records reset.
+
+The 500-contact/24-hour scheduler, automatic file saving, email/WhatsApp campaigns,
+
+AI calls and reply alerts to owner@example.com remain unconnected.
+

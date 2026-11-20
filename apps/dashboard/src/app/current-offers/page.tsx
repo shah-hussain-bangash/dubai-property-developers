@@ -1,0 +1,1 @@
+import type {Metadata} from 'next';import {OffersPage} from '@/features/portal/OffersPage';export const metadata:Metadata={title:'Current opportunities'};export default function Page(){return <OffersPage/>;}

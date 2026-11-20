@@ -1,0 +1,74 @@
+PROSPECT CONTACT RESOURCES AND DATED REPORTS (STEP 626)
+
+
+
+The prospect form now records a separate reported WhatsApp number, the public
+
+source explicitly listing that number as WhatsApp, and up to five other public
+
+HTTPS contact resources (company contact pages or professional profiles).
+
+A business phone is never assumed to be WhatsApp. All channels remain unverified
+
+and their contact permission remains unknown. No source URL is fetched by this
+
+change. No messages, calls, collection jobs or reply notifications are activated.
+
+
+
+CSV import keeps the original eight required columns. Three optional columns:
+
+whatsapp,whatsapp_source,contact_resources
+
+Multiple resource URLs use one per line within a quoted CSV field. The new blank
+
+template includes these columns. Older eight-column files still work. Duplicate
+
+checks compare phone and WhatsApp numbers across both fields, as well as emails
+
+and name/company pairs. Sources do not establish ownership or permission.
+
+
+
+PostgreSQL JSON workspaces preserve existing records without a schema migration.
+
+Legacy records load with empty WhatsApp fields and an empty resource list.
+
+Saves from older clients that omit these fields retain any existing contact
+
+metadata. Explicitly provided empty fields are treated as intentional edits. An
+
+ordinary save stores the explicit new values; an ordinary read does not rewrite
+
+records. PDFs include the reported number, its source, and other contact resources.
+
+PDF and ZIP filenames include the export date in Dubai/GST (UTC+4); the PDF also
+
+records the precise generation time in UTC. These remain on-demand downloads,
+
+not automatic saved batches. PDF font/script limitations from Step 625 still apply.
+
+
+
+The launcher builds and refreshes API and dashboard, with isolated fictional PDF
+
+checks before refreshing. PostgreSQL and Redis are not restarted and no existing
+
+prospects are imported, rewritten or deleted. In-memory fictional demo records
+
+reset on API restart. All source backups and existing successful evidence stay.
+
+
+
+Requested discovery sources: Google web searching and social media.
+
+Requested owner reply-alert address: owner@example.com.
+
+The exact search/social integrations, their access permissions, and authenticated
+
+email sending/reply access remain unconfigured. This release does not connect
+
+Gmail or send any alert to that address. A 500 daily target is still a planning
+
+field; reaching it does not start a campaign in this release.
+

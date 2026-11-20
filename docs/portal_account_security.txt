@@ -1,0 +1,70 @@
+Step647 - Member password changes and sign-in session controls
+
+Admin opens /security from Account security in the platform menu. Members open
+/account/security from their account area or Agent Portal profile. Authentication
+and owner/member separation remain unchanged. Installation does not change passwords,
+revoke sessions, enable email, restart the API or run a search.
+
+Session review lists only the signed-in account's active sessions, their start and
+expiry in Dubai GST, and whether a row is this browser. A row represents a sign-in,
+not a verified device. IP, geolocation and browser fingerprint collection are not
+added. Tokens and stored session digests are never returned. Public session references
+are separate, one-way derived identifiers, not authentication credentials.
+Users may revoke another session, all other sessions, this browser or all sessions.
+Mutations re-check ownership and the live requesting session under the store lock.
+Removing the current session clears its cookie and requires sign-in. Expired or
+revoked sessions cannot authorize another mutation. Revocation stops existing sessions;
+it does not prevent a new sign-in with a valid password or suspend the account.
+
+Members can change a known password by entering the current password and a different
+new password of12-128 characters, with confirmation. Current password checks are
+rate-limited durably per member to five attempts per15 minutes. New scrypt hashes use
+fresh salts. Commit requires the original live session and unchanged prior credential
+hash, preventing concurrent replacements from silently overwriting each other.
+All previous member sessions are invalidated; a fresh HttpOnly/SameSiteStrict cookie
+keeps this browser signed in. Raw passwords and new tokens are not JSON response data.
+Current/new/confirmation fields are cleared after the request, including failures.
+This is authenticated password CHANGE, not forgotten-password recovery.
+
+Admin can view member active-session counts and revoke one member's sessions only
+after re-entering the current Admin password. Owner reauthentication uses existing
+persistent attempt limits; it does not mint another session. Only the chosen member's
+sessions are removed. Their account, password, approvals, properties and other records
+remain. Use Agent management separately to revoke property workspace approval.
+Owner password rotation still uses private local account setup; the member password
+endpoint cannot change owner credentials or replace environment configuration.
+
+Member security history records password changes and session revocations, actor kind,
+time and counts. Up to500 events persist globally; members can see their latest10.
+It is not a complete login/device/audit history. Owner self-session revocations do not
+yet have the same persistent activity view. No passwords or session tokens are logged.
+New optional fields are validated; old version-one member records remain readable.
+Corrupt security metadata fails closed instead of resetting accounts.
+Encrypted Step646 snapshots retain member security events, exclude active security
+attempt counters and continue excluding all live sessions. A restored password hash
+is historical: future controlled restore must account for password changes since backup.
+
+Security APIs are Node-only, private/no-store, accept bounded4KB JSON for writes,
+require same-local-origin CSRF checks and enforce server-side roles. No caller-supplied
+member ID can retarget a self-service session/password action. Unknown fields fail.
+Admin member directory returns only name/email/ID and active-session count.
+All times and counts are taken from saved records, not demo samples.
+
+Pending production work: email verification and reset delivery require authorised
+mailbox setup; MFA/passkeys, account suspension/invitations, owner password rotation UI,
+production identity/backend protection, full durable audit and production hosting are
+not enabled by this release. Gmail/WhatsApp remain disconnected unless separately set up.
+Existing member registration retains its prior password policy; no forced migration of
+existing credentials or password reset campaign runs during install.
+
+Install: step647_apply.ps1 after Step646 installed and serving. Guarded source backups,
+existing suite plus account-security tests, strict TypeScript and six offline dashboard
+refresh simulations run. Dashboard only is refreshed; owner hash, accounts, properties,
+API, researcher, PostgreSQL, Redis, search settings and33 review holds are preserved.
+No password or provider-key entry is requested by the installer. Do not enter passwords
+or recovery material into chat. This remains a local development deployment.
+
+Reference guidance:
+https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
+https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
+https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html

@@ -1,0 +1,11 @@
+'use client';
+import {useCallback,useEffect,useState} from 'react';
+import {PropertyManager,portalRequest,type MemberProfile} from './PropertyManager';
+import type {AgentProperty} from '@/lib/agentPropertyStore';
+import s from './AgentPortal.module.css';
+export function AdminPropertyPortfolio({preview=false}:{preview?:boolean}){
+ const [properties,setProperties]=useState<AgentProperty[]>([]),[members,setMembers]=useState<MemberProfile[]>([]),[trash,setTrash]=useState(false),[error,setError]=useState(''),[loading,setLoading]=useState(true);
+ const load=useCallback(async()=>{setError('');try{const data=await portalRequest('admin');setProperties(data.properties);setMembers(data.members);}catch(e){setError((e as Error).message);}finally{setLoading(false);}},[]);
+ useEffect(()=>{void load();},[load]);const current=properties.filter(p=>p.deletedAt===null);
+ return <div className={s.admin}>{preview&&<p className={s.notice}>Design preview · Fictional members and property records. Production data is separate.</p>}<div className={s.titleRow}><div><p className={s.eyebrow}>ADMIN · PROPERTY PORTFOLIO</p><h1>Properties across your team</h1><p>Actual property records saved by approved agents, with Admin review and management.</p></div><button className={s.secondary} onClick={()=>void load()}>Refresh portfolio</button></div>{error&&<p className={s.error} role="alert">{error}</p>}<div className={s.stats}>{[['Current properties',current.length],['Available',current.filter(p=>p.status==='Available').length],['Drafts',current.filter(p=>p.status==='Draft').length],['In Trash',properties.filter(p=>p.deletedAt!==null).length]].map(([label,n])=><div className={s.stat} key={label}><small>{label}</small><strong>{n}</strong></div>)}</div><p className={s.notice}>These are private agent property records. Status and prices are entered by your team; records are not automatically published to the public website.</p><div className={s.sectionHead}><h2>{trash?'Property Trash':'Team properties'}</h2><button className={s.secondary} onClick={()=>setTrash(!trash)}>{trash?'Show current properties':'View Trash'}</button></div>{loading?<p>Loading properties…</p>:<PropertyManager key={trash?'trash':'current'} properties={properties} admin members={members} showTrash={trash} onReload={()=>void load()}/>}</div>;
+}

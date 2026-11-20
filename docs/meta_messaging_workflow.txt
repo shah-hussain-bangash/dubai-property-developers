@@ -1,0 +1,104 @@
+STEP 651 - Meta replies, reviewed delivery and the shared lead pool
+
+READY TO CONFIGURE; NO SOCIAL ACCOUNT IS CONNECTED BY INSTALLING THIS STEP
+Install step651_apply.ps1 after Step650. The dashboard refresh preserves the
+existing owner, accounts, properties, enquiries, API and research runner. No new
+password, Meta key or SerpApi key is requested. Existing Meta settings, if present,
+are preserved privately. No provider request, message or account subscription runs.
+
+COMPLETE IMPLEMENTED PATH
+Registered Instagram/Facebook account -> numeric business-ID mapping -> signed
+Meta customer message -> duplicate-safe pending conversation -> contact review ->
+human interest classification -> template -> frozen exact reply -> explicit send
+approval -> single provider attempt and receipt -> human lead promotion -> Admin
+enquiry inbox -> approved-agent assignment -> agent client and follow-up workflow.
+Lead promotion does not require sending a message. Every send remains a separate
+human action. Existing source-search jobs and their limits are unchanged.
+
+LATER, WHEN YOU ARE READY TO CONNECT
+1. Run step651_connect_meta.ps1 in an interactive PowerShell terminal. Enter the
+   authorized App ID, your app's supported Graph API version, App Secret, webhook
+   verification token (32-128 letters/numbers/underscore/hyphen), numeric business
+   ID and authorized token. Secret prompts are hidden. Do not put secrets in chat.
+   Type CONNECT to apply. This refreshes only the dashboard. Secrets are passed in
+   the container environment, never host files or command arguments; Docker
+   administrators can inspect container configuration. Re-run to add another
+   business token for the same app. Changing apps replaces the token collection.
+2. Open Integrations > Social connections. Register an Instagram or Facebook
+   account record, then map its numeric Page or Instagram professional business
+   ID. Mapping is not OAuth authorization and does not subscribe the app.
+3. Configure a controlled public HTTPS gateway for /api/outreach/meta/webhook.
+   Meta cannot call localhost. Keep Admin and all other private routes protected;
+   this package does not install a public tunnel or publish your dashboard.
+4. In your existing Meta app, configure that HTTPS webhook and the SAME verification
+   token. Subscribe the relevant Page/Instagram messaging events and accounts,
+   complete product permissions/app review, and use eligible test accounts while
+   the app is in Development mode. Review your selected product's current docs.
+5. Have an eligible test customer initiate a text conversation. Refresh Replies &
+   lead pool. A signed event changes the account status to signed message received.
+   Supply only attributable contact details; review the message and its opt-out.
+6. Save a matching template, prepare an exact reply, review the recipient and text,
+   and explicitly confirm sending. The portal rechecks eligibility immediately
+   before attempting delivery. Check the stored provider receipt and conversation.
+7. Promote a reviewed interested reply with attributable email/phone to the lead
+   pool. Permission remains unknown; assign an approved agent in Leads & enquiries.
+
+PRODUCT SCOPE
+Native integration implemented here: Facebook Messenger and Page-linked Instagram
+messaging using Facebook Login tokens and graph.facebook.com. Instagram Login's
+separate token/graph.instagram.com flow is not implemented. Correct permissions,
+business account/token type and subscriptions must be configured in Meta later.
+OAuth login/refresh automation, app subscription automation, public HTTPS hosting,
+provider template approval and live account verification remain connection work.
+No native cross-platform people-search API, personal account scraping, cold-DM
+campaign sender or unattended message schedule is provided. Campaigns remain
+drafts. Audience criteria do not prove wealth, buying intent or messaging eligibility.
+
+OTHER REQUESTED CHANNELS
+TikTok, LinkedIn, WhatsApp, Telegram and X retain Step650 account metadata,
+authorized inbound-adapter contracts, templates and manual reply/lead review.
+Their native authorization, webhook verification and outbound delivery are not
+implemented by this Meta step. Existing EspoCRM/n8n enquiry intake is separate.
+
+DELIVERY CONTROLS AND RECOVERY
+The server validates Meta's raw-body HMAC-SHA256 signature before parsing or saving.
+GET verification uses the private token and returns the raw numeric challenge.
+Only mapped enabled business accounts are accepted. Echoes, receipts and non-text
+messages are ignored. Invalid/oversize batches are rejected before record mutation.
+Stable provider message IDs prevent duplicate replies. Older normal messages are
+ignored; older opt-outs still suppress contact. Only signed customer events provide
+reply-window proof. Manual/adapter updates cannot extend a native reply window.
+Exact simple stop requests suppress immediately; human review handles other wording.
+
+Only reviewed interested conversations inside a conservative 24-hour reply window
+can prepare/send. Any new reply, opt-out, changed contact, account mapping, disabled
+account or missing token prevents the stale draft from sending. No marketing
+permission is inferred. Contact/email format checks do not verify deliverability.
+Drafts freeze exact text, recipient, account and conversation version. A durable
+sending checkpoint is saved before the provider request. Concurrent/repeated send
+requests cannot re-attempt the same delivery. A receipt is recorded as sent only
+when the provider confirms the matching recipient and a message ID.
+
+Timeouts, rejected/malformed receipts and other unconfirmed outcomes are marked
+uncertain; interrupted processes may leave sending. Neither state is automatically
+retried. Check the provider conversation manually; this does not guarantee exactly
+once delivery by the external provider. A new opt-out after a request is already in
+flight cannot recall that request. There is no retry/reconciliation automation.
+
+Records remain in the private agent-portal.json store under the existing lock and
+atomic-write mechanism, within the existing 6 MB cap. Up to 1000 delivery records
+are retained. Existing encrypted portal backups validate and include these records.
+Secrets are excluded from this store, reports, UI responses and backups. Provider
+errors are redacted. Existing adapter keys stay scoped to inbound replies only.
+
+VALIDATION
+Automated tests use synthetic accounts, local temporary stores and mocked provider
+responses. They cover signed verification, deduplication, ordering, opt-outs,
+permissions, expiry, explicit approvals, concurrency, uncertain receipts, recovery
+and signed-reply -> enquiry -> agent visibility. Live provider compatibility and
+account permissions cannot be confirmed until your accounts are configured.
+
+PRIMARY REFERENCES
+https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api
+https://developers.facebook.com/docs/messenger-platform/
+https://whatsapp.github.io/WhatsApp-Nodejs-SDK/api-reference/webhooks/start/
