@@ -1,6 +1,6 @@
 # Credential scanning
 
-The [Credential Scan workflow](../../.github/workflows/secret-scan.yml) checks the fetched Git history on pull requests and pushes to main. It uses Gitleaks 8.30.1, verifies the downloaded Linux archive against a fixed SHA-256 digest, and redacts detected values in logs and the downloadable JSON report.
+The [credential-scan job](../../.github/workflows/ci.yml) checks the fetched Git history on pull requests and pushes to main. It uses Gitleaks 8.30.1, verifies the downloaded Linux archive against a fixed SHA-256 digest, and redacts detected values in logs and the downloadable JSON report.
 
 A finding fails the job. The report is available under the run's **Artifacts** section for seven days, including after a scan failure when a report was produced. This is pattern-based detection, not a guarantee that a repository contains no secrets.
 
