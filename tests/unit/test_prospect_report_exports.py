@@ -108,4 +108,3 @@ def test_zip_manifest_matches_readable_pdfs_and_uses_identifiers_for_paths():
 def test_empty_workspace_exports_are_rejected(export):
     with pytest.raises(ValueError, match="No prospects"):
         export(ResearchWorkspace(), 1)
-
