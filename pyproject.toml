@@ -30,7 +30,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-documents = ["pypdf>=4.3", "reportlab>=4.4.9,<4.5"]
+documents = ["pypdf>=4.3", "reportlab>=4.4.9,<5.2"]
 tracing = ["opentelemetry-api>=1.26", "opentelemetry-sdk>=1.26"]
 
 dev = [
