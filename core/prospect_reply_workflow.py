@@ -3,7 +3,7 @@
 import json
 from datetime import UTC, datetime
 from hashlib import sha256
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
 from pydantic import (
     AwareDatetime,
@@ -34,7 +34,7 @@ class ConfirmedProspectLink(Model):
 
     @field_validator("confirmed", mode="before")
     @classmethod
-    def explicit_confirmation(cls, value):
+    def explicit_confirmation(cls, value: object) -> Literal[True]:
         if value is not True:
             raise ValueError("Explicit confirmed attribution required")
         return value
@@ -95,7 +95,7 @@ class ReplyWorkflow(Model):
     suppressions: list[ContactSuppression] = Field(default_factory=list, max_length=500)
 
     @model_validator(mode="after")
-    def coherent(self):
+    def coherent(self) -> Self:
         for rows in (self.replies, self.tasks, self.notifications):
             if len({row.id for row in rows}) != len(rows):
                 raise ValueError("Duplicate workflow record")
@@ -138,11 +138,11 @@ class ReplyWorkflow(Model):
                 raise ValueError("Duplicate reply notification")
             seen_alerts.add(alert.event_id)
             if alert.callback_task_id is not None:
-                task = tasks.get(alert.callback_task_id)
+                linked_task = tasks.get(alert.callback_task_id)
                 if (
-                    task is None
-                    or alert.event_id not in task.event_ids
-                    or task.prospect_id != alert.prospect_id
+                    linked_task is None
+                    or alert.event_id not in linked_task.event_ids
+                    or linked_task.prospect_id != alert.prospect_id
                 ):
                     raise ValueError("Notification task mismatch")
         for suppression in self.suppressions:
@@ -156,21 +156,21 @@ class ReplyWorkflow(Model):
         return self
 
 
-def hashed(*parts):
+def hashed(*parts: object) -> str:
     return sha256(json.dumps(parts, ensure_ascii=True, separators=(",", ":")).encode()).hexdigest()[
         :32
     ]
 
 
-def event_key(tenant_id, event):
+def event_key(tenant_id: str, event: ReplyEvent) -> str:
     return hashed(tenant_id, event.channel, event.provider_event_id)
 
 
-def fingerprint(event):
+def fingerprint(event: ReplyEvent) -> str:
     return hashed(event.model_dump(mode="json"))
 
 
-def validated(value):
+def validated(value: ReplyWorkflow) -> ReplyWorkflow:
     return ReplyWorkflow.model_validate(value.model_dump())
 
 
@@ -179,8 +179,8 @@ def record_reply(
     tenant_id: str,
     link: ConfirmedProspectLink,
     event: ReplyEvent,
-    now=None,
-):
+    now: datetime | None = None,
+) -> ReplyWorkflow:
     """Return an atomic new state. Caller must lock/persist it transactionally.
 
     The caller must authenticate the inbound event, classify it and match exactly
@@ -212,8 +212,8 @@ def record_reply(
     )
     if event.kind == "auto_reply":
         return validated(value)
-    task = None
-    blocked = None
+    task: HumanCallbackTask | None = None
+    blocked: Literal["suppressed", "archived"] | None = None
     if event.kind == "opt_out":
         if not any(row.prospect_id == link.prospect_id for row in value.suppressions):
             value.suppressions.append(
@@ -255,9 +255,12 @@ def record_reply(
                 # Preserve an existing task's owner; later explicit reassignment is separate.
                 task.event_ids.append(key)
                 task.updated_at = max(stamp, task.updated_at)
-    kind = {"reply": "reply_received", "opt_out": "opt_out_received", "bounce": "delivery_issue"}[
-        event.kind
-    ]
+    kinds: dict[str, Literal["reply_received", "opt_out_received", "delivery_issue"]] = {
+        "reply": "reply_received",
+        "opt_out": "opt_out_received",
+        "bounce": "delivery_issue",
+    }
+    kind = kinds[event.kind]
     value.notifications.append(
         OwnerNotification(
             id=hashed(tenant_id, "notification", key),
@@ -280,8 +283,8 @@ def close_task(
     task_id: str,
     status: Literal["completed", "cancelled"],
     note: str,
-    now=None,
-):
+    now: datetime | None = None,
+) -> ReplyWorkflow:
     """Record a human callback outcome, never place a call or grant permission."""
     value = validated(workflow).model_copy(deep=True)
     if tenant_id != value.tenant_id:

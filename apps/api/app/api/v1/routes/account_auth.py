@@ -7,7 +7,8 @@ Google OAuth browser routes are not installed by this module.
 """
 
 import re
-from typing import Literal
+from collections.abc import Callable, Coroutine
+from typing import Any, Literal, NoReturn
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -15,12 +16,15 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr, StrictStr
 
+from core.security.account_contracts import Dependency
+from database.repositories.account_authentication import AccountAuthentication
+
 
 class PrivateValidationRoute(APIRoute):
-    def get_route_handler(self):
+    def get_route_handler(self) -> Callable[[Request], Coroutine[Any, Any, Response]]:
         original = super().get_route_handler()
 
-        async def handler(request):
+        async def handler(request: Request) -> Response:
             try:
                 return await original(request)
             except RequestValidationError:
@@ -55,16 +59,16 @@ class SessionTokenView(BaseModel):
     token_type: Literal["bearer"] = "bearer"  # noqa: S105 -- Protocol/enum label; this literal is not a credential.
 
 
-async def unavailable():
+async def unavailable() -> NoReturn:
     raise HTTPException(503, "authentication service unavailable")
 
 
-def private_response(response):
+def private_response(response: Response) -> None:
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
 
 
-def trusted_organization(value):
+def trusted_organization(value: object) -> UUID:
     if not isinstance(value, UUID) or value.int == 0:
         raise HTTPException(503, "organization configuration unavailable")
     return value
@@ -72,10 +76,10 @@ def trusted_organization(value):
 
 def create_account_auth_router(
     *,
-    get_organization=unavailable,
-    get_service=unavailable,
-    rate_guard=unavailable,
-):
+    get_organization: Dependency = unavailable,
+    get_service: Dependency = unavailable,
+    rate_guard: Dependency = unavailable,
+) -> APIRouter:
     router = APIRouter(
         prefix="/auth",
         tags=["account authentication"],
@@ -87,9 +91,9 @@ def create_account_auth_router(
     async def register(
         body: RegistrationBody,
         response: Response,
-        organization=Depends(get_organization),
-        service=Depends(get_service),
-    ):
+        organization: UUID = Depends(get_organization),
+        service: AccountAuthentication = Depends(get_service),
+    ) -> PendingAccountView:
         organization = trusted_organization(organization)
         try:
             result = await service.register_password(
@@ -110,9 +114,9 @@ def create_account_auth_router(
     async def login(
         body: LoginBody,
         response: Response,
-        organization=Depends(get_organization),
-        service=Depends(get_service),
-    ):
+        organization: UUID = Depends(get_organization),
+        service: AccountAuthentication = Depends(get_service),
+    ) -> SessionTokenView:
         organization = trusted_organization(organization)
         token = await service.login_password(
             organization,
@@ -128,8 +132,8 @@ def create_account_auth_router(
     async def logout(
         request: Request,
         response: Response,
-        service=Depends(get_service),
-    ):
+        service: AccountAuthentication = Depends(get_service),
+    ) -> Response:
         headers = request.headers.getlist("authorization")
         if len(headers) != 1:
             raise HTTPException(401, "bearer session required")

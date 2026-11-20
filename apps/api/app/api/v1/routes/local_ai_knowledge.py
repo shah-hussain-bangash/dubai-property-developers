@@ -3,6 +3,7 @@
 import asyncio
 import json
 import re
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
@@ -24,7 +25,7 @@ async def knowledge_draft(
     request: Request,
     runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.WORKFLOWS_EXECUTE)),
-):
+) -> dict[str, Any]:
     require_local(runtime)
     if getattr(request.app.state, "local_ai_busy", False):
         raise HTTPException(

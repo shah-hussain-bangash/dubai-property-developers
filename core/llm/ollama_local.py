@@ -22,7 +22,13 @@ class OllamaLocalProvider:
     _url = "http://127.0.0.1:11434/api/chat"
     _max_response_bytes = 2 * 1024 * 1024
 
-    def __init__(self, *, timeout_seconds=120, transport=None, connection="native"):
+    def __init__(
+        self,
+        *,
+        timeout_seconds: float = 120,
+        transport: httpx.AsyncBaseTransport | None = None,
+        connection: str = "native",
+    ) -> None:
         endpoints = {
             "native": "http://127.0.0.1:11434/api/chat",
             "docker-desktop": "http://host.docker.internal:11434/api/chat",

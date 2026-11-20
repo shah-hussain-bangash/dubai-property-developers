@@ -10,6 +10,7 @@ are deliberately excluded from this history store.
 from __future__ import annotations
 
 import uuid
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -49,7 +50,7 @@ class PostgresWorkflowRunStore:
         return organization_id
 
     @staticmethod
-    def _safe_step_history(run: WorkflowRun) -> dict:
+    def _safe_step_history(run: WorkflowRun) -> dict[str, Any]:
         """Persist only non-sensitive execution metadata."""
 
         return {
@@ -135,9 +136,12 @@ class PostgresWorkflowRunStore:
                 tenant_id,
             )
 
-            return await session.scalar(
-                select(WorkflowExecution).where(
-                    WorkflowExecution.id == parsed_id,
-                    WorkflowExecution.organization_id == organization_id,
-                )
+            return cast(
+                WorkflowExecution | None,
+                await session.scalar(
+                    select(WorkflowExecution).where(
+                        WorkflowExecution.id == parsed_id,
+                        WorkflowExecution.organization_id == organization_id,
+                    )
+                ),
             )

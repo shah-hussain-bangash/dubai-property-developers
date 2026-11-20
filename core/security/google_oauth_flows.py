@@ -7,6 +7,7 @@ OAuth state, PKCE, nonce, and the Google ID token.
 
 import hashlib
 import re
+from typing import Protocol
 from uuid import UUID
 
 _CONSUME = """
@@ -23,8 +24,14 @@ class OAuthFlowError(Exception):
     pass
 
 
+class FlowRedisClient(Protocol):
+    async def set(self, name: str, value: str, *, nx: bool, ex: int) -> object: ...
+
+    async def eval(self, script: str, numkeys: int, *keys_and_args: str) -> object: ...
+
+
 class GoogleOAuthFlowStore:
-    def __init__(self, redis_client, *, ttl_seconds=600):
+    def __init__(self, redis_client: FlowRedisClient, *, ttl_seconds: int = 600) -> None:
         if not callable(getattr(redis_client, "set", None)) or not callable(
             getattr(redis_client, "eval", None)
         ):
@@ -34,7 +41,7 @@ class GoogleOAuthFlowStore:
         self._redis = redis_client
         self._ttl = ttl_seconds
 
-    def _record(self, state, organization_id, browser_binding):
+    def _record(self, state: str, organization_id: UUID, browser_binding: str) -> tuple[str, str]:
         if (
             not isinstance(state, str)
             or re.fullmatch(r"[A-Za-z0-9_-]{16,256}", state) is None
@@ -50,7 +57,7 @@ class GoogleOAuthFlowStore:
         value = str(organization_id) + "|" + binding_digest
         return key, value
 
-    async def reserve(self, state, organization_id, browser_binding):
+    async def reserve(self, state: str, organization_id: UUID, browser_binding: str) -> None:
         key, value = self._record(state, organization_id, browser_binding)
         try:
             saved = await self._redis.set(key, value, nx=True, ex=self._ttl)
@@ -59,7 +66,7 @@ class GoogleOAuthFlowStore:
         if saved is not True:
             raise OAuthFlowError("Google sign-in flow could not be reserved")
 
-    async def consume(self, state, organization_id, browser_binding):
+    async def consume(self, state: str, organization_id: UUID, browser_binding: str) -> bool:
         key, value = self._record(state, organization_id, browser_binding)
         try:
             result = await self._redis.eval(_CONSUME, 1, key, value)

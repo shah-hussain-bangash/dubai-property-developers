@@ -1,6 +1,6 @@
 """Local batch controls. No scheduler, contact promotion or delivery registration."""
 
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
@@ -16,6 +16,7 @@ from database.prospect_research_batches import (
     BatchNotFound,
     access_batches,
 )
+from workflows.runtime import PlatformRuntime
 
 router = APIRouter(prefix="/batches", tags=["local-research-batches"])
 
@@ -33,7 +34,7 @@ class BatchAction(BaseModel):
     action: Literal["advance", "pause", "resume", "cancel", "skip_uncertain"]
 
 
-def guard(runtime, request=None):
+def guard(runtime: PlatformRuntime, request: Request | None = None) -> None:
     _require_isolated_demo(runtime)
     if not runtime.settings.prospect_storage_enabled:
         raise HTTPException(404, "Research storage disabled")
@@ -43,7 +44,9 @@ def guard(runtime, request=None):
             raise HTTPException(403, "Dashboard origin is not allowed")
 
 
-async def execute(runtime, principal, operation="list", **kwargs):
+async def execute(
+    runtime: PlatformRuntime, principal: Principal, operation: str = "list", **kwargs: Any
+) -> dict[str, Any]:
     try:
         value = await access_batches(runtime.settings, principal.tenant_id, operation, **kwargs)
         return {
@@ -80,9 +83,9 @@ async def execute(runtime, principal, operation="list", **kwargs):
 @router.get("")
 async def list_jobs(
     response: Response,
-    runtime=Depends(get_runtime),
+    runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.LEADS_READ)),
-):
+) -> dict[str, Any]:
     guard(runtime)
     response.headers["Cache-Control"] = "no-store"
     return await execute(runtime, principal)
@@ -93,9 +96,9 @@ async def create_job(
     body: CreateBatch,
     request: Request,
     response: Response,
-    runtime=Depends(get_runtime),
+    runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.LEADS_WRITE)),
-):
+) -> dict[str, Any]:
     guard(runtime, request)
     response.headers["Cache-Control"] = "no-store"
     return await execute(runtime, principal, "create", body=body)
@@ -105,9 +108,9 @@ async def create_job(
 async def read_job(
     response: Response,
     batch_id: str = Path(pattern=r"^[a-zA-Z0-9-]{1,80}$"),
-    runtime=Depends(get_runtime),
+    runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.LEADS_READ)),
-):
+) -> dict[str, Any]:
     guard(runtime)
     response.headers["Cache-Control"] = "no-store"
     return await execute(runtime, principal, "read", batch_id=batch_id)
@@ -119,9 +122,9 @@ async def action_job(
     request: Request,
     response: Response,
     batch_id: str = Path(pattern=r"^[a-zA-Z0-9-]{1,80}$"),
-    runtime=Depends(get_runtime),
+    runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.LEADS_WRITE)),
-):
+) -> dict[str, Any]:
     guard(runtime, request)
     response.headers["Cache-Control"] = "no-store"
     return await execute(runtime, principal, body.action, batch_id=batch_id, revision=body.revision)

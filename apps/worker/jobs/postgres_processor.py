@@ -100,8 +100,11 @@ async def process_postgres_job(
     try:
         handler = get_handler(job.job_type)
 
+        async def run_handler() -> dict[str, Any]:
+            return await handler(runtime, job)
+
         await run_with_lease_heartbeat(
-            handler(runtime, job),
+            run_handler(),
             store=store,
             tenant_id=job.tenant_id,
             job_id=job.job_id,

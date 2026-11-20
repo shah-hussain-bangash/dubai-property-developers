@@ -6,6 +6,8 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
+from database.project_knowledge.contracts import InventoryFile
+
 ROOT = Path(__file__).resolve().parents[2]
 
 SCAN_DIRECTORIES = (
@@ -56,7 +58,7 @@ EXCLUDED_PARTS = {
 MAX_FILE_BYTES = 2_000_000
 
 
-def safe_file(path):
+def safe_file(path: Path) -> bool:
     if not path.is_file() or path.is_symlink():
         return False
 
@@ -82,7 +84,7 @@ def safe_file(path):
     return path.stat().st_size <= MAX_FILE_BYTES
 
 
-def inspect_file(path):
+def inspect_file(path: Path) -> InventoryFile:
     digest = hashlib.sha256()
 
     with path.open("rb") as handle:
@@ -100,8 +102,8 @@ def inspect_file(path):
     }
 
 
-def main():
-    candidates = []
+def main() -> None:
+    candidates: list[Path] = []
 
     for name in SCAN_DIRECTORIES:
         folder = ROOT / name
@@ -151,10 +153,10 @@ def main():
     print("\nAgent-related source files:")
 
     for item in files:
-        path = item["source_path"]
+        source_path = item["source_path"]
 
-        if "agent" in path.lower():
-            print(path)
+        if "agent" in source_path.lower():
+            print(source_path)
 
 
 if __name__ == "__main__":

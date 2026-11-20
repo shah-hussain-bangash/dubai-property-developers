@@ -12,7 +12,7 @@ OUTPUT = ROOT / "database/project_knowledge/026_test_registration_batch3.sql"
 DB = "dubai_ai_knowledge_verify_20261019_095633"
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 378 SQL already exists. Stop.")
 

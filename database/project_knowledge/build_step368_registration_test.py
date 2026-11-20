@@ -11,11 +11,11 @@ OUTPUT = ROOT / "database/project_knowledge/022_test_registration_batch.sql"
 DB = "dubai_ai_knowledge_verify_20261019_095633"
 
 
-def sql_quote(value):
+def sql_quote(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 368 SQL already exists. Stop.")
 

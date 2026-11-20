@@ -10,13 +10,37 @@ import ipaddress
 import json
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Literal
+from typing import Literal, TypedDict
 from urllib.parse import urlsplit
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-SCOPES = {
+from core.config.settings import Settings
+
+DiscoveryScope = Literal["web", "linkedin", "facebook", "instagram"]
+
+
+class DiscoveryResult(TypedDict):
+    id: str
+    title: str
+    url: str
+    snippet: str
+
+
+class DiscoveryResponse(TypedDict):
+    provider: str
+    engine: str
+    scope: DiscoveryScope
+    query: str
+    searched_at: str
+    results: list[DiscoveryResult]
+    contacts_saved: bool
+    outreach_enabled: bool
+    automatic_collection: bool
+
+
+SCOPES: dict[DiscoveryScope, str | None] = {
     "web": None,
     "linkedin": "linkedin.com",
     "facebook": "facebook.com",
@@ -38,7 +62,7 @@ class DiscoveryLimit(Exception):
     pass
 
 
-def configured(settings):
+def configured(settings: Settings) -> bool:
     key = settings.prospect_search_api_key
     value = key.get_secret_value() if key else ""
     return (
@@ -48,7 +72,7 @@ def configured(settings):
     )
 
 
-def safe_result_url(value, scope):
+def safe_result_url(value: object, scope: DiscoveryScope) -> str | None:
     if not isinstance(value, str) or len(value) > 1500:
         return None
     try:
@@ -79,7 +103,7 @@ def safe_result_url(value, scope):
         return None
 
 
-def parse_results(body, scope, key=""):
+def parse_results(body: object, scope: DiscoveryScope, key: str = "") -> list[DiscoveryResult]:
     if (
         not isinstance(body, dict)
         or body.get("error")
@@ -90,7 +114,7 @@ def parse_results(body, scope, key=""):
     raw = body.get("organic_results", [])
     if not isinstance(raw, list):
         raise DiscoveryUnavailable()
-    results = []
+    results: list[DiscoveryResult] = []
     seen = set()
     for row in raw[:50]:
         if not isinstance(row, dict):
@@ -124,10 +148,15 @@ def parse_results(body, scope, key=""):
     return results
 
 
-async def search_once(settings, body, transport=None):
+async def search_once(
+    settings: Settings, body: DiscoveryRequest, transport: httpx.AsyncBaseTransport | None = None
+) -> DiscoveryResponse:
     if not configured(settings):
         raise DiscoveryUnavailable()
-    key = settings.prospect_search_api_key.get_secret_value()
+    key_setting = settings.prospect_search_api_key
+    if key_setting is None:
+        raise DiscoveryUnavailable()
+    key = key_setting.get_secret_value()
     query = body.query
     if SCOPES[body.scope]:
         query = f"site:{SCOPES[body.scope]} {query}"
@@ -179,7 +208,7 @@ async def search_once(settings, body, transport=None):
             await connection.aclose()
 
 
-async def reserve_search(settings, tenant_id):
+async def reserve_search(settings: Settings, tenant_id: str) -> None:
     """Consume one daily attempt before any provider request; fail closed on Redis loss."""
     from redis.asyncio import Redis
 

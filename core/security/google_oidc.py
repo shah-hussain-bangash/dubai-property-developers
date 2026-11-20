@@ -10,10 +10,13 @@ import math
 import secrets
 import time
 from collections.abc import Mapping
+from typing import cast
 from urllib.parse import urlsplit
 
 from authlib.integrations.starlette_client import OAuth
 from email_validator import validate_email
+from starlette.requests import Request
+from starlette.responses import Response
 
 GOOGLE_METADATA = "https://accounts.google.com/.well-known/openid-configuration"
 GOOGLE_ISSUER = "https://accounts.google.com"
@@ -27,11 +30,11 @@ class GoogleOIDC:
     def __init__(
         self,
         *,
-        client_id,
-        client_secret,
-        redirect_uri,
-        allow_local_http=False,
-    ):
+        client_id: str,
+        client_secret: str,
+        redirect_uri: str,
+        allow_local_http: bool = False,
+    ) -> None:
         if not isinstance(client_id, str) or not client_id.strip():
             raise ValueError("Google client ID required")
         if not isinstance(client_secret, str) or not client_secret.strip():
@@ -75,19 +78,22 @@ class GoogleOIDC:
             },
         )
 
-    def _require_session(self, request):
+    def _require_session(self, request: Request) -> None:
         if "session" not in request.scope:
             raise GoogleSignInError("Google sign-in is unavailable")
 
-    async def start(self, request):
+    async def start(self, request: Request) -> Response:
         self._require_session(request)
-        return await self._client.authorize_redirect(
-            request,
-            self._redirect_uri,
-            nonce=secrets.token_urlsafe(32),
+        return cast(
+            Response,
+            await self._client.authorize_redirect(
+                request,
+                self._redirect_uri,
+                nonce=secrets.token_urlsafe(32),
+            ),
         )
 
-    async def complete(self, request):
+    async def complete(self, request: Request) -> dict[str, str]:
         self._require_session(request)
         try:
             # Authlib must exchange the code and validate the OIDC token.
@@ -120,11 +126,10 @@ class GoogleOIDC:
             ):
                 raise ValueError("authorized party mismatch")
             expires = claims.get("exp")
-            if (
-                type(expires) not in (int, float)
-                or not math.isfinite(expires)
-                or expires <= time.time()
-            ):
+            if type(expires) not in (int, float):
+                raise ValueError("expired identity")
+            expires_number = cast(int | float, expires)
+            if not math.isfinite(expires_number) or expires_number <= time.time():
                 raise ValueError("expired identity")
             subject = claims.get("sub")
             if (

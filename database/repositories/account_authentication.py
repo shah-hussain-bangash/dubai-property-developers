@@ -5,6 +5,20 @@ Supply reviewed dependencies and a dummy hash generated with the real hasher.
 Public routes must supply server-selected organization IDs and apply rate limits.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import TYPE_CHECKING
+
+from starlette.requests import Request
+
+from core.security.account_contracts import AccountRecord, SessionFactory
+
+if TYPE_CHECKING:
+    from core.security.google_oidc import GoogleOIDC
+    from database.repositories.account_registration import PendingAccountRegistration
+    from database.repositories.account_sessions import AccountSessions
+
 import asyncio
 from uuid import UUID
 
@@ -31,14 +45,14 @@ organizations = sa.table(
 class AccountAuthentication:
     def __init__(
         self,
-        session_factory,
+        session_factory: SessionFactory,
         *,
-        password_verifier,
-        dummy_hash,
-        registration_service,
-        session_service,
-        google_provider,
-    ):
+        password_verifier: Callable[[str, str], bool],
+        dummy_hash: str,
+        registration_service: PendingAccountRegistration,
+        session_service: AccountSessions,
+        google_provider: GoogleOIDC,
+    ) -> None:
         if not callable(session_factory) or not callable(password_verifier):
             raise ValueError("trusted database factory and verifier required")
         if not isinstance(dummy_hash, str) or not 1 <= len(dummy_hash) <= 255:
@@ -50,11 +64,11 @@ class AccountAuthentication:
         self._sessions = session_service
         self._google = google_provider
 
-    def _organization(self, organization_id):
+    def _organization(self, organization_id: UUID) -> None:
         if not isinstance(organization_id, UUID) or organization_id.int == 0:
             raise ValueError("trusted organization UUID required")
 
-    async def login_password(self, organization_id, *, email, password):
+    async def login_password(self, organization_id: UUID, *, email: str, password: str) -> str:
         self._organization(organization_id)
         if (
             not isinstance(email, str)
@@ -96,7 +110,7 @@ class AccountAuthentication:
             row = (await session.execute(statement)).mappings().first()
             stored = row["password_hash"] if row is not None else None
             usable = isinstance(stored, str) and bool(stored)
-            digest = stored if usable else self._dummy_hash
+            digest = stored if isinstance(stored, str) and usable else self._dummy_hash
             try:
                 valid = await asyncio.to_thread(
                     self._verify_password,
@@ -123,14 +137,14 @@ class AccountAuthentication:
             auth_method="password",
         )
 
-    async def register_password(self, organization_id, **credentials):
+    async def register_password(self, organization_id: UUID, **credentials: str) -> AccountRecord:
         self._organization(organization_id)
         return await self._registration.register_password(
             organization_id,
             **credentials,
         )
 
-    async def login_google(self, organization_id, *, request):
+    async def login_google(self, organization_id: UUID, *, request: Request) -> str:
         self._organization(organization_id)
         identity = await self._google.complete(request)
         account = await self._registration.google_account(
@@ -145,5 +159,5 @@ class AccountAuthentication:
             auth_method="google",
         )
 
-    async def logout(self, token):
+    async def logout(self, token: str) -> bool:
         return await self._sessions.revoke(token)

@@ -23,12 +23,12 @@ EXPECTED_EXTENSIONS = {
 }
 
 
-def load_csv(path):
+def load_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f))
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 387 SQL already exists. Stop.")
 

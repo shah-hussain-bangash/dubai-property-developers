@@ -10,7 +10,7 @@ import unicodedata
 AVAILABILITY_WARNING = "Current availability must be confirmed with the developer."
 
 
-def _normalized(text):
+def _normalized(text: str) -> str:
     value = unicodedata.normalize("NFKC", text)
     value = "".join(ch for ch in value if unicodedata.category(ch) != "Cf")
     return " ".join(value.casefold().split())

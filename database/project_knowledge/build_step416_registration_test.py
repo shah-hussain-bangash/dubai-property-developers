@@ -28,19 +28,19 @@ EXPECTED_PATHS = {
 }
 
 
-def load_csv(path):
+def load_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as stream:
         return list(csv.DictReader(stream))
 
 
-def replace_exact(text, old, new, expected=1):
+def replace_exact(text: str, old: str, new: str, expected: int = 1) -> str:
     count = text.count(old)
     if count != expected:
         raise RuntimeError(f"Expected {expected} instances of {old!r}; found {count}")
     return text.replace(old, new)
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 416 output already exists.")
 

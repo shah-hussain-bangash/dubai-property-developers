@@ -129,7 +129,7 @@ async def requeue_with_fencing(
         generation,
     )
 
-    outcomes = {
+    outcomes: dict[int, FencedRecoveryResult] = {
         0: "missing",
         1: "moved",
         2: "already_moved",

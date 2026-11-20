@@ -6,6 +6,9 @@ Read-only: no database writes and no changes to source files.
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
+from typing import Any
+
+from database.project_knowledge.contracts import SourceFingerprint
 
 ROOT = Path(__file__).resolve().parents[2]
 FOLDER = ROOT / "database" / "project_knowledge"
@@ -66,7 +69,7 @@ MAX_BYTES = 2_000_000
 MAX_FILES = 10000
 
 
-def safe_path(relative):
+def safe_path(relative: str) -> bool:
     path = PurePosixPath(relative)
 
     return (
@@ -81,7 +84,7 @@ def safe_path(relative):
     )
 
 
-def eligible(file):
+def eligible(file: Path) -> bool:
     if not file.is_file() or file.is_symlink():
         return False
 
@@ -96,7 +99,7 @@ def eligible(file):
     return file.stat().st_size <= MAX_BYTES
 
 
-def fingerprint(file):
+def fingerprint(file: Path) -> SourceFingerprint:
     digest = hashlib.sha256()
 
     with file.open("rb") as handle:
@@ -113,7 +116,7 @@ def fingerprint(file):
     }
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Change report already exists. Review before replacing.")
 
@@ -153,7 +156,7 @@ def main():
 
         known[path] = item
 
-    candidates = set()
+    candidates: set[Path] = set()
 
     for folder_name in SCAN_DIRECTORIES:
         folder = ROOT / folder_name
@@ -204,7 +207,7 @@ def main():
     for path in sorted(set(known) - set(current)):
         missing.append(path)
 
-    report = {
+    report: dict[str, Any] = {
         "project_key": PROJECT_KEY,
         "baseline_files": len(known),
         "current_files": len(current),

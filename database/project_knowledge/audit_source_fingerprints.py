@@ -13,7 +13,7 @@ RESTORE_DB = "dubai_ai_knowledge_verify_20261019_095633"
 EXPECTED_COUNT = 325
 
 
-def fetch_registered_sources():
+def fetch_registered_sources() -> list[dict[str, str]]:
     sql = """
     COPY (
         SELECT source_path, content_sha256
@@ -71,7 +71,7 @@ def fetch_registered_sources():
     return records
 
 
-def inspect_file(row):
+def inspect_file(row: dict[str, str]) -> dict[str, str]:
     original_path = row["source_path"]
     expected_hash = row["content_sha256"]
 
@@ -130,7 +130,7 @@ def inspect_file(row):
     return result
 
 
-def main():
+def main() -> None:
     records = fetch_registered_sources()
 
     print("PASS: Retrieved 325 source fingerprints from restored database")

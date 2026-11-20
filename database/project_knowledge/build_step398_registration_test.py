@@ -18,12 +18,12 @@ DB = "dubai_ai_knowledge_verify_20261019_095633"
 EXPECTED_TYPES = {".py": 3, ".yml": 3, ".md": 4}
 
 
-def read_csv(path):
+def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f))
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 398 SQL already exists. Stop.")
 

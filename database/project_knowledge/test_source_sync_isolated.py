@@ -12,11 +12,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TOOLS = PROJECT_ROOT / "database" / "project_knowledge"
 
 
-def sha256(data):
+def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def run_script(path):
+def run_script(path: Path) -> str:
     result = subprocess.run(  # noqa: S603 -- Trusted local executable and argument list; no shell or request input.
         [sys.executable, str(path)],
         capture_output=True,
@@ -31,7 +31,7 @@ def run_script(path):
     return result.stdout
 
 
-def main():
+def main() -> None:
     with tempfile.TemporaryDirectory(prefix="source_sync_test_") as temp:
         root = Path(temp)
         folder = root / "database" / "project_knowledge"

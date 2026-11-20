@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -163,11 +164,14 @@ class PostgresBackgroundJobStore:
                 tenant_id,
             )
 
-            return await session.scalar(
-                select(BackgroundJob).where(
-                    BackgroundJob.organization_id == organization_id,
-                    BackgroundJob.job_id == job_id,
-                )
+            return cast(
+                BackgroundJob | None,
+                await session.scalar(
+                    select(BackgroundJob).where(
+                        BackgroundJob.organization_id == organization_id,
+                        BackgroundJob.job_id == job_id,
+                    )
+                ),
             )
 
     async def claim(

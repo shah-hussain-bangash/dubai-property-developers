@@ -3,7 +3,7 @@
 import asyncio
 import json
 import re
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal, Self
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import ConfigDict, Field, StringConstraints, model_validator
@@ -30,7 +30,7 @@ class LocalPropertyCriteria(DemoPropertyCriteria):
     include_unavailable: Literal[False] = False
 
     @model_validator(mode="after")
-    def ordered_ranges(self):
+    def ordered_ranges(self) -> Self:
         if self.budget_min_aed is not None and self.budget_min_aed > self.budget_max_aed:
             raise ValueError("Budget range is invalid")
         if (
@@ -48,7 +48,7 @@ async def explain_properties(
     request: Request,
     runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.WORKFLOWS_EXECUTE)),
-):
+) -> dict[str, Any]:
     require_local(runtime)
     if getattr(request.app.state, "local_ai_busy", False):
         raise HTTPException(

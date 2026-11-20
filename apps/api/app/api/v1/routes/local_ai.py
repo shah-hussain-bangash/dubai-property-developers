@@ -1,7 +1,7 @@
 """Development-only, real local Qwen drafting; no tools or delivery integrations."""
 
 import asyncio
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, StringConstraints
@@ -22,7 +22,7 @@ class LocalQuestion(BaseModel):
     message: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=1000)]
 
 
-def require_local(runtime):
+def require_local(runtime: PlatformRuntime) -> None:
     _require_isolated_demo(runtime)
     if not runtime.settings.local_ai_enabled:
         raise HTTPException(status_code=404, detail="Local AI is unavailable")
@@ -32,7 +32,7 @@ def require_local(runtime):
 async def capabilities(
     runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.WORKFLOWS_EXECUTE)),
-):
+) -> dict[str, Any]:
     require_local(runtime)
     return {"enabled": True, "provider": "ollama", "model": "qwen3:8b", "sends_messages": False}
 
@@ -43,7 +43,7 @@ async def draft(
     request: Request,
     runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.WORKFLOWS_EXECUTE)),
-):
+) -> dict[str, Any]:
     require_local(runtime)
     if getattr(request.app.state, "local_ai_busy", False):
         raise HTTPException(

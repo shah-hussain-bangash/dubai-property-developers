@@ -8,6 +8,8 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
+from database.project_knowledge.contracts import DiscoveredFile
+
 ROOT = Path(__file__).resolve().parents[2]
 DB = "dubai_ai_knowledge_verify_20261019_095633"
 
@@ -76,7 +78,7 @@ SOURCE_SUFFIXES = {
 }
 
 
-def fetch_registry():
+def fetch_registry() -> set[str]:
     sql = """
     COPY (
         SELECT source_path
@@ -129,7 +131,7 @@ def fetch_registry():
     return registry
 
 
-def classify(path):
+def classify(path: str) -> str:
     suffix = Path(path).suffix.lower()
 
     if suffix in {".py", ".js", ".jsx", ".ts", ".tsx", ".sql", ".json", ".yaml", ".yml", ".toml"}:
@@ -141,8 +143,8 @@ def classify(path):
     return "other"
 
 
-def discover_files():
-    discovered = []
+def discover_files() -> list[DiscoveredFile]:
+    discovered: list[DiscoveredFile] = []
 
     for directory, subdirs, filenames in os.walk(ROOT, topdown=True, followlinks=False):
         parent = Path(directory)
@@ -183,7 +185,7 @@ def discover_files():
     return discovered
 
 
-def main():
+def main() -> None:
     registry = fetch_registry()
     local_files = discover_files()
 

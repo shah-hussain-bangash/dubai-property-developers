@@ -6,7 +6,9 @@ Successful offline checks do not prove database state or allow live activation.
 
 import ast
 import re
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlsplit
 from uuid import UUID
 
@@ -68,7 +70,7 @@ SCHEMA_COLUMNS = {
 }
 
 
-def _placeholder(value):
+def _placeholder(value: str) -> bool:
     return any(
         marker in value.casefold()
         for marker in (
@@ -82,7 +84,7 @@ def _placeholder(value):
     )
 
 
-def inspect_environment(values):
+def inspect_environment(values: Mapping[str, object]) -> dict[str, Any]:
     checks = {}
     for key in ENV_KEYS:
         if key == "BROWSER_AUTH_REGISTRATION_ENABLED":
@@ -147,11 +149,11 @@ def inspect_environment(values):
     }
 
 
-def _migration_metadata(path):
+def _migration_metadata(path: Path) -> tuple[str, str | None]:
     if path.is_symlink() or path.is_junction() or path.stat().st_size > 1048576:
         raise ValueError("invalid migration source")
     tree = ast.parse(path.read_text(encoding="utf-8-sig"))
-    fields = {}
+    fields: dict[str, Any] = {}
     for node in tree.body:
         targets = (
             node.targets
@@ -164,7 +166,8 @@ def _migration_metadata(path):
             if isinstance(target, ast.Name) and target.id in {"revision", "down_revision"}:
                 if target.id in fields:
                     raise ValueError("duplicate migration metadata")
-                fields[target.id] = ast.literal_eval(node.value)
+                if isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value is not None:
+                    fields[target.id] = ast.literal_eval(node.value)
     if set(fields) != {"revision", "down_revision"}:
         raise ValueError("missing migration metadata")
     for name, value in fields.items():
@@ -175,7 +178,7 @@ def _migration_metadata(path):
     return fields["revision"], fields["down_revision"]
 
 
-def inspect_migrations(project_root):
+def inspect_migrations(project_root: str | Path) -> dict[str, Any]:
     root = Path(project_root).resolve()
     directory = root / "database/migrations/versions"
     revisions = {}
@@ -197,7 +200,7 @@ def inspect_migrations(project_root):
     graph_valid = graph_valid and bool(revisions) and len(heads) == 1
     for revision in revisions:
         seen = set()
-        current = revision
+        current: str | None = revision
         while current is not None:
             if current in seen or current not in revisions:
                 graph_valid = False
@@ -243,7 +246,7 @@ def inspect_migrations(project_root):
     }
 
 
-def assess_schema_columns(snapshot):
+def assess_schema_columns(snapshot: object) -> dict[str, Any]:
     """Compare externally collected metadata. Presence alone does not verify constraints."""
     missing = {}
     for table, required in SCHEMA_COLUMNS.items():

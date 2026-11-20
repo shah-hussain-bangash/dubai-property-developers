@@ -125,7 +125,7 @@ async def inspect_recovery_snapshot(
         raw,
     )
 
-    outcomes = {
+    outcomes: dict[int, RecoverySnapshotResult] = {
         0: "processing",
         1: "pending",
         2: "missing",

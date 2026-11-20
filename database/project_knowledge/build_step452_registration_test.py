@@ -23,18 +23,18 @@ EXPECTED_PATHS = {
 }
 
 
-def read_csv(path):
+def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f))
 
 
-def replace_exact(text, old, new, count=1):
+def replace_exact(text: str, old: str, new: str, count: int = 1) -> str:
     if text.count(old) != count:
         raise RuntimeError(f"Expected {count} occurrences: {old}")
     return text.replace(old, new)
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Output SQL already exists.")
 

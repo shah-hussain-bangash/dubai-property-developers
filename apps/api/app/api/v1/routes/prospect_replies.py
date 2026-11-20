@@ -1,7 +1,7 @@
 """Explicit manual reply review. No inbox sync, notification delivery or calls."""
 
 from datetime import UTC, datetime, timedelta
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints, field_validator
@@ -13,6 +13,8 @@ from core.prospect_reply_workflow import ReplyEvent
 from core.security.rbac import Permission, Principal
 from database.prospect_reply_storage import UnknownProspect, access_reply_storage
 from database.prospect_research import RevisionConflict, UnknownOrganization
+from database.research_contracts import StateSnapshot
+from workflows.runtime import PlatformRuntime
 
 router = APIRouter(prefix="/replies", tags=["local-prospect-replies"])
 Identity = Annotated[str, StringConstraints(pattern=r"^[a-zA-Z0-9-]{1,100}$")]
@@ -31,7 +33,7 @@ class ManualReply(BaseModel):
 
     @field_validator("text")
     @classmethod
-    def nonblank(cls, value):
+    def nonblank(cls, value: str) -> str:
         if not value.strip():
             raise ValueError("Reply text required")
         return value
@@ -45,7 +47,7 @@ class CloseCallback(BaseModel):
     note: str = Field(min_length=1, max_length=1500)
 
 
-async def parse(request, model):
+async def parse[ReplyModel: BaseModel](request: Request, model: type[ReplyModel]) -> ReplyModel:
     raw = bytearray()
     async for chunk in request.stream():
         raw.extend(chunk)
@@ -59,7 +61,7 @@ async def parse(request, model):
         ) from None
 
 
-def project(saved, principal):
+def project(saved: StateSnapshot, principal: Principal) -> dict[str, Any]:
     state = saved["state"]
     return {
         "storage": "postgresql",
@@ -104,7 +106,9 @@ def project(saved, principal):
     }
 
 
-async def execute(runtime, principal, operation="read", **kwargs):
+async def execute(
+    runtime: PlatformRuntime, principal: Principal, operation: str = "read", **kwargs: Any
+) -> dict[str, Any]:
     try:
         return project(
             await access_reply_storage(runtime.settings, principal.tenant_id, operation, **kwargs),
@@ -134,9 +138,9 @@ async def execute(runtime, principal, operation="read", **kwargs):
 @router.get("")
 async def read_replies(
     response: Response,
-    runtime=Depends(get_runtime),
+    runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.LEADS_READ)),
-):
+) -> dict[str, Any]:
     guard(runtime)
     response.headers["Cache-Control"] = "no-store"
     return await execute(runtime, principal)
@@ -146,9 +150,9 @@ async def read_replies(
 async def manual_reply(
     request: Request,
     response: Response,
-    runtime=Depends(get_runtime),
+    runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.LEADS_WRITE)),
-):
+) -> dict[str, Any]:
     guard(runtime, request)
     body = await parse(request, ManualReply)
     if body.confirmed is not True:
@@ -178,9 +182,9 @@ async def manual_reply(
 async def close_callback(
     request: Request,
     response: Response,
-    runtime=Depends(get_runtime),
+    runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.LEADS_WRITE)),
-):
+) -> dict[str, Any]:
     guard(runtime, request)
     body = await parse(request, CloseCallback)
     response.headers["Cache-Control"] = "no-store"

@@ -18,7 +18,7 @@ CANDIDATES = [
 ]
 
 
-def execute(sql):
+def execute(sql: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(  # noqa: S603 -- Trusted local executable and argument list; no shell or request input.
         [  # noqa: S607 -- Local maintenance tool resolves Docker from the operator PATH.
             "docker",
@@ -47,7 +47,7 @@ def execute(sql):
     )
 
 
-def read(sql):
+def read(sql: str) -> str:
     result = execute(sql)
 
     if result.returncode:
@@ -56,7 +56,7 @@ def read(sql):
     return result.stdout.strip()
 
 
-def attempt(new_hash):
+def attempt(new_hash: str) -> subprocess.CompletedProcess[str]:
     sql = (
         "SELECT project_knowledge.sync_source_test("
         "'dubai-real-estate-ai',"
@@ -68,7 +68,7 @@ def attempt(new_hash):
     return execute(sql)
 
 
-def main():
+def main() -> None:
     if read("SELECT current_database();") != TEST_DB:
         raise RuntimeError("Unsafe database target")
 

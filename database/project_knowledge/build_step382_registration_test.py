@@ -14,12 +14,12 @@ OUTPUT = ROOT / "database/project_knowledge/028_test_registration_batch4.sql"
 DB = "dubai_ai_knowledge_verify_20261019_095633"
 
 
-def read_csv(path):
+def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as handle:
         return list(csv.DictReader(handle))
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 382 SQL already exists. Stop.")
 

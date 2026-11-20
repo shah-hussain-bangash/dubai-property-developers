@@ -37,7 +37,7 @@ EXCLUDED_SUFFIXES = {
 }
 
 
-def run(command):
+def run(command: list[str]) -> bytes:
     result = subprocess.run(  # noqa: S603 -- Trusted local executable and argument list; no shell or request input.
         command,
         cwd=ROOT,
@@ -53,7 +53,7 @@ def run(command):
     return result.stdout
 
 
-def registered_paths():
+def registered_paths() -> set[str]:
     sql = """
     COPY (
         SELECT source_path
@@ -97,7 +97,7 @@ def registered_paths():
     return paths
 
 
-def git_visible_paths():
+def git_visible_paths() -> set[str]:
     # Includes tracked files and non-ignored untracked files.
     output = run(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"])
 
@@ -108,7 +108,7 @@ def git_visible_paths():
     }
 
 
-def classification(path):
+def classification(path: str) -> str:
     suffix = Path(path).suffix.lower()
 
     if suffix in {".py", ".js", ".jsx", ".ts", ".tsx", ".sql", ".json", ".yaml", ".yml", ".toml"}:
@@ -120,7 +120,7 @@ def classification(path):
     return "other"
 
 
-def main():
+def main() -> None:
     registry = registered_paths()
     candidates = git_visible_paths()
 

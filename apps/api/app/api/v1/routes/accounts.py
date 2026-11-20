@@ -6,13 +6,14 @@ state, enforce conditional decisions, and commit decisions and audit atomically.
 The service's owner identity must come from trusted server configuration.
 """
 
-from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from typing import Literal, NoReturn, Protocol
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, StrictBool
+
+from core.security.account_contracts import AccountRecord, Dependency, VerifiedActor
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,7 +21,7 @@ class AccountActor:
     user_id: UUID
     organization_id: UUID
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not isinstance(self.user_id, UUID) or not isinstance(self.organization_id, UUID):
             raise ValueError("verified UUID identifiers required")
 
@@ -39,32 +40,40 @@ class ApprovalDecision(BaseModel):
 
 class AccountService(Protocol):
     def owner_subject(self, organization_id: UUID) -> UUID | None: ...
-    async def list_pending(self, actor: AccountActor, *, limit: int) -> list[dict]: ...
-    async def decide(self, actor: AccountActor, target_id: UUID, *, approve: bool) -> dict: ...
-    async def get_self(self, actor: AccountActor) -> dict: ...
+    async def list_pending(self, actor: AccountActor, *, limit: int) -> list[AccountRecord]: ...
+    async def decide(
+        self, actor: AccountActor, target_id: UUID, *, approve: bool
+    ) -> AccountRecord: ...
+    async def get_self(self, actor: AccountActor) -> AccountRecord: ...
+    async def require_dashboard_access(self, actor: VerifiedActor) -> AccountRecord: ...
 
 
-async def _unconfigured_actor():
+async def _unconfigured_actor() -> NoReturn:
     raise HTTPException(status_code=401, detail="authentication required")
 
 
-async def _unconfigured_service():
+async def _unconfigured_service() -> NoReturn:
     raise HTTPException(status_code=503, detail="account service unavailable")
 
 
 def create_accounts_router(
     *,
-    get_actor: Callable = _unconfigured_actor,
-    get_service: Callable = _unconfigured_service,
+    get_actor: Dependency = _unconfigured_actor,
+    get_service: Dependency = _unconfigured_service,
 ) -> APIRouter:
     router = APIRouter(prefix="/accounts", tags=["accounts"])
 
-    def owner_required(actor, service):
+    def owner_required(actor: AccountActor, service: AccountService) -> None:
         owner = service.owner_subject(actor.organization_id)
         if not isinstance(owner, UUID) or owner != actor.user_id:
             raise HTTPException(status_code=403, detail="owner approval required")
 
-    def checked_view(data, actor, expected_id=None, expected_status=None):
+    def checked_view(
+        data: AccountRecord,
+        actor: AccountActor,
+        expected_id: UUID | None = None,
+        expected_status: str | None = None,
+    ) -> AccountView:
         view = AccountView.model_validate(data)
         if view.organization_id != actor.organization_id:
             raise HTTPException(status_code=403, detail="account access denied")
@@ -78,7 +87,7 @@ def create_accounts_router(
     async def get_me(
         actor: AccountActor = Depends(get_actor),
         service: AccountService = Depends(get_service),
-    ):
+    ) -> AccountView:
         # This exposes only own account status, not protected dashboard data.
         return checked_view(await service.get_self(actor), actor, expected_id=actor.user_id)
 
@@ -87,7 +96,7 @@ def create_accounts_router(
         limit: int = Query(default=50, ge=1, le=100),
         actor: AccountActor = Depends(get_actor),
         service: AccountService = Depends(get_service),
-    ):
+    ) -> list[AccountView]:
         owner_required(actor, service)
         rows = await service.list_pending(actor, limit=limit)
         if len(rows) > limit:
@@ -100,7 +109,7 @@ def create_accounts_router(
         body: ApprovalDecision,
         actor: AccountActor = Depends(get_actor),
         service: AccountService = Depends(get_service),
-    ):
+    ) -> AccountView:
         owner_required(actor, service)
         if account_id == actor.user_id:
             raise HTTPException(status_code=403, detail="self-approval prohibited")

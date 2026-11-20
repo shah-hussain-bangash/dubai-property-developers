@@ -1,7 +1,10 @@
 """Tenant-scoped atomic reply/task snapshots. Provision explicitly; no API routes."""
 
 import json
+from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import Any, Literal
+from uuid import UUID
 
 from sqlalchemy import (
     JSON,
@@ -18,9 +21,11 @@ from sqlalchemy import (
     update,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.pool import NullPool
 
+from core.config.settings import Settings
 from core.prospect_reply_workflow import (
     ConfirmedProspectLink,
     ReplyEvent,
@@ -29,6 +34,7 @@ from core.prospect_reply_workflow import (
     record_reply,
 )
 from database.prospect_research import RevisionConflict, metadata, organization, read_workspace
+from database.research_contracts import StateSnapshot
 
 reply_workspaces = Table(
     "prospect_reply_workspaces_v1",
@@ -50,7 +56,7 @@ class UnknownProspect(Exception):
     pass
 
 
-def decode(state, slug):
+def decode(state: object, slug: str) -> ReplyWorkflow:
     # Strict models accept ISO datetimes in JSON mode, not untrusted Python strings.
     workflow = ReplyWorkflow.model_validate_json(json.dumps(state))
     if workflow.tenant_id != slug:
@@ -58,7 +64,7 @@ def decode(state, slug):
     return workflow
 
 
-def read_replies(conn, slug):
+def read_replies(conn: Connection, slug: str) -> StateSnapshot:
     org = organization(conn, slug)
     row = (
         conn.execute(
@@ -79,14 +85,20 @@ def read_replies(conn, slug):
     }
 
 
-def _revision(expected, actual):
+def _revision(expected: int, actual: int) -> None:
     if type(expected) is not int or expected < 0 or expected != actual:
         raise RevisionConflict()
 
 
-def _save(conn, slug, org, revision, state, now):
+def _save(
+    conn: Connection, slug: str, org: UUID, revision: int, state: ReplyWorkflow, now: datetime
+) -> StateSnapshot:
     state = decode(state.model_dump(mode="json"), slug)
-    values = {"revision": revision + 1, "state": state.model_dump(mode="json"), "updated_at": now}
+    values: dict[str, Any] = {
+        "revision": revision + 1,
+        "state": state.model_dump(mode="json"),
+        "updated_at": now,
+    }
     if revision == 0:
         conn.execute(insert(reply_workspaces).values(organization_id=org, **values))
     else:
@@ -102,7 +114,15 @@ def _save(conn, slug, org, revision, state, now):
     return {"revision": revision + 1, "state": values["state"]}
 
 
-def record_incoming(conn, slug, revision, prospect_id, owner_id, event: ReplyEvent, now=None):
+def record_incoming(
+    conn: Connection,
+    slug: str,
+    revision: int,
+    prospect_id: str,
+    owner_id: str,
+    event: ReplyEvent,
+    now: datetime | None = None,
+) -> StateSnapshot:
     """Caller authenticates sender/owner and matches the reply before invoking.
 
     Organization row lock serializes writes, including first insertion. No commit
@@ -133,7 +153,16 @@ def record_incoming(conn, slug, revision, prospect_id, owner_id, event: ReplyEve
     return _save(conn, slug, org, stored["revision"], changed, stamp)
 
 
-def close_callback(conn, slug, revision, owner_id, task_id, status, note, now=None):
+def close_callback(
+    conn: Connection,
+    slug: str,
+    revision: int,
+    owner_id: str,
+    task_id: str,
+    status: Literal["completed", "cancelled"],
+    note: str,
+    now: datetime | None = None,
+) -> StateSnapshot:
     org = organization(conn, slug, lock=True)
     stored = read_replies(conn, slug)
     _revision(revision, stored["revision"])
@@ -144,7 +173,7 @@ def close_callback(conn, slug, revision, owner_id, task_id, status, note, now=No
     return _save(conn, slug, org, stored["revision"], changed, stamp)
 
 
-def check_schema(conn):
+def check_schema(conn: Connection) -> None:
     inspector = inspect(conn)
     columns = {row["name"]: row for row in inspector.get_columns(reply_workspaces.name)}
     if set(columns) != {"organization_id", "revision", "state", "updated_at"}:
@@ -179,7 +208,7 @@ def check_schema(conn):
         raise ValueError("Expected reply revision constraint missing")
 
 
-def initialize(conn, slug, check_only=False):
+def initialize(conn: Connection, slug: str, check_only: bool = False) -> StateSnapshot:
     organization(conn, slug)
     if not check_only:
         reply_workspaces.create(conn, checkfirst=True)
@@ -187,7 +216,7 @@ def initialize(conn, slug, check_only=False):
     return read_replies(conn, slug)
 
 
-def make_engine(settings):
+def make_engine(settings: Settings) -> AsyncEngine:
     return create_async_engine(
         settings.database_url.get_secret_value(),
         poolclass=NullPool,
@@ -197,7 +226,9 @@ def make_engine(settings):
     )
 
 
-async def access_reply_storage(settings, slug, operation="read", **kwargs):
+async def access_reply_storage(
+    settings: Settings, slug: str, operation: str = "read", **kwargs: Any
+) -> StateSnapshot:
     """No schema creation, whole-state replacement, delivery or retry endpoint."""
     if (
         not settings.is_dev_like
@@ -205,7 +236,11 @@ async def access_reply_storage(settings, slug, operation="read", **kwargs):
         or not settings.prospect_storage_enabled
     ):
         raise ValueError("Isolated local research storage required")
-    functions = {"read": read_replies, "record": record_incoming, "close": close_callback}
+    functions: dict[str, Callable[..., StateSnapshot]] = {
+        "read": read_replies,
+        "record": record_incoming,
+        "close": close_callback,
+    }
     if operation not in functions:
         raise ValueError("Unsupported reply operation")
     engine = make_engine(settings)
@@ -216,7 +251,7 @@ async def access_reply_storage(settings, slug, operation="read", **kwargs):
         await engine.dispose()
 
 
-async def provision(check_only=False):
+async def provision(check_only: bool = False) -> dict[str, int | bool]:
     from core.config.settings import Settings
 
     settings = Settings()

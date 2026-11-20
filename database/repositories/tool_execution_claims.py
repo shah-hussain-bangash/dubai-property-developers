@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import literal, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -283,7 +283,7 @@ class PostgresToolExecutionClaimStore:
                         ToolExecutionLedger.claimed_at,
                         ToolExecutionLedger.id,
                     )
-                    > tuple_(after[0], after[1])
+                    > tuple_(literal(after[0]), literal(after[1]))
                 )
 
             statement = statement.order_by(

@@ -4,6 +4,15 @@ Bitstream Vera is shipped and licensed with ReportLab. Fail explicitly on missin
 glyphs or bidirectional scripts rather than silently corrupting contact records.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.pdfgen.canvas import Canvas
+    from reportlab.platypus import Flowable, SimpleDocTemplate
+
 import json
 import re
 import unicodedata
@@ -20,7 +29,7 @@ class UnsupportedReportText(ValueError):
     pass
 
 
-def font_name():
+def font_name() -> str:
     import reportlab
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
@@ -33,10 +42,10 @@ def font_name():
     return name
 
 
-def check_text(value, font):
+def check_text(value: str, font: str) -> None:
     from reportlab.pdfbase import pdfmetrics
 
-    chars = pdfmetrics.getFont(font).face.charToGlyph
+    chars = cast("TTFont", pdfmetrics.getFont(font)).face.charToGlyph
     for c in value:
         if c in "\n\r\t":
             continue
@@ -50,12 +59,12 @@ def check_text(value, font):
             )
 
 
-def prospect_pdf(prospect: Prospect, revision: int, generated_at=None):
+def prospect_pdf(prospect: Prospect, revision: int, generated_at: datetime | None = None) -> bytes:
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_LEFT
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
+    from reportlab.platypus import Paragraph, Spacer
 
     font = font_name()
     for value in prospect.model_dump().values():
@@ -102,9 +111,9 @@ def prospect_pdf(prospect: Prospect, revision: int, generated_at=None):
         spaceAfter=3,
         keepWithNext=True,
     )
-    story = []
+    story: list[Flowable] = []
 
-    def field(title, value):
+    def field(title: str, value: str) -> None:
         story.append(Paragraph(escape(title.upper()), label))
         story.append(Paragraph(escape(value or "Unknown").replace("\n", "<br/>"), normal))
 
@@ -153,7 +162,7 @@ def prospect_pdf(prospect: Prospect, revision: int, generated_at=None):
         )
     )
 
-    def page(canvas, doc):
+    def page(canvas: Canvas, doc: SimpleDocTemplate) -> None:
         canvas.saveState()
         canvas.setFillColor(colors.HexColor("#102941"))
         canvas.rect(0, A4[1] - 54, A4[0], 54, fill=1, stroke=0)
@@ -177,7 +186,7 @@ def prospect_pdf(prospect: Prospect, revision: int, generated_at=None):
     return data
 
 
-def prospect_zip(workspace: ResearchWorkspace, revision: int):
+def prospect_zip(workspace: ResearchWorkspace, revision: int) -> bytes:
     if not workspace.prospects:
         raise ValueError("No prospects to export")
     stamp = datetime.now(UTC)
@@ -215,13 +224,15 @@ def prospect_zip(workspace: ResearchWorkspace, revision: int):
     return buffer.getvalue()
 
 
-def prospect_batch_pdf(workspace: ResearchWorkspace, revision: int, generated_at=None):
+def prospect_batch_pdf(
+    workspace: ResearchWorkspace, revision: int, generated_at: datetime | None = None
+) -> bytes:
     """One private PDF snapshot, with a summary and bookmark for every saved record."""
     from pypdf import PdfReader, PdfWriter
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
+    from reportlab.platypus import Paragraph, Spacer
 
     if not workspace.prospects:
         raise ValueError("No prospects to export")

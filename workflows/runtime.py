@@ -307,7 +307,9 @@ def build_runtime(settings: Settings) -> PlatformRuntime:
     if settings.workflow_store_backend == WorkflowStoreBackend.POSTGRES:
         assert db_session_factory is not None
 
-        workflow_store = PostgresWorkflowRunStore(db_session_factory)
+        workflow_store: PostgresWorkflowRunStore | InMemoryWorkflowRunStore = (
+            PostgresWorkflowRunStore(db_session_factory)
+        )
 
         logger.info("PostgreSQL WorkflowRunStore backend selected")
 

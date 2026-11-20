@@ -28,12 +28,12 @@ EXPECTED_PATHS = {
 }
 
 
-def load_csv(path):
+def load_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as handle:
         return list(csv.DictReader(handle))
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 446 SQL already exists.")
 

@@ -7,11 +7,12 @@ calling again; the caller must serialize advances per batch. No contact delivery
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta, timezone
 from hashlib import sha256
-from typing import Literal
+from typing import Any, Literal, Self
 from urllib.parse import urlsplit, urlunsplit
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
+from core.config.settings import Settings
 from core.prospect_discovery import (
     DiscoveryLimit,
     DiscoveryRequest,
@@ -33,7 +34,8 @@ Status = Literal[
     "cancelled",
     "error",
 ]
-ROLES = {
+BatchRole = Literal["ceo", "director", "entrepreneur", "investor", "agent", "business_owner"]
+ROLES: dict[BatchRole, str] = {
     "ceo": "CEO",
     "director": "director",
     "entrepreneur": "entrepreneur",
@@ -76,7 +78,7 @@ class ResearchBatch(BaseModel):
     notice: str = Field(default="", max_length=250)
 
     @model_validator(mode="after")
-    def validate_progress(self):
+    def validate_progress(self) -> Self:
         if (
             self.cursor > len(self.queries)
             or self.provider_attempts > self.cursor
@@ -99,7 +101,7 @@ class ResearchBatch(BaseModel):
         return self
 
 
-def source_id(url):
+def source_id(url: str) -> str:
     parts = urlsplit(url)
     canonical = urlunsplit(
         (parts.scheme.lower(), parts.netloc.lower(), parts.path, parts.query, "")
@@ -107,7 +109,13 @@ def source_id(url):
     return sha256(canonical.encode()).hexdigest()[:24]
 
 
-def new_batch(batch_id, tenant_id, location="Dubai", scope: Scope = "linkedin", target=500):
+def new_batch(
+    batch_id: str,
+    tenant_id: str,
+    location: str = "Dubai",
+    scope: Scope = "linkedin",
+    target: int = 500,
+) -> ResearchBatch:
     location = location.strip()
     if not location or len(location) > 100:
         raise ValueError("Enter a location up to 100 characters")
@@ -122,7 +130,7 @@ def transition(
     batch: ResearchBatch,
     tenant_id: str,
     action: Literal["pause", "resume", "cancel", "skip_uncertain"],
-):
+) -> ResearchBatch:
     if batch.tenant_id != tenant_id:
         raise ValueError("Batch tenant mismatch")
     value = batch.model_copy(deep=True)
@@ -148,11 +156,11 @@ def transition(
 
 async def advance_batch(
     batch: ResearchBatch,
-    settings,
+    settings: Settings,
     tenant_id: str,
-    checkpoint: Callable[[dict], Awaitable[None]],
-    now=None,
-):
+    checkpoint: Callable[[dict[str, Any]], Awaitable[None]],
+    now: datetime | None = None,
+) -> ResearchBatch:
     """Return new state only after awaited checkpoints; caller persists/locks it.
 
     No loop, scheduler, page fetching, contact inference, messaging or calling.
@@ -170,7 +178,7 @@ async def advance_batch(
     if value.resume_at and stamp < value.resume_at:
         return value
 
-    async def save():
+    async def save() -> None:
         await checkpoint(ResearchBatch.model_validate(value.model_dump()).model_dump(mode="json"))
 
     if len(value.candidates) >= value.target:

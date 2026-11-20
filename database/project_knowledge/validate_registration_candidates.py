@@ -7,6 +7,8 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 
+from database.project_knowledge.contracts import CandidateReview
+
 ROOT = Path(__file__).resolve().parents[2]
 ROOT_RESOLVED = ROOT.resolve()
 
@@ -40,11 +42,11 @@ FIELDS = [
 ]
 
 
-def validate(row):
+def validate(row: dict[str, str]) -> CandidateReview:
     path_text = row["source_path"].replace("\\", "/")
     status = row["review_status"]
 
-    record = {
+    record: CandidateReview = {
         "source_path": path_text,
         "review_status": status,
         "validation_status": "",
@@ -138,7 +140,7 @@ def validate(row):
     return record
 
 
-def main():
+def main() -> None:
     if not MANIFEST.is_file():
         raise RuntimeError("Step 363 manifest not found")
 

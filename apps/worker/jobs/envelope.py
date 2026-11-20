@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, Field
 
@@ -80,13 +80,14 @@ async def reserve_job(
 ) -> str | None:
     """Atomically move the oldest pending job into processing."""
 
-    return await redis.blmove(
+    result = await redis.blmove(
         QUEUE_KEY,
         PROCESSING_KEY,
         timeout,
         "RIGHT",
         "LEFT",
     )
+    return cast(str | None, result)
 
 
 async def acknowledge_job(

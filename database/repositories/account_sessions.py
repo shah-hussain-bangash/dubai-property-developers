@@ -9,14 +9,20 @@ import base64
 import hashlib
 import re
 import secrets
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import UUID, uuid4
 
 import sqlalchemy as sa
 from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.security.account_contracts import PrincipalFactory, SessionFactory
+from core.security.rbac import Principal
 
 
-def table(table_name, **columns):
+def table(table_name: str, **columns: sa.types.TypeEngine[Any]) -> sa.TableClause:
     return sa.table(table_name, *(sa.column(key, value) for key, value in columns.items()))
 
 
@@ -63,7 +69,7 @@ KNOWN_ROLES = {
 }
 
 
-def token_digest(token):
+def token_digest(token: str) -> str:
     if not isinstance(token, str) or re.fullmatch(r"[A-Za-z0-9_-]{43}", token) is None:
         raise HTTPException(401, "invalid session")
     decoded = base64.b64decode(token + "=", altchars=b"-_", validate=True)
@@ -73,7 +79,7 @@ def token_digest(token):
     return hashlib.sha256(token.encode("ascii")).hexdigest()
 
 
-def user_state(user_id, organization_id):
+def user_state(user_id: UUID, organization_id: UUID) -> sa.Select[Any]:
     return (
         sa.select(users.c.id, users.c.organization_id, users.c.approval_status)
         .select_from(
@@ -94,7 +100,13 @@ def user_state(user_id, organization_id):
 
 
 class AccountSessions:
-    def __init__(self, session_factory, *, principal_factory, ttl_seconds=3600):
+    def __init__(
+        self,
+        session_factory: SessionFactory,
+        *,
+        principal_factory: PrincipalFactory,
+        ttl_seconds: int = 3600,
+    ) -> None:
         if not callable(session_factory) or not callable(principal_factory):
             raise ValueError("trusted session and principal factories required")
         if type(ttl_seconds) is not int or not 60 <= ttl_seconds <= 86400:
@@ -103,7 +115,9 @@ class AccountSessions:
         self._principal_factory = principal_factory
         self._ttl = ttl_seconds
 
-    async def _audit(self, session, row, action, details):
+    async def _audit(
+        self, session: AsyncSession, row: Mapping[Any, Any], action: str, details: dict[str, Any]
+    ) -> None:
         await session.execute(
             sa.insert(audit).values(
                 id=uuid4(),
@@ -117,7 +131,9 @@ class AccountSessions:
             )
         )
 
-    async def issue_authenticated(self, user_id, organization_id, *, auth_method):
+    async def issue_authenticated(
+        self, user_id: UUID, organization_id: UUID, *, auth_method: str
+    ) -> str:
         if (
             not isinstance(user_id, UUID)
             or not isinstance(organization_id, UUID)
@@ -153,7 +169,7 @@ class AccountSessions:
         # Return only after transaction completion. Never log this token.
         return token
 
-    async def verify(self, token):
+    async def verify(self, token: str) -> Principal:
         digest = token_digest(token)
         now = datetime.now(UTC)
         statement = (
@@ -189,7 +205,7 @@ class AccountSessions:
             row = (await session.execute(statement)).mappings().first()
             if row is None:
                 raise HTTPException(401, "invalid session")
-            granted = frozenset()
+            granted: frozenset[str] = frozenset()
             if row["approval_status"] == "approved":
                 role_rows = (
                     (
@@ -217,7 +233,7 @@ class AccountSessions:
             )
         return principal
 
-    async def revoke(self, token):
+    async def revoke(self, token: str) -> bool:
         digest = token_digest(token)
         async with self._factory() as session, session.begin():
             row = (

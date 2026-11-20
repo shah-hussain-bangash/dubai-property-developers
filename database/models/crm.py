@@ -60,13 +60,9 @@ class Lead(UUIDPrimaryKeyMixin, TenantMixin, TimestampMixin, Base):
     full_name: Mapped[str] = mapped_column(String(200))
     email: Mapped[str | None] = mapped_column(String(254))
     phone_e164: Mapped[str | None] = mapped_column(String(20))
-
-    phone_e164: Mapped[str | None] = mapped_column(String(20))
     phone_region: Mapped[str | None] = mapped_column(String(8))
     consent_marketing: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     consent_whatsapp: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    message: Mapped[str | None] = mapped_column(Text)
-
     message: Mapped[str | None] = mapped_column(Text)
     budget_min_aed: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
     budget_max_aed: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))

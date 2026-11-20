@@ -2,8 +2,10 @@
 
 import asyncio
 import uuid
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from hashlib import sha256
+from typing import Any, Literal, cast
 
 from sqlalchemy import (
     JSON,
@@ -22,11 +24,21 @@ from sqlalchemy import (
     update,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
 from sqlalchemy.pool import NullPool
 
-from core.prospect_research_batch import ROLES, BatchQuery, ResearchBatch, advance_batch, transition
+from core.config.settings import Settings
+from core.prospect_research_batch import (
+    ROLES,
+    BatchQuery,
+    ResearchBatch,
+    Scope,
+    advance_batch,
+    transition,
+)
 from database.prospect_research import RevisionConflict, metadata, organization
+from database.research_contracts import BatchCreation, BatchMutation, StateSnapshot
 
 batches = Table(
     "prospect_research_batches_v1",
@@ -71,14 +83,14 @@ SECTORS = (
 )
 
 
-def decode(row, slug, batch_id):
+def decode(row: Mapping[Any, Any], slug: str, batch_id: str) -> StateSnapshot:
     state = ResearchBatch.model_validate(row["state"])
     if state.tenant_id != slug or state.id != batch_id:
         raise ValueError("Batch identity mismatch")
     return {"revision": row["revision"], "state": state.model_dump(mode="json")}
 
 
-def read_batch(conn, slug, batch_id):
+def read_batch(conn: Connection, slug: str, batch_id: str) -> StateSnapshot:
     org = organization(conn, slug)
     row = (
         conn.execute(
@@ -94,7 +106,7 @@ def read_batch(conn, slug, batch_id):
     return decode(row, slug, batch_id)
 
 
-def list_batches(conn, slug):
+def list_batches(conn: Connection, slug: str) -> list[dict[str, Any]]:
     org = organization(conn, slug)
     rows = (
         conn.execute(
@@ -132,7 +144,9 @@ def list_batches(conn, slug):
     return summaries
 
 
-def create_batch(conn, slug, location, scope, target):
+def create_batch(
+    conn: Connection, slug: str, location: str, scope: Scope, target: int
+) -> StateSnapshot:
     org = organization(conn, slug, lock=True)
     if (
         len(
@@ -166,7 +180,9 @@ def create_batch(conn, slug, location, scope, target):
     return {"revision": 1, "state": state.model_dump(mode="json")}
 
 
-def write_batch(conn, slug, batch_id, revision, state):
+def write_batch(
+    conn: Connection, slug: str, batch_id: str, revision: int, state: object
+) -> StateSnapshot:
     state = ResearchBatch.model_validate(state)
     if state.tenant_id != slug or state.id != batch_id:
         raise ValueError("Batch identity mismatch")
@@ -187,7 +203,13 @@ def write_batch(conn, slug, batch_id, revision, state):
     return {"revision": revision + 1, "state": state.model_dump(mode="json")}
 
 
-def change_batch(conn, slug, batch_id, revision, action):
+def change_batch(
+    conn: Connection,
+    slug: str,
+    batch_id: str,
+    revision: int,
+    action: Literal["pause", "resume", "cancel", "skip_uncertain"],
+) -> StateSnapshot:
     current = read_batch(conn, slug, batch_id)
     if current["revision"] != revision:
         raise RevisionConflict()
@@ -195,11 +217,11 @@ def change_batch(conn, slug, batch_id, revision, action):
     return write_batch(conn, slug, batch_id, revision, state)
 
 
-def lock_id(slug, batch_id):
+def lock_id(slug: str, batch_id: str) -> int:
     return int.from_bytes(sha256((slug + "|" + batch_id).encode()).digest()[:8], "big", signed=True)
 
 
-def make_engine(settings):
+def make_engine(settings: Settings) -> AsyncEngine:
     return create_async_engine(
         settings.database_url.get_secret_value(),
         poolclass=NullPool,
@@ -209,7 +231,14 @@ def make_engine(settings):
     )
 
 
-async def advance_locked(conn, settings, slug, batch_id, revision, action="advance"):
+async def advance_locked(
+    conn: AsyncConnection,
+    settings: Settings,
+    slug: str,
+    batch_id: str,
+    revision: int,
+    action: BatchMutation = "advance",
+) -> StateSnapshot:
     """A PostgreSQL session advisory lock survives checkpoint commits."""
     token = lock_id(slug, batch_id)
     acquired = False
@@ -225,7 +254,7 @@ async def advance_locked(conn, settings, slug, batch_id, revision, action="advan
         if current["revision"] != revision:
             raise RevisionConflict()
 
-        async def checkpoint(state):
+        async def checkpoint(state: dict[str, Any]) -> None:
             nonlocal current
             try:
                 saved = await conn.run_sync(
@@ -260,18 +289,33 @@ async def advance_locked(conn, settings, slug, batch_id, revision, action="advan
                 await conn.invalidate()
 
 
-async def access_batches(settings, slug, operation="list", batch_id=None, revision=None, body=None):
+async def access_batches(
+    settings: Settings,
+    slug: str,
+    operation: str = "list",
+    batch_id: str | None = None,
+    revision: int | None = None,
+    body: BatchCreation | None = None,
+) -> list[dict[str, Any]] | StateSnapshot:
     engine = make_engine(settings)
     try:
         if operation in {"advance", "pause", "resume", "cancel", "skip_uncertain"}:
+            if batch_id is None or revision is None:
+                raise ValueError("Batch identity and revision required")
             async with engine.connect() as conn:
-                return await advance_locked(conn, settings, slug, batch_id, revision, operation)
+                return await advance_locked(
+                    conn, settings, slug, batch_id, revision, cast(BatchMutation, operation)
+                )
         async with engine.begin() as conn:
             if operation == "list":
                 return await conn.run_sync(lambda c: list_batches(c, slug))
             if operation == "read":
+                if batch_id is None:
+                    raise ValueError("Batch identity required")
                 return await conn.run_sync(lambda c: read_batch(c, slug, batch_id))
             if operation == "create":
+                if body is None:
+                    raise ValueError("Batch creation body required")
                 return await conn.run_sync(
                     lambda c: create_batch(c, slug, body.location, body.scope, body.target)
                 )
@@ -280,7 +324,7 @@ async def access_batches(settings, slug, operation="list", batch_id=None, revisi
         await engine.dispose()
 
 
-def initialize(conn, slug):
+def initialize(conn: Connection, slug: str) -> None:
     organization(conn, slug)
     batches.create(conn, checkfirst=True)
     if {col["name"] for col in inspect(conn).get_columns(batches.name)} != {
@@ -294,7 +338,7 @@ def initialize(conn, slug):
     list_batches(conn, slug)
 
 
-async def provision():
+async def provision() -> None:
     from core.config.settings import Settings
 
     settings = Settings()

@@ -10,8 +10,10 @@ These statements do not authenticate a caller or provision the initial owner.
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 import sqlalchemy as sa
+from sqlalchemy.sql.selectable import Exists
 
 _users = sa.table(
     "users",
@@ -37,7 +39,7 @@ def _uuid(value: uuid.UUID) -> uuid.UUID:
     return value
 
 
-def _organization_active(organization_id: uuid.UUID):
+def _organization_active(organization_id: uuid.UUID) -> Exists:
     return (
         sa.select(sa.literal(1))
         .select_from(_organizations)
@@ -53,7 +55,7 @@ def _owner_allowed(
     organization_id: uuid.UUID,
     actor_user_id: uuid.UUID,
     configured_owner_user_id: uuid.UUID,
-):
+) -> Exists:
     _uuid(organization_id)
     _uuid(actor_user_id)
     _uuid(configured_owner_user_id)
@@ -78,7 +80,7 @@ def build_pending_accounts(
     *,
     actor_user_id: uuid.UUID,
     configured_owner_user_id: uuid.UUID,
-):
+) -> sa.Select[Any]:
     owner_allowed = _owner_allowed(organization_id, actor_user_id, configured_owner_user_id)
     return (
         sa.select(
@@ -106,7 +108,7 @@ def build_account_decision(
     actor_user_id: uuid.UUID,
     configured_owner_user_id: uuid.UUID,
     approve: bool,
-):
+) -> sa.Update:
     _uuid(target_user_id)
     if type(approve) is not bool:
         raise ValueError("approve must be boolean")
@@ -141,7 +143,7 @@ def build_account_decision(
 def build_own_dashboard_access(
     authenticated_user_id: uuid.UUID,
     authenticated_organization_id: uuid.UUID,
-):
+) -> sa.Select[Any]:
     _uuid(authenticated_user_id)
     _uuid(authenticated_organization_id)
     return sa.select(

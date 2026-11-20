@@ -137,7 +137,7 @@ async def requeue_with_evidence(
         raw,
     )
 
-    outcomes = {
+    outcomes: dict[int, RecoveryTransitionResult] = {
         0: "missing",
         1: "moved",
         2: "already_moved",

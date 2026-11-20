@@ -7,16 +7,20 @@ No login sessions, roles, owner accounts, or approvals are created here.
 """
 
 import asyncio
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
+from typing import Any
 from uuid import UUID, uuid4
 
 import sqlalchemy as sa
 from email_validator import validate_email
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.security.account_contracts import AccountRecord, SessionFactory
 
 
-def table(table_name, **columns):
+def table(table_name: str, **columns: sa.types.TypeEngine[Any]) -> sa.TableClause:
     return sa.table(
         table_name,
         *(sa.column(key, value) for key, value in columns.items()),
@@ -58,7 +62,7 @@ audit = table(
 GOOGLE_ISSUER = "https://accounts.google.com"
 
 
-def account_view(row):
+def account_view(row: Mapping[Any, Any]) -> AccountRecord:
     return {
         "account_id": row["id"],
         "organization_id": row["organization_id"],
@@ -68,13 +72,15 @@ def account_view(row):
 
 
 class PendingAccountRegistration:
-    def __init__(self, session_factory, *, password_hasher):
+    def __init__(
+        self, session_factory: SessionFactory, *, password_hasher: Callable[[str], str]
+    ) -> None:
         if not callable(session_factory) or not callable(password_hasher):
             raise ValueError("trusted session factory and password hasher required")
         self._factory = session_factory
         self._password_hasher = password_hasher
 
-    def _validate(self, organization_id, email, full_name):
+    def _validate(self, organization_id: UUID, email: object, full_name: object) -> tuple[str, str]:
         if not isinstance(organization_id, UUID) or organization_id.int == 0:
             raise ValueError("trusted organization UUID required")
         if not isinstance(email, str) or len(email) > 254:
@@ -86,7 +92,7 @@ class PendingAccountRegistration:
             raise ValueError("full name must contain 1 to 200 characters")
         return normalized, full_name.strip()
 
-    async def _lock_organization(self, session, organization_id):
+    async def _lock_organization(self, session: AsyncSession, organization_id: UUID) -> None:
         # Serialize registrations within an organization to avoid competing
         # identity/email checks among callers of this service.
         row = (
@@ -106,7 +112,14 @@ class PendingAccountRegistration:
         if row is None:
             raise HTTPException(403, "registration unavailable")
 
-    async def _create(self, session, organization_id, email, name, digest):
+    async def _create(
+        self,
+        session: AsyncSession,
+        organization_id: UUID,
+        email: str,
+        name: str,
+        digest: str | None,
+    ) -> Mapping[Any, Any]:
         existing = (
             (
                 await session.execute(
@@ -135,7 +148,9 @@ class PendingAccountRegistration:
         await session.execute(sa.insert(users).values(**row))
         return row
 
-    async def _audit_creation(self, session, row, method):
+    async def _audit_creation(
+        self, session: AsyncSession, row: Mapping[Any, Any], method: str
+    ) -> None:
         await session.execute(
             sa.insert(audit).values(
                 id=uuid4(),
@@ -149,7 +164,9 @@ class PendingAccountRegistration:
             )
         )
 
-    async def register_password(self, organization_id, *, email, full_name, password):
+    async def register_password(
+        self, organization_id: UUID, *, email: str, full_name: str, password: str
+    ) -> AccountRecord:
         normalized, name = self._validate(organization_id, email, full_name)
         if not isinstance(password, str) or not 12 <= len(password) <= 1024:
             raise ValueError("password must contain 12 to 1024 characters")
@@ -177,7 +194,9 @@ class PendingAccountRegistration:
             raise HTTPException(409, "registration could not be completed") from None
         return account_view(row)
 
-    async def google_account(self, organization_id, *, verified_identity):
+    async def google_account(
+        self, organization_id: UUID, *, verified_identity: Mapping[str, object]
+    ) -> AccountRecord:
         if not isinstance(verified_identity, Mapping):
             raise ValueError("verified Google identity required")
         if verified_identity.get("issuer") != GOOGLE_ISSUER:
@@ -227,6 +246,7 @@ class PendingAccountRegistration:
                     .mappings()
                     .first()
                 )
+                row: Mapping[Any, Any]
                 if existing is not None:
                     if not existing["is_active"] or existing["approval_status"] not in {
                         "pending",

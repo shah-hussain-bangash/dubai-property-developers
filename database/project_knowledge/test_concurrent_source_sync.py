@@ -18,7 +18,7 @@ NEW_HASH_A = hashlib.sha256(b"STEP342_CONCURRENT_UPDATE_A\n").hexdigest()
 NEW_HASH_B = hashlib.sha256(b"STEP342_CONCURRENT_UPDATE_B\n").hexdigest()
 
 
-def query(sql):
+def query(sql: str) -> subprocess.CompletedProcess[str]:
     command = [
         "docker",
         "compose",
@@ -49,7 +49,7 @@ def query(sql):
     )
 
 
-def checked_query(sql):
+def checked_query(sql: str) -> str:
     result = query(sql)
 
     if result.returncode != 0:
@@ -58,7 +58,7 @@ def checked_query(sql):
     return result.stdout.strip()
 
 
-def attempt_update(new_hash):
+def attempt_update(new_hash: str) -> subprocess.CompletedProcess[str]:
     sql = (
         "SELECT project_knowledge.apply_source_change_test("
         f"'{PROJECT}', "
@@ -71,7 +71,7 @@ def attempt_update(new_hash):
     return query(sql)
 
 
-def main():
+def main() -> None:
     if NEW_HASH_A == NEW_HASH_B:
         raise RuntimeError("Test fingerprints must differ")
 

@@ -3,6 +3,7 @@
 import json
 from datetime import datetime, timedelta, timezone
 from threading import BoundedSemaphore
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Response
 from starlette.concurrency import run_in_threadpool
@@ -15,6 +16,7 @@ from apps.api.app.dependencies.runtime import get_runtime
 from core.prospect_discovery import (
     DiscoveryLimit,
     DiscoveryRequest,
+    DiscoveryResponse,
     DiscoveryUnavailable,
     configured,
     reserve_search,
@@ -29,6 +31,7 @@ from core.prospect_reports import (
 from core.security.rbac import Permission, Principal
 from database.prospect_research import RevisionConflict, UnknownOrganization, access_database
 from schemas.prospect_research import ResearchWorkspace, WorkspaceWrite
+from workflows.runtime import PlatformRuntime
 
 router = APIRouter(prefix="/prospect-research", tags=["local-prospect-research"])
 report_gate = BoundedSemaphore(1)
@@ -38,7 +41,12 @@ class ReportBusy(Exception):
     pass
 
 
-def render_report(workspace, revision, prospect_id=None, combined=False):
+def render_report(
+    workspace: ResearchWorkspace,
+    revision: int,
+    prospect_id: str | None = None,
+    combined: bool = False,
+) -> bytes:
     if not report_gate.acquire(blocking=False):
         raise ReportBusy()
     try:
@@ -52,13 +60,13 @@ def render_report(workspace, revision, prospect_id=None, combined=False):
         report_gate.release()
 
 
-def enabled(runtime):
+def enabled(runtime: PlatformRuntime) -> None:
     _require_isolated_demo(runtime)
     if not runtime.settings.prospect_storage_enabled:
         raise HTTPException(404, "Prospect database storage is disabled")
 
 
-async def parse_write(request: Request):
+async def parse_write(request: Request) -> WorkspaceWrite:
     raw = bytearray()
     async for chunk in request.stream():
         raw.extend(chunk)
@@ -73,7 +81,9 @@ async def parse_write(request: Request):
         ) from None
 
 
-async def execute(runtime, principal, body=None):
+async def execute(
+    runtime: PlatformRuntime, principal: Principal, body: WorkspaceWrite | None = None
+) -> dict[str, Any]:
     try:
         return {
             "storage": "postgresql",
@@ -96,9 +106,9 @@ async def execute(runtime, principal, body=None):
 @router.get("/workspace")
 async def read(
     response: Response,
-    runtime=Depends(get_runtime),
+    runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.LEADS_READ)),
-):
+) -> dict[str, Any]:
     enabled(runtime)
     response.headers["Cache-Control"] = "no-store"
     return await execute(runtime, principal)
@@ -108,9 +118,9 @@ async def read(
 async def write(
     request: Request,
     response: Response,
-    runtime=Depends(get_runtime),
+    runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.LEADS_WRITE)),
-):
+) -> dict[str, Any]:
     enabled(runtime)
     # Browser writes must come from an explicitly configured local dashboard origin.
     origin = request.headers.get("origin")
@@ -121,7 +131,13 @@ async def write(
     return await execute(runtime, principal, body)
 
 
-async def report_response(runtime, principal, revision, prospect_id=None, combined=False):
+async def report_response(
+    runtime: PlatformRuntime,
+    principal: Principal,
+    revision: int,
+    prospect_id: str | None = None,
+    combined: bool = False,
+) -> Response:
     enabled(runtime)
     snapshot = await execute(runtime, principal)
     if snapshot["revision"] != revision:
@@ -171,18 +187,18 @@ async def report_response(runtime, principal, revision, prospect_id=None, combin
 @router.get("/reports.pdf")
 async def combined_report(
     revision: int = Query(ge=0),
-    runtime=Depends(get_runtime),
+    runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.LEADS_READ)),
-):
+) -> Response:
     return await report_response(runtime, principal, revision, combined=True)
 
 
 @router.get("/reports.zip")
 async def zip_reports(
     revision: int = Query(ge=0),
-    runtime=Depends(get_runtime),
+    runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.LEADS_READ)),
-):
+) -> Response:
     return await report_response(runtime, principal, revision)
 
 
@@ -190,18 +206,18 @@ async def zip_reports(
 async def pdf_report(
     prospect_id: str = Path(pattern=r"^[a-zA-Z0-9-]{1,80}$"),
     revision: int = Query(ge=0),
-    runtime=Depends(get_runtime),
+    runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.LEADS_READ)),
-):
+) -> Response:
     return await report_response(runtime, principal, revision, prospect_id)
 
 
 @router.get("/discovery-capabilities")
 async def discovery_capabilities(
     response: Response,
-    runtime=Depends(get_runtime),
+    runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.LEADS_READ)),
-):
+) -> dict[str, Any]:
     enabled(runtime)
     response.headers["Cache-Control"] = "no-store"
     return {
@@ -218,9 +234,9 @@ async def discover(
     body: DiscoveryRequest,
     request: Request,
     response: Response,
-    runtime=Depends(get_runtime),
+    runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.LEADS_WRITE)),
-):
+) -> DiscoveryResponse:
     enabled(runtime)
     origin = request.headers.get("origin")
     if origin is not None and origin not in runtime.settings.cors_allowed_origins:

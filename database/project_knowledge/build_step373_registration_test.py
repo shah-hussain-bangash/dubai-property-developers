@@ -24,7 +24,7 @@ EXPECTED_PATHS = {
 }
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 373 SQL already exists. Stop.")
 

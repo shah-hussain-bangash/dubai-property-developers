@@ -47,7 +47,7 @@ if agent_classes is None or len(agent_classes) != 13:
     raise RuntimeError("Expected exactly 13 registry classes")
 
 
-def declared_value(node):
+def declared_value(node: ast.AST) -> object:
     if (
         isinstance(node, ast.Call)
         and isinstance(node.func, ast.Name)
@@ -170,12 +170,17 @@ print("PASS: Agent inventory extracted")
 print("Agent count:", len(agents))
 
 for agent in agents:
+    allowed_tools = agent["allowed_tools"]
+    if not isinstance(allowed_tools, list) or not all(
+        isinstance(item, str) for item in allowed_tools
+    ):
+        raise ValueError("Tool allowlist must contain names")
     print(
         agent["agent_id"],
         "|",
         agent["implementation_status"],
         "| tools:",
-        ", ".join(agent["allowed_tools"]) or "none",
+        ", ".join(allowed_tools) or "none",
     )
 
 print("Saved:", OUTPUT)

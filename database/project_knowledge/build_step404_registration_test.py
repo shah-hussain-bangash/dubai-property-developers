@@ -18,12 +18,12 @@ DATABASE = "dubai_ai_knowledge_verify_20261019_095633"
 EXPECTED_TYPES = {".yaml": 1, ".yml": 1, ".sql": 1, ".md": 7}
 
 
-def read_csv(path):
+def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f))
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 404 SQL already exists. Stop.")
 

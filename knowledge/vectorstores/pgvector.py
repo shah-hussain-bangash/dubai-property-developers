@@ -9,8 +9,10 @@ Covered only by integration tests (``RUN_INTEGRATION_TESTS=1``).
 from __future__ import annotations
 
 import uuid
+from typing import Any, cast
 
 from sqlalchemy import select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from database.models.knowledge import ChunkEmbedding, KnowledgeChunk, KnowledgeDocument
@@ -88,4 +90,4 @@ class PgVectorStore:
                 )
                 .values(status=DocumentStatus.SUPERSEDED.value)
             )
-            return int(result.rowcount or 0)
+            return int(cast(CursorResult[Any], result).rowcount or 0)

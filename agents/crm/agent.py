@@ -41,7 +41,7 @@ class CRMAgent(BaseAgent[CRMUpsertInput, CRMUpsertResult]):
         crm_data = to_espocrm_lead(lead, data.score)
         existing = found.data.get("leads", [])
         if existing:
-            external_id = str(existing[0]["id"])
+            external_id: str | None = str(existing[0]["id"])
             write = await self.use_tool(
                 ctx,
                 "crm.update_lead",
@@ -56,7 +56,10 @@ class CRMAgent(BaseAgent[CRMUpsertInput, CRMUpsertResult]):
                 {"local_lead_id": lead.lead_id, "data": crm_data},
                 reason="Create CRM lead for new enquiry",
             )
-            external_id = write.data.get("external_id")
+            candidate_id = write.data.get("external_id")
+            if candidate_id is not None and not isinstance(candidate_id, str):
+                raise ValueError("CRM external identifier must be a string")
+            external_id = candidate_id
             created = write.status != ToolResultStatus.PENDING_APPROVAL
 
         note_id = None

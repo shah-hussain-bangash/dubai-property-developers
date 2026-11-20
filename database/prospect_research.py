@@ -6,6 +6,7 @@ optimistic revisions reject outdated clients. API requests never create schema.
 
 import asyncio
 import uuid
+from typing import cast
 
 from sqlalchemy import (
     JSON,
@@ -22,14 +23,17 @@ from sqlalchemy import (
     update,
 )
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
+from core.config.settings import Settings
 from database.models.identity import Organization
+from database.research_contracts import WorkspaceSnapshot
 from schemas.prospect_research import ResearchWorkspace, WorkspaceWrite
 
 metadata = MetaData()
-Organization.__table__.to_metadata(metadata)
+cast(Table, Organization.__table__).to_metadata(metadata)
 workspaces = Table(
     "prospect_research_workspaces_v1",
     metadata,
@@ -53,7 +57,7 @@ class UnknownOrganization(Exception):
     pass
 
 
-def organization(conn, slug, lock=False):
+def organization(conn: Connection, slug: str, lock: bool = False) -> uuid.UUID:
     query = select(Organization.id).where(
         Organization.slug == slug, Organization.is_active.is_(True)
     )
@@ -65,7 +69,7 @@ def organization(conn, slug, lock=False):
     return result
 
 
-def read_workspace(conn, slug):
+def read_workspace(conn: Connection, slug: str) -> WorkspaceSnapshot:
     org = organization(conn, slug)
     row = (
         conn.execute(
@@ -84,7 +88,7 @@ def read_workspace(conn, slug):
     }
 
 
-def write_workspace(conn, slug, body: WorkspaceWrite):
+def write_workspace(conn: Connection, slug: str, body: WorkspaceWrite) -> WorkspaceSnapshot:
     org = organization(conn, slug, lock=True)
     stored = (
         conn.execute(
@@ -107,7 +111,7 @@ def write_workspace(conn, slug, body: WorkspaceWrite):
             if field not in model.model_fields_set and field in previous.get(model.id, {}):
                 record[field] = previous[model.id][field]
     validated = ResearchWorkspace.model_validate(incoming)
-    values = {"revision": current + 1, "workspace": validated.model_dump()}
+    values: WorkspaceSnapshot = {"revision": current + 1, "workspace": validated.model_dump()}
     if current:
         changed = conn.execute(
             update(workspaces)
@@ -121,7 +125,9 @@ def write_workspace(conn, slug, body: WorkspaceWrite):
     return {"revision": current + 1, "workspace": values["workspace"]}
 
 
-async def access_database(settings, slug, body=None):
+async def access_database(
+    settings: Settings, slug: str, body: WorkspaceWrite | None = None
+) -> WorkspaceSnapshot:
     # URL stays in SecretStr until passed to the driver. Never log it.
     engine = create_async_engine(
         settings.database_url.get_secret_value(),
@@ -141,7 +147,7 @@ async def access_database(settings, slug, body=None):
         await engine.dispose()
 
 
-def initialize(conn, slug):
+def initialize(conn: Connection, slug: str) -> None:
     # Provisioning may initialize only the known local demo tenant, without users,
     # roles, passwords or sessions. Custom or inactive tenants require attention.
     existing = conn.execute(
@@ -149,7 +155,7 @@ def initialize(conn, slug):
     ).first()
     if existing is None and slug == "demo-org":
         conn.execute(
-            insert(Organization.__table__).values(
+            insert(Organization).values(
                 id=uuid.uuid4(), name="Local Prospect Research", slug=slug, is_active=True
             )
         )
@@ -162,7 +168,7 @@ def initialize(conn, slug):
     read_workspace(conn, slug)
 
 
-async def provision():
+async def provision() -> None:
     from core.config.settings import Settings
 
     settings = Settings()

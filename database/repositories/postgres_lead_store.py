@@ -12,6 +12,7 @@ Requires Alembic migrations:
 
 from __future__ import annotations
 
+import builtins
 import uuid
 from collections import defaultdict
 from typing import Any
@@ -83,10 +84,10 @@ class PostgresLeadStore:
         return organization_id
 
     @staticmethod
-    def _validated_keys(keys: list[str]) -> list[str]:
+    def _validated_keys(keys: builtins.list[str]) -> builtins.list[str]:
         """Validate and remove repeated deduplication keys."""
 
-        cleaned: list[str] = []
+        cleaned: builtins.list[str] = []
         seen: set[str] = set()
 
         for key in keys:
@@ -109,7 +110,7 @@ class PostgresLeadStore:
     def _to_normalized(
         row: Lead,
         tenant_id: str,
-        keys: list[str],
+        keys: builtins.list[str],
     ) -> NormalizedLead:
         """Convert a database Lead into a NormalizedLead."""
 
@@ -141,8 +142,8 @@ class PostgresLeadStore:
         self,
         session: AsyncSession,
         organization_id: uuid.UUID,
-        lead_ids: list[uuid.UUID],
-    ) -> dict[uuid.UUID, list[str]]:
+        lead_ids: builtins.list[uuid.UUID],
+    ) -> dict[uuid.UUID, builtins.list[str]]:
         """Retrieve duplicate keys for multiple leads."""
 
         if not lead_ids:
@@ -165,7 +166,7 @@ class PostgresLeadStore:
 
         result = await session.execute(statement)
 
-        keys_by_lead: dict[uuid.UUID, list[str]] = defaultdict(list)
+        keys_by_lead: dict[uuid.UUID, builtins.list[str]] = defaultdict(list)
 
         for lead_id, key in result.all():
             keys_by_lead[lead_id].append(key)
@@ -338,7 +339,7 @@ class PostgresLeadStore:
     async def list(
         self,
         tenant_id: str,
-    ) -> list[NormalizedLead]:
+    ) -> builtins.list[NormalizedLead]:
         """Return leads belonging to one organization."""
 
         async with self.session_factory() as session:
@@ -376,8 +377,8 @@ class PostgresLeadStore:
     async def find_by_dedupe_keys(
         self,
         tenant_id: str,
-        keys: list[str],
-    ) -> list[NormalizedLead]:
+        keys: builtins.list[str],
+    ) -> builtins.list[NormalizedLead]:
         """Find leads sharing at least one duplicate key."""
 
         if not keys:

@@ -39,6 +39,8 @@ dev = [
   "pytest-cov>=5.0",
   "ruff>=0.6",
   "mypy>=1.11",
+  "types-Authlib",
+  "types-reportlab",
   "pip-audit>=2.7",
 ]
 

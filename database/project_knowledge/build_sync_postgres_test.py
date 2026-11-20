@@ -17,11 +17,11 @@ NEW_CONTENT = b"UPDATED_TEST_CONTENT = 2\n"
 ADDED_CONTENT = b"NEW_TEST_MODULE = True\n"
 
 
-def fingerprint(content):
+def fingerprint(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
-def run_tool(path):
+def run_tool(path: Path) -> None:
     result = subprocess.run(  # noqa: S603 -- Trusted local executable and argument list; no shell or request input.
         [sys.executable, str(path)],
         capture_output=True,
@@ -36,7 +36,7 @@ def run_tool(path):
     print(result.stdout)
 
 
-def main():
+def main() -> None:
     if DESTINATION.exists():
         raise RuntimeError("Synthetic SQL already exists. Do not overwrite.")
 
