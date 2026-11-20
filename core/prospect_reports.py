@@ -64,7 +64,7 @@ def prospect_pdf(prospect: Prospect, revision: int, generated_at: datetime | Non
     from reportlab.lib.enums import TA_LEFT
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle
-    from reportlab.platypus import Paragraph, Spacer
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
     font = font_name()
     for value in prospect.model_dump().values():
@@ -232,7 +232,7 @@ def prospect_batch_pdf(
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle
-    from reportlab.platypus import Paragraph, Spacer
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
     if not workspace.prospects:
         raise ValueError("No prospects to export")
