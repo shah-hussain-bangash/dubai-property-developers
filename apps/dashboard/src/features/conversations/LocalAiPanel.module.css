@@ -1,7 +1,0 @@
-.panel { margin-bottom: 24px; padding: 20px; }
-.panel p { line-height: 1.6; color: var(--text-secondary, #b3c4dc); }
-.panel label { display: block; margin-bottom: 8px; }
-.panel textarea { width: 100%; box-sizing: border-box; padding: 12px; color: inherit; background: var(--bg-primary, #081525); border: 1px solid #365171; border-radius: 8px; font: inherit; }
-.actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
-.result { border-top: 1px solid #365171; margin-top: 18px; padding-top: 12px; }
-.result blockquote { margin: 12px 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }

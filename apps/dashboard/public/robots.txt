@@ -1,3 +1,0 @@
-# Internal operations dashboard — not for indexing.
-User-agent: *
-Disallow: /

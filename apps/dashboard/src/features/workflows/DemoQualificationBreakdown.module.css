@@ -1,8 +1,0 @@
-.breakdown { margin-block: 1.25rem; padding: 1rem; border: 1px solid var(--color-border-strong); border-radius: 8px; background: var(--color-bg-elevated); }
-.breakdown summary { color: var(--color-gold); font-weight: 600; cursor: pointer; }
-.breakdown summary:focus-visible, .scroll:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 3px; }
-.breakdown p { color: var(--color-text-muted); line-height: 1.6; font-size: .85rem; }
-.scroll { overflow-x: auto; }
-.scroll table { border-collapse: collapse; width: 100%; min-width: 480px; line-height: 1.6; font-size: .85rem; }
-.scroll caption { text-align: left; padding-block: .75rem; }
-.scroll th, .scroll td { text-align: left; vertical-align: top; padding: .75rem; border-top: 1px solid var(--color-border-strong); }
