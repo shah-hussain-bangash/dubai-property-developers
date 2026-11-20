@@ -37,6 +37,8 @@ Workflows use pinned action commits and read-only repository permissions; checko
 
 To download test evidence, open a [CI run](https://github.com/zenithdevelopers7-source/dubai-property-developers/actions/workflows/ci.yml) and use its **Artifacts** section. Backend JUnit/coverage reports and database integration reports are labelled by Python version; frontend results are in `frontend-tests`. Reports are retained for seven days and uploaded when available even if a test step fails. GitHub may require you to sign in to download them.
 
+The [credential scan](docs/security/credential-scanning.md) checks fetched Git history with a checksum-verified scanner, narrow reviewed fixture exceptions and fully redacted findings.
+
 ## Stack
 
 | Layer | Technology |
