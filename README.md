@@ -12,29 +12,39 @@ The project includes public property pages, enquiry handling, internal portal wo
 
 ## Local setup and architecture
 
-The original developer guide follows, including setup, service boundaries and implementation limitations. Use `.env.example` to create your own local environment. Never commit real credentials or personal records. Existing source licensing is retained; no open-source license is granted by making this repository public.
+The guide below describes local setup, service boundaries and implementation limitations. Use `.env.example` to create your own local environment. Never commit real credentials or personal records. Existing source licensing is retained; no open-source license is granted by making this repository public.
 
 ---
 
-# Dubai Real Estate AI Platform
+## Platform scope
 
-A modular monorepo foundation for a multi-agent AI platform that supports a Dubai real estate brokerage.
-It covers lead intake and qualification, property recommendation, sales conversations, follow-ups,
-CRM sync and knowledge-based support. Every action that reaches a live system is approval-gated and audited.
+The platform combines a public property website, enquiry intake, admin and agent portals, typed agent workflows, database-backed stores and private research exports. Tool permissions, approval policies and audit records control configured integrations.
 
-> **Status: foundation / vertical slice.** Everything runs locally against **mock integrations,
-> a deterministic mock LLM and fictional demo data**. Nothing connects to live CRM, WhatsApp, email
-> or telephony accounts. See [Implementation status](#implementation-status).
+Local defaults use mock integrations, a deterministic mock LLM and fictional demo data. Optional OpenAI and local Ollama adapters and PostgreSQL lead/workflow stores are implemented, but require explicit configuration. Source availability and passing CI do not establish live provider access or production readiness. See [Implementation status](#implementation-status).
+
+## Verified checks
+
+[![CI](https://github.com/zenithdevelopers7-source/dubai-property-developers/actions/workflows/ci.yml/badge.svg)](https://github.com/zenithdevelopers7-source/dubai-property-developers/actions/workflows/ci.yml)
+
+As of 20 November 2026, GitHub checks include:
+
+- **962 backend tests** on each of Python 3.12 and 3.15, plus lint, strict type checks, migration SQL and dependency audits. Existing expected-failure safety cases remain visible in test results.
+- **873 frontend tests**, TypeScript and ESLint checks, a lockfile-based installation, dependency audit and production build.
+- **161 database integration tests** on each Python version against temporary PostgreSQL/Redis services, with no unexpected skips. One strict expected failure documents the PostgreSQL-to-Redis fencing publication gap.
+- An actual Python 3.15 API image build, installed-dependency check, non-root runtime check and container startup/health smoke test.
+
+Workflows use pinned action commits and read-only repository permissions; checkout credentials are not retained. Passing checks apply to this repository revision, not automatically to the separately deployed demo.
 
 ## Stack
 
 | Layer | Technology |
 |---|---|
-| Backend API | Python 3.12, FastAPI, Pydantic v2 |
+| Backend API | Python 3.12 and 3.15 tested; API image uses 3.15, FastAPI, Pydantic v2 |
 | Agents / workflows | In-house typed agent framework and deterministic workflow engine |
-| Data | PostgreSQL 16 + pgvector, SQLAlchemy 2.x (async), Alembic |
+| Data | PostgreSQL 16 + pgvector, SQLAlchemy 2.1 supported (async), Alembic |
 | Cache / queue | Redis 7 |
-| Dashboard | Next.js 15 (App Router) + TypeScript |
+| Dashboard | Next.js 15 (App Router), React 18, TypeScript |
+| Testing tools | Vitest 5, Vite 8, Testing Library; ESLint 9 flat configuration |
 | Ops | Docker Compose, GitHub Actions |
 
 ## Quick start (Windows)
@@ -84,7 +94,7 @@ The API works without PostgreSQL or Redis: the agent runtime uses in-memory stor
 ```text
 apps/api          FastAPI app (routes, middleware, auth deps, error handlers)
 apps/worker       Redis-queue background worker
-apps/dashboard    Next.js dashboard (demo data clearly labelled)
+apps/dashboard    Next.js public website and admin/agent portals
 agents/           13 agents + base contracts + registry
 core/             config, llm, memory, policies, security, observability, exceptions, events, resilience, cache
 tools/            permission-gated tools (CRM, WhatsApp, email, calendar, property, documents, search, analytics)
@@ -107,15 +117,17 @@ docs/             architecture, api, agents, deployment, security, development
 | Sales Conversation, Follow-Up, Email, WhatsApp, Marketing, Documents, Analytics agents | **Partial** (rules and templates; LLM drafting pending) |
 | Voice agent | **Interface only** (no STT or telephony provider) |
 | Sales, Follow-Up, CRM Sync, Knowledge Support workflows | **Partial** |
-| LLM providers | Mock only. Real adapters not implemented |
+| LLM providers | Mock by default; OpenAI Responses and local Ollama adapters require explicit configuration |
 | Embeddings | Offline hashing embedder (lexical, not semantic) |
-| Persistence | Schema + migration done. Runtime stores are still in-memory (DB wiring pending) |
-| Auth | Dev principal + RBAC. Token/OIDC verification **not implemented** (fails closed) |
+| Persistence | In-memory defaults; PostgreSQL lead and workflow stores are wired through runtime settings |
+| Auth | API dev principal + RBAC; token mode requires an explicitly registered verifier and fails closed without one. Browser account/OIDC components require separate configuration |
 | EspoCRM / Meta / n8n / Slack HTTP adapters | Written to public docs. **Untested against live accounts** |
 | Bayut / Property Finder | Interface only, pending authorized partner API access |
 | Google Calendar, Telephony | Mock only |
 
-The full list is in [docs/development/roadmap.md](docs/development/roadmap.md).
+The [roadmap](docs/development/roadmap.md) records planned work and earlier milestones; current behavior is defined by the source and CI results.
+
+ESLint 9 is a compatibility step for the current Next.js lint configuration and is past upstream support. ESLint 10 needs a separate framework lint-configuration migration. The documented cross-system fencing gap remains a limitation; the expected-failure tests are not a production guarantee.
 
 ## Documentation
 
