@@ -1,4 +1,4 @@
-﻿"""Read-only reporting for unresolved tool-execution claims.
+"""Read-only reporting for unresolved tool-execution claims.
 
 This module does not access databases, execute tools, change claims,
 or authorize reconciliation and retry operations.
@@ -6,16 +6,13 @@ or authorize reconciliation and retry operations.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import UTC, datetime
-from typing import Any, Iterable
+from typing import Any
 
 
 def _aware_datetime(value: datetime, field: str) -> datetime:
-    if (
-        not isinstance(value, datetime)
-        or value.tzinfo is None
-        or value.utcoffset() is None
-    ):
+    if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
         raise ValueError(f"{field} must be a timezone-aware datetime")
 
     return value.astimezone(UTC)
@@ -66,9 +63,7 @@ def build_reconciliation_report(
             "claimed_at",
         )
 
-        elapsed_seconds = (
-            current_time - claimed_at
-        ).total_seconds()
+        elapsed_seconds = (current_time - claimed_at).total_seconds()
 
         if elapsed_seconds < 0:
             raise ValueError("claimed_at cannot be in the future")

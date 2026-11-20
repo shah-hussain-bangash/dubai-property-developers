@@ -1,4 +1,3 @@
-
 """Unit tests for reliable Redis worker processing.
 
 These tests use mocked queue operations.
@@ -177,9 +176,9 @@ async def test_missing_reservation_is_not_silently_ignored():
             new_callable=AsyncMock,
             return_value=False,
         ),
-    ):
-        with pytest.raises(
+        pytest.raises(
             RuntimeError,
             match="reservation was not found",
-        ):
-            await process_one(object(), raw, object())
+        ),
+    ):
+        await process_one(object(), raw, object())

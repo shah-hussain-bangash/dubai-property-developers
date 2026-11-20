@@ -94,7 +94,9 @@ def score_listing(listing: PropertyListing, c: PropertySearchCriteria) -> Proper
     caveats.append("No investment return is implied or guaranteed.")
 
     score = sum(WEIGHTS[k] * v for k, v in parts.items())
-    return PropertyRecommendation(listing=listing, score=round(min(score, 1.0), 4), reasons=reasons, caveats=caveats)
+    return PropertyRecommendation(
+        listing=listing, score=round(min(score, 1.0), 4), reasons=reasons, caveats=caveats
+    )
 
 
 def match_properties(

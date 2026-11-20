@@ -37,6 +37,8 @@ class CalendarCreateEventTool(BaseTool):
             end=datetime.fromisoformat(payload["end"]),
             attendee_emails=list(payload.get("attendees", [])),
             description=payload.get("description", ""),
-            idempotency_key=str(payload.get("idempotency_key", payload["summary"] + payload["start"])),
+            idempotency_key=str(
+                payload.get("idempotency_key", payload["summary"] + payload["start"])
+            ),
         )
         return {"event_id": event_id}

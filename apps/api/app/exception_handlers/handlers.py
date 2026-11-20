@@ -31,15 +31,21 @@ async def platform_error_handler(request: Request, exc: Exception) -> JSONRespon
     assert isinstance(exc, PlatformError)
     if exc.status_code >= 500:
         logger.warning("platform error", extra={"error_code": exc.code})
-    return JSONResponse(status_code=exc.status_code, content=_body(exc.code, exc.message, exc.details))
+    return JSONResponse(
+        status_code=exc.status_code, content=_body(exc.code, exc.message, exc.details)
+    )
 
 
 async def validation_error_handler(request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, RequestValidationError)
     errors = [
-        {"loc": list(e.get("loc", ())), "msg": e.get("msg"), "type": e.get("type")} for e in exc.errors()
+        {"loc": list(e.get("loc", ())), "msg": e.get("msg"), "type": e.get("type")}
+        for e in exc.errors()
     ]
-    return JSONResponse(status_code=422, content=_body("validation_error", "Request validation failed", {"errors": errors}))
+    return JSONResponse(
+        status_code=422,
+        content=_body("validation_error", "Request validation failed", {"errors": errors}),
+    )
 
 
 async def http_error_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -53,7 +59,9 @@ async def http_error_handler(request: Request, exc: Exception) -> JSONResponse:
 
 async def unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.exception("unhandled error")
-    return JSONResponse(status_code=500, content=_body("internal_error", "An unexpected error occurred"))
+    return JSONResponse(
+        status_code=500, content=_body("internal_error", "An unexpected error occurred")
+    )
 
 
 def register_exception_handlers(app: FastAPI) -> None:

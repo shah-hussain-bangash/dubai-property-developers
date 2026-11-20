@@ -1,4 +1,3 @@
-
 """Background job handlers.
 
 Each handler receives the platform runtime and a validated job.
@@ -21,7 +20,6 @@ from workflows.followup_flow import (
     FollowUpFlowState,
 )
 from workflows.runtime import PlatformRuntime
-
 
 Handler = Callable[
     [PlatformRuntime, JobEnvelope],
@@ -49,9 +47,7 @@ async def followup_scan(
     # A completed Python call is not necessarily a successful
     # workflow. Reject failed or unfinished executions.
     if run.status.value != "succeeded":
-        raise RuntimeError(
-            "Follow-up workflow did not complete successfully"
-        )
+        raise RuntimeError("Follow-up workflow did not complete successfully")
 
     return {
         "execution_id": run.execution_id,
@@ -93,6 +89,4 @@ def get_handler(job_type: str) -> Handler:
         return HANDLERS[job_type]
 
     except KeyError as exc:
-        raise NotFoundError(
-            f"no handler for job type {job_type}"
-        ) from exc
+        raise NotFoundError(f"no handler for job type {job_type}") from exc

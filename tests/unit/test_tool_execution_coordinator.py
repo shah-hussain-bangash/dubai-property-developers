@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import uuid
 from dataclasses import dataclass
 from typing import Any
@@ -95,11 +96,7 @@ class FakeClaimRepository:
         async with self.lock:
             record = self.records.get((tenant_id, key))
 
-            if (
-                record is None
-                or record.owner_token != owner_token
-                or record.state != "in_progress"
-            ):
+            if record is None or record.owner_token != owner_token or record.state != "in_progress":
                 return False
 
             record.state = "uncertain"
@@ -117,12 +114,7 @@ async def test_first_execution_completes() -> None:
         calls += 1
         return {"message_id": "message-1"}
 
-    result = await coordinator.execute(
-        "tenant-a",
-        "key-1",
-        "test.send",
-        action,
-     payload={})
+    result = await coordinator.execute("tenant-a", "key-1", "test.send", action, payload={})
 
     assert result.status == CoordinationStatus.EXECUTED
     assert result.data == {"message_id": "message-1"}
@@ -141,13 +133,9 @@ async def test_completed_execution_returns_replay() -> None:
         calls += 1
         return {"message_id": "message-1"}
 
-    first = await coordinator.execute(
-        "tenant-a", "key-2", "test.send", action
-    , payload={})
+    first = await coordinator.execute("tenant-a", "key-2", "test.send", action, payload={})
 
-    second = await coordinator.execute(
-        "tenant-a", "key-2", "test.send", action
-    , payload={})
+    second = await coordinator.execute("tenant-a", "key-2", "test.send", action, payload={})
 
     assert first.status == CoordinationStatus.EXECUTED
     assert second.status == CoordinationStatus.REPLAYED
@@ -176,17 +164,13 @@ async def test_two_coordinators_do_not_execute_twice() -> None:
         return {"message_id": "message-1"}
 
     first_task = asyncio.create_task(
-        coordinator_a.execute(
-            "tenant-a", "key-3", "test.send", action
-        , payload={})
+        coordinator_a.execute("tenant-a", "key-3", "test.send", action, payload={})
     )
 
     try:
         await asyncio.wait_for(started.wait(), timeout=2)
 
-        second = await coordinator_b.execute(
-            "tenant-a", "key-3", "test.send", action
-        , payload={})
+        second = await coordinator_b.execute("tenant-a", "key-3", "test.send", action, payload={})
 
         assert second.status == CoordinationStatus.IN_PROGRESS
         assert calls == 1
@@ -198,9 +182,7 @@ async def test_two_coordinators_do_not_execute_twice() -> None:
 
     assert first.status == CoordinationStatus.EXECUTED
 
-    replay = await coordinator_b.execute(
-        "tenant-a", "key-3", "test.send", action
-    , payload={})
+    replay = await coordinator_b.execute("tenant-a", "key-3", "test.send", action, payload={})
 
     assert replay.status == CoordinationStatus.REPLAYED
     assert calls == 1
@@ -218,16 +200,12 @@ async def test_failed_external_action_becomes_uncertain() -> None:
         raise RuntimeError("Simulated external API failure")
 
     with pytest.raises(ExecutionOutcomeUncertain):
-        await coordinator.execute(
-            "tenant-a", "key-4", "test.send", action
-        , payload={})
+        await coordinator.execute("tenant-a", "key-4", "test.send", action, payload={})
 
     record = claims.records[("tenant-a", "key-4")]
     assert record.state == "uncertain"
 
-    second = await coordinator.execute(
-        "tenant-a", "key-4", "test.send", action
-    , payload={})
+    second = await coordinator.execute("tenant-a", "key-4", "test.send", action, payload={})
 
     assert second.status == CoordinationStatus.UNCERTAIN
     assert calls == 1
@@ -247,16 +225,12 @@ async def test_completion_failure_requires_reconciliation() -> None:
         return {"message_id": "message-5"}
 
     with pytest.raises(ExecutionOutcomeUncertain):
-        await coordinator.execute(
-            "tenant-a", "key-5", "test.send", action
-        , payload={})
+        await coordinator.execute("tenant-a", "key-5", "test.send", action, payload={})
 
     assert calls == 1
     assert claims.records[("tenant-a", "key-5")].state == "uncertain"
 
-    second = await coordinator.execute(
-        "tenant-a", "key-5", "test.send", action
-    , payload={})
+    second = await coordinator.execute("tenant-a", "key-5", "test.send", action, payload={})
 
     assert second.status == CoordinationStatus.UNCERTAIN
     assert calls == 1
@@ -273,17 +247,14 @@ async def test_tenants_have_independent_claims() -> None:
         calls += 1
         return {"message_id": f"message-{calls}"}
 
-    first = await coordinator.execute(
-        "tenant-a", "shared-key", "test.send", action
-    , payload={})
+    first = await coordinator.execute("tenant-a", "shared-key", "test.send", action, payload={})
 
-    second = await coordinator.execute(
-        "tenant-b", "shared-key", "test.send", action
-    , payload={})
+    second = await coordinator.execute("tenant-b", "shared-key", "test.send", action, payload={})
 
     assert first.status == CoordinationStatus.EXECUTED
     assert second.status == CoordinationStatus.EXECUTED
     assert calls == 2
+
 
 @pytest.mark.asyncio
 async def test_cancelled_execution_preserves_cancellation_and_blocks_retry() -> None:
@@ -301,12 +272,7 @@ async def test_cancelled_execution_preserves_cancellation_and_blocks_retry() -> 
         return {"message_id": "unexpected"}
 
     task = asyncio.create_task(
-        coordinator.execute(
-            "tenant-a",
-            "cancelled-key",
-            "test.send",
-            action,
-         payload={})
+        coordinator.execute("tenant-a", "cancelled-key", "test.send", action, payload={})
     )
 
     await asyncio.wait_for(started.wait(), timeout=5)
@@ -319,15 +285,11 @@ async def test_cancelled_execution_preserves_cancellation_and_blocks_retry() -> 
     record = claims.records[("tenant-a", "cancelled-key")]
     assert record.state == "uncertain"
 
-    replay = await coordinator.execute(
-        "tenant-a",
-        "cancelled-key",
-        "test.send",
-        action,
-     payload={})
+    replay = await coordinator.execute("tenant-a", "cancelled-key", "test.send", action, payload={})
 
     assert replay.status == CoordinationStatus.UNCERTAIN
     assert calls == 1
+
 
 @pytest.mark.asyncio
 async def test_legacy_claim_without_fingerprint_cannot_replay() -> None:
@@ -351,7 +313,7 @@ async def test_legacy_claim_without_fingerprint_cannot_replay() -> None:
 
     with pytest.raises(
         ExecutionOutcomeUncertain,
-        match="(?i)fingerprint",
+        match=r"(?i)fingerprint",
     ):
         await coordinator.execute(
             "tenant-a",
@@ -362,6 +324,7 @@ async def test_legacy_claim_without_fingerprint_cannot_replay() -> None:
         )
 
     assert calls == 0
+
 
 @pytest.mark.asyncio
 async def test_cancellation_waits_for_uncertain_state_recording() -> None:
@@ -422,32 +385,27 @@ async def test_cancellation_waits_for_uncertain_state_recording() -> None:
                 asyncio.shield(task),
                 timeout=0.1,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pass
         except asyncio.CancelledError:
             pytest.fail(
-                "Coordinator propagated cancellation before "
-                "uncertain-state persistence completed"
+                "Coordinator propagated cancellation before uncertain-state persistence completed"
             )
         else:
-            pytest.fail(
-                "Coordinator returned before uncertain-state "
-                "persistence completed"
-            )
+            pytest.fail("Coordinator returned before uncertain-state persistence completed")
 
         assert not task.done()
 
     finally:
         claims.allow_transition.set()
 
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await asyncio.wait_for(task, timeout=5)
-        except asyncio.CancelledError:
-            pass
 
     record = claims.records[("tenant-a", "slow-cancellation")]
 
     assert record.state == "uncertain"
+
 
 @pytest.mark.asyncio
 async def test_repeated_cancellation_waits_for_uncertain_transition() -> None:
@@ -458,14 +416,10 @@ async def test_repeated_cancellation_waits_for_uncertain_transition() -> None:
             self.release = asyncio.Event()
             self.finished = asyncio.Event()
 
-        async def mark_uncertain(
-            self, tenant_id: str, key: str, owner_token: str
-        ) -> bool:
+        async def mark_uncertain(self, tenant_id: str, key: str, owner_token: str) -> bool:
             self.started.set()
             await self.release.wait()
-            result = await super().mark_uncertain(
-                tenant_id, key, owner_token
-            )
+            result = await super().mark_uncertain(tenant_id, key, owner_token)
             self.finished.set()
             return result
 
@@ -502,7 +456,7 @@ async def test_repeated_cancellation_waits_for_uncertain_transition() -> None:
                 asyncio.shield(task),
                 timeout=0.2,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pass
         except asyncio.CancelledError:
             pytest.fail(
@@ -517,16 +471,12 @@ async def test_repeated_cancellation_waits_for_uncertain_transition() -> None:
 
     finally:
         claims.release.set()
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await asyncio.wait_for(task, timeout=5)
-        except asyncio.CancelledError:
-            pass
 
         await asyncio.wait_for(claims.finished.wait(), timeout=5)
 
-    assert claims.records[
-        ("tenant-a", "repeated-cancellation")
-    ].state == "uncertain"
+    assert claims.records[("tenant-a", "repeated-cancellation")].state == "uncertain"
 
 
 @pytest.mark.asyncio
@@ -534,9 +484,7 @@ async def test_cancellation_reports_unconfirmed_uncertain_transition(
     caplog,
 ) -> None:
     class RefusingClaims(FakeClaimRepository):
-        async def mark_uncertain(
-            self, tenant_id: str, key: str, owner_token: str
-        ) -> bool:
+        async def mark_uncertain(self, tenant_id: str, key: str, owner_token: str) -> bool:
             return False
 
     claims = RefusingClaims()
@@ -564,28 +512,22 @@ async def test_cancellation_reports_unconfirmed_uncertain_transition(
     with pytest.raises(asyncio.CancelledError):
         await asyncio.wait_for(task, timeout=5)
 
-    assert claims.records[
-        ("tenant-a", "unconfirmed-cancellation")
-    ].state == "in_progress"
+    assert claims.records[("tenant-a", "unconfirmed-cancellation")].state == "in_progress"
 
     assert any(
         "uncertain" in record.message.lower()
-        and (
-            "not confirmed" in record.message.lower()
-            or "failed" in record.message.lower()
-        )
+        and ("not confirmed" in record.message.lower() or "failed" in record.message.lower())
         for record in caplog.records
         if record.levelno >= 40
     ), "An unconfirmed uncertainty update must be logged as an error"
+
 
 @pytest.mark.asyncio
 async def test_cancellation_logs_uncertain_database_exception(
     caplog,
 ) -> None:
     class FailingClaims(FakeClaimRepository):
-        async def mark_uncertain(
-            self, tenant_id: str, key: str, owner_token: str
-        ) -> bool:
+        async def mark_uncertain(self, tenant_id: str, key: str, owner_token: str) -> bool:
             raise ConnectionError("Simulated database disconnection")
 
     claims = FailingClaims()
@@ -613,9 +555,7 @@ async def test_cancellation_logs_uncertain_database_exception(
     with pytest.raises(asyncio.CancelledError):
         await asyncio.wait_for(task, timeout=5)
 
-    record = claims.records[
-        ("tenant-a", "database-error-test")
-    ]
+    record = claims.records[("tenant-a", "database-error-test")]
 
     assert record.state == "in_progress"
 
@@ -638,15 +578,11 @@ async def test_cancellation_timeout_leaves_transition_pending(
             self.release = asyncio.Event()
             self.finished = asyncio.Event()
 
-        async def mark_uncertain(
-            self, tenant_id: str, key: str, owner_token: str
-        ) -> bool:
+        async def mark_uncertain(self, tenant_id: str, key: str, owner_token: str) -> bool:
             self.started.set()
             await self.release.wait()
 
-            result = await super().mark_uncertain(
-                tenant_id, key, owner_token
-            )
+            result = await super().mark_uncertain(tenant_id, key, owner_token)
             self.finished.set()
             return result
 
@@ -688,17 +624,12 @@ async def test_cancellation_timeout_leaves_transition_pending(
 
         assert not claims.finished.is_set()
 
-        assert claims.records[
-            ("tenant-a", "timeout-transition-test")
-        ].state == "in_progress"
+        assert claims.records[("tenant-a", "timeout-transition-test")].state == "in_progress"
 
         assert any(
             record.levelno >= 40
             and "uncertain" in record.message.lower()
-            and (
-                "timed out" in record.message.lower()
-                or "deadline" in record.message.lower()
-            )
+            and ("timed out" in record.message.lower() or "deadline" in record.message.lower())
             for record in caplog.records
         )
 
@@ -710,22 +641,16 @@ async def test_cancellation_timeout_leaves_transition_pending(
                 claims.finished.wait(),
                 timeout=5,
             )
-        except asyncio.TimeoutError:
-            pytest.fail(
-                "Uncertainty transition did not finish "
-                "after being released"
-            )
+        except TimeoutError:
+            pytest.fail("Uncertainty transition did not finish after being released")
 
         if not task.done():
             task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await task
-            except asyncio.CancelledError:
-                pass
 
-    assert claims.records[
-        ("tenant-a", "timeout-transition-test")
-    ].state == "uncertain"
+    assert claims.records[("tenant-a", "timeout-transition-test")].state == "uncertain"
+
 
 @pytest.mark.asyncio
 async def test_orphaned_in_progress_claim_is_not_reexecuted() -> None:
@@ -741,15 +666,11 @@ async def test_orphaned_in_progress_claim_is_not_reexecuted() -> None:
     tool = "whatsapp.send_message"
     payload = {"recipient": "+971500000000", "message": "Hello"}
 
-    fingerprint = make_request_fingerprint(
-        tenant, tool, payload
-    )
+    fingerprint = make_request_fingerprint(tenant, tool, payload)
 
     # Simulate a previous worker acquiring ownership, then
     # disappearing without completing or resolving the claim.
-    original_owner = await claims.claim(
-        tenant, key, tool, fingerprint
-    )
+    original_owner = await claims.claim(tenant, key, tool, fingerprint)
     assert original_owner is not None
 
     calls = 0
@@ -760,9 +681,7 @@ async def test_orphaned_in_progress_claim_is_not_reexecuted() -> None:
         return {"message_id": "duplicate"}
 
     for _ in range(3):
-        result = await coordinator.execute(
-            tenant, key, tool, action, payload=payload
-        )
+        result = await coordinator.execute(tenant, key, tool, action, payload=payload)
         assert result.status == CoordinationStatus.IN_PROGRESS
         assert result.data is None
 
@@ -788,18 +707,12 @@ async def test_uncertain_claim_requires_reconciliation_no_retry() -> None:
     tool = "crm.create_lead"
     payload = {"name": "Example Lead"}
 
-    fingerprint = make_request_fingerprint(
-        tenant, tool, payload
-    )
+    fingerprint = make_request_fingerprint(tenant, tool, payload)
 
-    owner = await claims.claim(
-        tenant, key, tool, fingerprint
-    )
+    owner = await claims.claim(tenant, key, tool, fingerprint)
     assert owner is not None
 
-    assert await claims.mark_uncertain(
-        tenant, key, owner
-    )
+    assert await claims.mark_uncertain(tenant, key, owner)
 
     calls = 0
 
@@ -809,9 +722,7 @@ async def test_uncertain_claim_requires_reconciliation_no_retry() -> None:
         return {"lead_id": "duplicate"}
 
     for _ in range(3):
-        result = await coordinator.execute(
-            tenant, key, tool, action, payload=payload
-        )
+        result = await coordinator.execute(tenant, key, tool, action, payload=payload)
         assert result.status == CoordinationStatus.UNCERTAIN
         assert result.data is None
 

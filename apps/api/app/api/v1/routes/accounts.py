@@ -5,6 +5,7 @@ organization identifiers. The service must recheck current account/organization
 state, enforce conditional decisions, and commit decisions and audit atomically.
 The service's owner identity must come from trusted server configuration.
 """
+
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal, Protocol
@@ -20,9 +21,7 @@ class AccountActor:
     organization_id: UUID
 
     def __post_init__(self):
-        if not isinstance(self.user_id, UUID) or not isinstance(
-            self.organization_id, UUID
-        ):
+        if not isinstance(self.user_id, UUID) or not isinstance(self.organization_id, UUID):
             raise ValueError("verified UUID identifiers required")
 
 
@@ -41,9 +40,7 @@ class ApprovalDecision(BaseModel):
 class AccountService(Protocol):
     def owner_subject(self, organization_id: UUID) -> UUID | None: ...
     async def list_pending(self, actor: AccountActor, *, limit: int) -> list[dict]: ...
-    async def decide(
-        self, actor: AccountActor, target_id: UUID, *, approve: bool
-    ) -> dict: ...
+    async def decide(self, actor: AccountActor, target_id: UUID, *, approve: bool) -> dict: ...
     async def get_self(self, actor: AccountActor) -> dict: ...
 
 
@@ -83,9 +80,7 @@ def create_accounts_router(
         service: AccountService = Depends(get_service),
     ):
         # This exposes only own account status, not protected dashboard data.
-        return checked_view(
-            await service.get_self(actor), actor, expected_id=actor.user_id
-        )
+        return checked_view(await service.get_self(actor), actor, expected_id=actor.user_id)
 
     @router.get("/approvals/pending", response_model=list[AccountView])
     async def list_pending(
@@ -97,9 +92,7 @@ def create_accounts_router(
         rows = await service.list_pending(actor, limit=limit)
         if len(rows) > limit:
             raise HTTPException(status_code=503, detail="account service inconsistency")
-        return [
-            checked_view(row, actor, expected_status="pending") for row in rows
-        ]
+        return [checked_view(row, actor, expected_status="pending") for row in rows]
 
     @router.post("/{account_id}/approval", response_model=AccountView)
     async def decide(
@@ -113,7 +106,9 @@ def create_accounts_router(
             raise HTTPException(status_code=403, detail="self-approval prohibited")
         row = await service.decide(actor, account_id, approve=body.approve)
         return checked_view(
-            row, actor, expected_id=account_id,
+            row,
+            actor,
+            expected_id=account_id,
             expected_status="approved" if body.approve else "rejected",
         )
 

@@ -65,6 +65,8 @@ async def ready(
         checks.append(DependencyCheck(name="redis", status="skipped"))
 
     failing = any(c.status == "unavailable" for c in checks)
-    status = "not_ready" if failing else ("ready" if settings.readiness_checks_required else "degraded")
+    status = (
+        "not_ready" if failing else ("ready" if settings.readiness_checks_required else "degraded")
+    )
     body = ReadinessResponse(status=status, checks=checks, agents_registered=len(runtime.agents))
     return JSONResponse(status_code=503 if failing else 200, content=body.model_dump())

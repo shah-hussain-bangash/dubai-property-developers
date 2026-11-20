@@ -13,7 +13,7 @@ from database.base import Base
 ModelT = TypeVar("ModelT", bound=Base)
 
 
-class TenantRepository(Generic[ModelT]):
+class TenantRepository(Generic[ModelT]):  # noqa: UP046 -- Retain the public Generic/TypeVar API and runtime introspection.
     """All queries are filtered by ``organization_id`` to enforce tenant isolation."""
 
     model: type[ModelT]

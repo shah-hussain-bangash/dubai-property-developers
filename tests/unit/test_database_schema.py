@@ -15,16 +15,35 @@ from database.base import Base
 ROOT = Path(__file__).resolve().parents[2]
 
 REQUIRED_TABLES = {
-    "organizations", "users", "roles", "user_roles", "leads", "contacts", "projects",
-    "properties", "property_units", "payment_plans", "opportunities", "conversations",
-    "messages", "ai_agents", "agent_executions", "workflow_executions", "tasks",
-    "integration_connections", "external_sync_records", "approval_requests", "audit_logs",
-    "knowledge_documents", "knowledge_chunks", "chunk_embeddings",
+    "organizations",
+    "users",
+    "roles",
+    "user_roles",
+    "leads",
+    "contacts",
+    "projects",
+    "properties",
+    "property_units",
+    "payment_plans",
+    "opportunities",
+    "conversations",
+    "messages",
+    "ai_agents",
+    "agent_executions",
+    "workflow_executions",
+    "tasks",
+    "integration_connections",
+    "external_sync_records",
+    "approval_requests",
+    "audit_logs",
+    "knowledge_documents",
+    "knowledge_chunks",
+    "chunk_embeddings",
 }
 
 
 def test_models_define_all_required_tables() -> None:
-    assert REQUIRED_TABLES <= set(Base.metadata.tables)
+    assert set(Base.metadata.tables) >= REQUIRED_TABLES
 
 
 def test_tenant_tables_have_org_foreign_key() -> None:

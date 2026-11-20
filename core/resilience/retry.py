@@ -34,7 +34,7 @@ def _is_retryable(exc: BaseException) -> bool:
     return isinstance(exc, TimeoutError | ConnectionError)
 
 
-async def retry_async(
+async def retry_async(  # noqa: UP047 -- Retain the existing shared TypeVar signature.
     func: Callable[[], Awaitable[T]],
     policy: RetryPolicy,
     *,

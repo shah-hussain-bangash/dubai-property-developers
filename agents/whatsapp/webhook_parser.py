@@ -28,7 +28,8 @@ def parse_meta_webhook(payload: dict[str, Any]) -> list[InboundWhatsAppMessage]:
         for change in entry.get("changes", []):
             value = change.get("value", {})
             names = {
-                c.get("wa_id"): (c.get("profile") or {}).get("name") for c in value.get("contacts", [])
+                c.get("wa_id"): (c.get("profile") or {}).get("name")
+                for c in value.get("contacts", [])
             }
             for msg in value.get("messages", []):
                 sender = str(msg.get("from", ""))

@@ -58,7 +58,11 @@ class ModelRouter:
                 last_error = exc
                 logger.warning(
                     "llm target failed, trying fallback",
-                    extra={"provider": target.provider, "model": target.model, "error": type(exc).__name__},
+                    extra={
+                        "provider": target.provider,
+                        "model": target.model,
+                        "error": type(exc).__name__,
+                    },
                 )
                 continue
             self.usage_sink.record(

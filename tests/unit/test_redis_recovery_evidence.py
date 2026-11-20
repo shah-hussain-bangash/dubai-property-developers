@@ -1,4 +1,3 @@
-
 """Unit tests for atomic Redis recovery evidence.
 
 These tests mock Redis and do not modify real queues or databases.
@@ -16,7 +15,6 @@ from apps.worker.jobs.redis_recovery_evidence import (
     recovery_evidence_key,
     requeue_with_evidence,
 )
-
 
 PROCESSING = "test:recovery:processing"
 PENDING = "test:recovery:pending"
@@ -180,23 +178,23 @@ async def test_invalid_keys_are_rejected(overrides):
 
 
 def test_evidence_key_uses_operation_uuid():
-    operation_id = uuid.UUID(
-        "12345678-1234-5678-1234-567812345678"
-    )
+    operation_id = uuid.UUID("12345678-1234-5678-1234-567812345678")
 
     assert recovery_evidence_key(operation_id) == (
-        "recovery:evidence:"
-        "12345678123456781234567812345678"
+        "recovery:evidence:12345678123456781234567812345678"
     )
 
 
 def test_evidence_key_supports_custom_prefix():
     operation_id = uuid.uuid4()
 
-    assert recovery_evidence_key(
-        operation_id,
-        prefix="test:evidence",
-    ) == f"test:evidence:{operation_id.hex}"
+    assert (
+        recovery_evidence_key(
+            operation_id,
+            prefix="test:evidence",
+        )
+        == f"test:evidence:{operation_id.hex}"
+    )
 
 
 def test_evidence_key_rejects_invalid_uuid():
@@ -219,9 +217,7 @@ def test_evidence_key_rejects_invalid_prefix(prefix):
 @pytest.mark.asyncio
 async def test_redis_communication_error_propagates():
     redis = AsyncMock()
-    redis.eval.side_effect = ConnectionError(
-        "Redis temporarily unavailable"
-    )
+    redis.eval.side_effect = ConnectionError("Redis temporarily unavailable")
 
     with pytest.raises(ConnectionError):
         await invoke(redis)

@@ -26,8 +26,8 @@ ENV_KEYS = (
 )
 REQUIRED_REVISIONS = ("0009_user_account_approval", "0010_account_auth_storage")
 STAGED = {
-    "0009_user_account_approval": "database/project_knowledge/reports/step505_account_approval_migration.py",
-    "0010_account_auth_storage": "database/project_knowledge/reports/step524_auth_storage_migration.py",
+    "0009_user_account_approval": "database/migrations/reviewed/0009_user_account_approval.py",
+    "0010_account_auth_storage": "database/migrations/reviewed/0010_account_auth_storage.py",
 }
 SCHEMA_COLUMNS = {
     "organizations": {"id", "is_active"},

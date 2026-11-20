@@ -1,4 +1,3 @@
-
 """Unit tests for the atomic Redis recovery snapshot.
 
 Uses mocked Redis. Does not access real queues or databases.
@@ -14,7 +13,6 @@ from apps.worker.jobs.redis_recovery_snapshot import (
     RECOVERY_SNAPSHOT_SCRIPT,
     inspect_recovery_snapshot,
 )
-
 
 PROCESSING = "test:snapshot:processing"
 PENDING = "test:snapshot:pending"

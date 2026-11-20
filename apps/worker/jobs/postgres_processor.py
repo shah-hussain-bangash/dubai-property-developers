@@ -1,4 +1,3 @@
-
 """Authenticated PostgreSQL background-job processor.
 
 Development-only: not connected to the deployed Docker worker.
@@ -65,42 +64,26 @@ async def process_postgres_job(
 
     received_job = JobEnvelope.model_validate_json(raw)
 
-    authenticated_job = await authenticator.authenticate(
-        received_job
-    )
+    authenticated_job = await authenticator.authenticate(received_job)
 
-    if (
-        not isinstance(authenticated_job, JobEnvelope)
-        or authenticated_job != received_job
-    ):
-        raise JobPayloadAuthenticationError(
-            "Authenticated job does not match Redis delivery"
-        )
+    if not isinstance(authenticated_job, JobEnvelope) or authenticated_job != received_job:
+        raise JobPayloadAuthenticationError("Authenticated job does not match Redis delivery")
 
     job = authenticated_job
 
     record = await store.get(job.tenant_id, job.job_id)
 
     if record is None:
-        raise RuntimeError(
-            "Unregistered job; refusing handler execution"
-        )
+        raise RuntimeError("Unregistered job; refusing handler execution")
 
-    if (
-        record.job_type != job.job_type
-        or record.max_attempts != job.max_attempts
-    ):
-        raise RuntimeError(
-            "Job identity differs from PostgreSQL registration"
-        )
+    if record.job_type != job.job_type or record.max_attempts != job.max_attempts:
+        raise RuntimeError("Job identity differs from PostgreSQL registration")
 
     if record.status in {"succeeded", "failed"}:
         acknowledged = await acknowledge_job(redis, raw)
 
         if not acknowledged:
-            raise RuntimeError(
-                "Terminal job reservation was not found"
-            )
+            raise RuntimeError("Terminal job reservation was not found")
 
         return "duplicate"
 
@@ -145,9 +128,7 @@ async def process_postgres_job(
         )
 
         if status is None:
-            raise RuntimeError(
-                "Job failure could not be recorded; lease may be lost"
-            )
+            raise RuntimeError("Job failure could not be recorded; lease may be lost") from None
 
         return "failed"
 
@@ -159,17 +140,11 @@ async def process_postgres_job(
     )
 
     if not completed:
-        raise RuntimeError(
-            "Job execution finished but completion lease "
-            "is no longer valid"
-        )
+        raise RuntimeError("Job execution finished but completion lease is no longer valid")
 
     acknowledged = await acknowledge_job(redis, raw)
 
     if not acknowledged:
-        raise RuntimeError(
-            "PostgreSQL recorded success but Redis reservation "
-            "was not found"
-        )
+        raise RuntimeError("PostgreSQL recorded success but Redis reservation was not found")
 
     return "succeeded"

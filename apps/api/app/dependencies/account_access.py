@@ -5,8 +5,11 @@ Identity subjects and tenant IDs must be internal UUID strings. External OIDC
 subjects require a trusted server-side identity mapping before this adapter.
 No application registration, engine creation, or token verification is installed.
 """
+
 from uuid import UUID
+
 from fastapi import Depends, HTTPException, Request
+
 
 def build_account_dependencies(*, principal_dependency, actor_factory):
     if not callable(principal_dependency) or not callable(actor_factory):
@@ -48,7 +51,10 @@ def build_account_dependencies(*, principal_dependency, actor_factory):
     async def configured_service(request: Request):
         service = getattr(request.app.state, "account_service", None)
         methods = (
-            "owner_subject", "list_pending", "decide", "get_self",
+            "owner_subject",
+            "list_pending",
+            "decide",
+            "get_self",
             "require_dashboard_access",
         )
         if service is None or not all(
@@ -58,7 +64,8 @@ def build_account_dependencies(*, principal_dependency, actor_factory):
         return service
 
     async def require_dashboard_access(
-        actor=Depends(get_actor), service=Depends(configured_service),
+        actor=Depends(get_actor),
+        service=Depends(configured_service),
     ):
         return await service.require_dashboard_access(actor)
 

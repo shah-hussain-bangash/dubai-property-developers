@@ -61,17 +61,11 @@ class Lead(UUIDPrimaryKeyMixin, TenantMixin, TimestampMixin, Base):
     email: Mapped[str | None] = mapped_column(String(254))
     phone_e164: Mapped[str | None] = mapped_column(String(20))
 
-  
     phone_e164: Mapped[str | None] = mapped_column(String(20))
     phone_region: Mapped[str | None] = mapped_column(String(8))
-    consent_marketing: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False
-    )
-    consent_whatsapp: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False
-    )
+    consent_marketing: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    consent_whatsapp: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     message: Mapped[str | None] = mapped_column(Text)
-
 
     message: Mapped[str | None] = mapped_column(Text)
     budget_min_aed: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
@@ -92,14 +86,18 @@ class Lead(UUIDPrimaryKeyMixin, TenantMixin, TimestampMixin, Base):
     duplicate_of_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("leads.id", ondelete="SET NULL")
     )
-    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
 
 class Opportunity(UUIDPrimaryKeyMixin, TenantMixin, TimestampMixin, Base):
     __tablename__ = "opportunities"
     __table_args__ = (Index("ix_opportunities_org_stage", "organization_id", "stage"),)
 
-    lead_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("leads.id", ondelete="SET NULL"))
+    lead_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("leads.id", ondelete="SET NULL")
+    )
     contact_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("contacts.id", ondelete="SET NULL")
     )
@@ -122,7 +120,9 @@ class Task(UUIDPrimaryKeyMixin, TenantMixin, TimestampMixin, Base):
     __tablename__ = "tasks"
     __table_args__ = (Index("ix_tasks_org_status_due", "organization_id", "status", "due_at"),)
 
-    lead_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("leads.id", ondelete="CASCADE"))
+    lead_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("leads.id", ondelete="CASCADE")
+    )
     contact_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("contacts.id", ondelete="CASCADE")
     )

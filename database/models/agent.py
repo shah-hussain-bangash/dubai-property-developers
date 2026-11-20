@@ -5,7 +5,18 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, Uuid, func
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    Uuid,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database.base import Base, TenantMixin, TimestampMixin, UUIDPrimaryKeyMixin
@@ -26,9 +37,7 @@ class AIAgent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 class WorkflowExecution(UUIDPrimaryKeyMixin, TenantMixin, TimestampMixin, Base):
     __tablename__ = "workflow_executions"
-    __table_args__ = (
-        Index("ix_workflow_executions_org_status", "organization_id", "status"),
-    )
+    __table_args__ = (Index("ix_workflow_executions_org_status", "organization_id", "status"),)
 
     workflow_key: Mapped[str] = mapped_column(String(64), index=True)
     status: Mapped[str] = mapped_column(String(32), default="running")
@@ -44,9 +53,7 @@ class WorkflowExecution(UUIDPrimaryKeyMixin, TenantMixin, TimestampMixin, Base):
 
 class AgentExecution(UUIDPrimaryKeyMixin, TenantMixin, TimestampMixin, Base):
     __tablename__ = "agent_executions"
-    __table_args__ = (
-        Index("ix_agent_executions_agent_started", "agent_key", "started_at"),
-    )
+    __table_args__ = (Index("ix_agent_executions_agent_started", "agent_key", "started_at"),)
 
     agent_key: Mapped[str] = mapped_column(
         String(64), ForeignKey("ai_agents.agent_key", ondelete="RESTRICT")

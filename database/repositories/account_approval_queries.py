@@ -6,12 +6,12 @@ configuration, never owner/actor identifiers supplied by a public request.
 Execution requires a transaction, decision-result checking and an audit write.
 These statements do not authenticate a caller or provision the initial owner.
 """
+
 from __future__ import annotations
 
 import uuid
 
 import sqlalchemy as sa
-
 
 _users = sa.table(
     "users",
@@ -38,10 +38,15 @@ def _uuid(value: uuid.UUID) -> uuid.UUID:
 
 
 def _organization_active(organization_id: uuid.UUID):
-    return sa.select(sa.literal(1)).select_from(_organizations).where(
-        _organizations.c.id == organization_id,
-        _organizations.c.is_active.is_(True),
-    ).exists()
+    return (
+        sa.select(sa.literal(1))
+        .select_from(_organizations)
+        .where(
+            _organizations.c.id == organization_id,
+            _organizations.c.is_active.is_(True),
+        )
+        .exists()
+    )
 
 
 def _owner_allowed(
@@ -55,12 +60,17 @@ def _owner_allowed(
     if actor_user_id != configured_owner_user_id:
         raise PermissionError("owner identity required")
     owner = _users.alias("approval_owner")
-    return sa.select(sa.literal(1)).select_from(owner).where(
-        owner.c.id == actor_user_id,
-        owner.c.organization_id == organization_id,
-        owner.c.is_active.is_(True),
-        owner.c.approval_status == "approved",
-    ).exists()
+    return (
+        sa.select(sa.literal(1))
+        .select_from(owner)
+        .where(
+            owner.c.id == actor_user_id,
+            owner.c.organization_id == organization_id,
+            owner.c.is_active.is_(True),
+            owner.c.approval_status == "approved",
+        )
+        .exists()
+    )
 
 
 def build_pending_accounts(
@@ -69,22 +79,24 @@ def build_pending_accounts(
     actor_user_id: uuid.UUID,
     configured_owner_user_id: uuid.UUID,
 ):
-    owner_allowed = _owner_allowed(
-        organization_id, actor_user_id, configured_owner_user_id
+    owner_allowed = _owner_allowed(organization_id, actor_user_id, configured_owner_user_id)
+    return (
+        sa.select(
+            _users.c.id,
+            _users.c.organization_id,
+            _users.c.email,
+            _users.c.full_name,
+            _users.c.approval_status,
+        )
+        .where(
+            _users.c.organization_id == organization_id,
+            _users.c.approval_status == "pending",
+            _users.c.is_active.is_(True),
+            _organization_active(organization_id),
+            owner_allowed,
+        )
+        .order_by(_users.c.id)
     )
-    return sa.select(
-        _users.c.id,
-        _users.c.organization_id,
-        _users.c.email,
-        _users.c.full_name,
-        _users.c.approval_status,
-    ).where(
-        _users.c.organization_id == organization_id,
-        _users.c.approval_status == "pending",
-        _users.c.is_active.is_(True),
-        _organization_active(organization_id),
-        owner_allowed,
-    ).order_by(_users.c.id)
 
 
 def build_account_decision(
@@ -98,28 +110,31 @@ def build_account_decision(
     _uuid(target_user_id)
     if type(approve) is not bool:
         raise ValueError("approve must be boolean")
-    owner_allowed = _owner_allowed(
-        organization_id, actor_user_id, configured_owner_user_id
-    )
+    owner_allowed = _owner_allowed(organization_id, actor_user_id, configured_owner_user_id)
     if target_user_id == actor_user_id:
         raise PermissionError("self-approval is prohibited")
-    return sa.update(_users).where(
-        _users.c.id == target_user_id,
-        _users.c.organization_id == organization_id,
-        _users.c.approval_status == "pending",
-        _users.c.is_active.is_(True),
-        _organization_active(organization_id),
-        owner_allowed,
-    ).values(
-        approval_status="approved" if approve else "rejected",
-        approval_decided_by=actor_user_id,
-        approval_decided_at=sa.func.now(),
-    ).returning(
-        _users.c.id,
-        _users.c.organization_id,
-        _users.c.approval_status,
-        _users.c.approval_decided_by,
-        _users.c.approval_decided_at,
+    return (
+        sa.update(_users)
+        .where(
+            _users.c.id == target_user_id,
+            _users.c.organization_id == organization_id,
+            _users.c.approval_status == "pending",
+            _users.c.is_active.is_(True),
+            _organization_active(organization_id),
+            owner_allowed,
+        )
+        .values(
+            approval_status="approved" if approve else "rejected",
+            approval_decided_by=actor_user_id,
+            approval_decided_at=sa.func.now(),
+        )
+        .returning(
+            _users.c.id,
+            _users.c.organization_id,
+            _users.c.approval_status,
+            _users.c.approval_decided_by,
+            _users.c.approval_decided_at,
+        )
     )
 
 

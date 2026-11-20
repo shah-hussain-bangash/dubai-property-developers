@@ -22,7 +22,8 @@ def extractive_summary(text: str, max_sentences: int) -> str:
         return " ".join(sentences)
     freq = Counter(tokenize(text))
     scored = [
-        (sum(freq[t] for t in tokenize(s)) / (len(tokenize(s)) or 1), i) for i, s in enumerate(sentences)
+        (sum(freq[t] for t in tokenize(s)) / (len(tokenize(s)) or 1), i)
+        for i, s in enumerate(sentences)
     ]
     keep = sorted(i for _, i in sorted(scored, reverse=True)[:max_sentences])
     return " ".join(sentences[i] for i in keep)

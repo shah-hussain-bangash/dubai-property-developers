@@ -34,7 +34,9 @@ class ModelPrice:
 
 
 class UsageSink(Protocol):
-    def record(self, *, agent_id: str, model: str, usage: TokenUsage, correlation_id: str | None) -> None: ...
+    def record(
+        self, *, agent_id: str, model: str, usage: TokenUsage, correlation_id: str | None
+    ) -> None: ...
 
 
 @dataclass
@@ -46,7 +48,9 @@ class InMemoryUsageTracker:
         default_factory=lambda: defaultdict(TokenUsage)
     )
 
-    def record(self, *, agent_id: str, model: str, usage: TokenUsage, correlation_id: str | None) -> None:
+    def record(
+        self, *, agent_id: str, model: str, usage: TokenUsage, correlation_id: str | None
+    ) -> None:
         self._totals[(agent_id, model)] = self._totals[(agent_id, model)] + usage
 
     def totals(self) -> dict[tuple[str, str], TokenUsage]:

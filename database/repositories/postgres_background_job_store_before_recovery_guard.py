@@ -1,4 +1,3 @@
-
 """PostgreSQL persistence for background-job lifecycle metadata.
 
 Supports:
@@ -20,7 +19,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, insert, or_, select, update
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -77,9 +76,7 @@ class PostgresBackgroundJobStore:
         )
 
         if organization_id is None:
-            raise ValueError(
-                f"Unknown or inactive organization: {tenant_id}"
-            )
+            raise ValueError(f"Unknown or inactive organization: {tenant_id}")
 
         return organization_id
 
@@ -109,52 +106,43 @@ class PostgresBackgroundJobStore:
         if correlation_id is not None and len(correlation_id) > 64:
             raise ValueError("correlation_id exceeds 64 characters")
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                organization_id = await self._organization_id(
-                    session,
-                    tenant_id,
+        async with self.session_factory() as session, session.begin():
+            organization_id = await self._organization_id(
+                session,
+                tenant_id,
+            )
+
+            statement = (
+                pg_insert(BackgroundJob)
+                .values(
+                    id=uuid.uuid4(),
+                    organization_id=organization_id,
+                    job_id=job_id,
+                    job_type=job_type,
+                    status="pending",
+                    attempts=0,
+                    max_attempts=max_attempts,
+                    correlation_id=correlation_id,
                 )
+                .on_conflict_do_nothing(constraint="uq_background_jobs_org_job_id")
+            )
 
-                statement = (
-                    pg_insert(BackgroundJob)
-                    .values(
-                        id=uuid.uuid4(),
-                        organization_id=organization_id,
-                        job_id=job_id,
-                        job_type=job_type,
-                        status="pending",
-                        attempts=0,
-                        max_attempts=max_attempts,
-                        correlation_id=correlation_id,
-                    )
-                    .on_conflict_do_nothing(
-                        constraint="uq_background_jobs_org_job_id"
-                    )
+            await session.execute(statement)
+
+            record = await session.scalar(
+                select(BackgroundJob).where(
+                    BackgroundJob.organization_id == organization_id,
+                    BackgroundJob.job_id == job_id,
                 )
+            )
 
-                await session.execute(statement)
+            if record is None:
+                raise RuntimeError("Job registration failed")
 
-                record = await session.scalar(
-                    select(BackgroundJob).where(
-                        BackgroundJob.organization_id
-                        == organization_id,
-                        BackgroundJob.job_id == job_id,
-                    )
-                )
+            if record.job_type != job_type or record.max_attempts != max_attempts:
+                raise ValueError("Existing job registration cannot be changed")
 
-                if record is None:
-                    raise RuntimeError("Job registration failed")
-
-                if (
-                    record.job_type != job_type
-                    or record.max_attempts != max_attempts
-                ):
-                    raise ValueError(
-                        "Existing job registration cannot be changed"
-                    )
-
-                return record
+            return record
 
     async def get(
         self,
@@ -173,8 +161,7 @@ class PostgresBackgroundJobStore:
 
             return await session.scalar(
                 select(BackgroundJob).where(
-                    BackgroundJob.organization_id
-                    == organization_id,
+                    BackgroundJob.organization_id == organization_id,
                     BackgroundJob.job_id == job_id,
                 )
             )
@@ -207,51 +194,47 @@ class PostgresBackgroundJobStore:
         now = datetime.now(UTC)
         token = uuid.uuid4().hex
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                organization_id = await self._organization_id(
-                    session,
-                    tenant_id,
-                )
+        async with self.session_factory() as session, session.begin():
+            organization_id = await self._organization_id(
+                session,
+                tenant_id,
+            )
 
-                statement = (
-                    update(BackgroundJob)
-                    .where(
-                        BackgroundJob.organization_id
-                        == organization_id,
-                        BackgroundJob.job_id == job_id,
-                        BackgroundJob.attempts
-                        < BackgroundJob.max_attempts,
-                        or_(
-                            BackgroundJob.status == "pending",
-                            (
-                                (BackgroundJob.status == "retrying")
-                                & or_(
-                                    BackgroundJob.next_retry_at.is_(None),
-                                    BackgroundJob.next_retry_at <= now,
-                                )
-                            ),
+            statement = (
+                update(BackgroundJob)
+                .where(
+                    BackgroundJob.organization_id == organization_id,
+                    BackgroundJob.job_id == job_id,
+                    BackgroundJob.attempts < BackgroundJob.max_attempts,
+                    or_(
+                        BackgroundJob.status == "pending",
+                        (
+                            (BackgroundJob.status == "retrying")
+                            & or_(
+                                BackgroundJob.next_retry_at.is_(None),
+                                BackgroundJob.next_retry_at <= now,
+                            )
                         ),
-                    )
-                    .values(
-                        status="processing",
-                        worker_id=worker_id,
-                        lease_token=token,
-                        lease_expires_at=now
-                        + timedelta(seconds=lease_seconds),
-                        next_retry_at=None,
-                        attempts=BackgroundJob.attempts + 1,
-                        started_at=func.coalesce(
-                            BackgroundJob.started_at,
-                            now,
-                        ),
-                    )
-                    .returning(BackgroundJob.id)
+                    ),
                 )
+                .values(
+                    status="processing",
+                    worker_id=worker_id,
+                    lease_token=token,
+                    lease_expires_at=now + timedelta(seconds=lease_seconds),
+                    next_retry_at=None,
+                    attempts=BackgroundJob.attempts + 1,
+                    started_at=func.coalesce(
+                        BackgroundJob.started_at,
+                        now,
+                    ),
+                )
+                .returning(BackgroundJob.id)
+            )
 
-                claimed_id = await session.scalar(statement)
+            claimed_id = await session.scalar(statement)
 
-                return token if claimed_id is not None else None
+            return token if claimed_id is not None else None
 
     async def heartbeat(
         self,
@@ -275,34 +258,31 @@ class PostgresBackgroundJobStore:
 
         now = datetime.now(UTC)
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                organization_id = await self._organization_id(
-                    session,
-                    tenant_id,
+        async with self.session_factory() as session, session.begin():
+            organization_id = await self._organization_id(
+                session,
+                tenant_id,
+            )
+
+            statement = (
+                update(BackgroundJob)
+                .where(
+                    BackgroundJob.organization_id == organization_id,
+                    BackgroundJob.job_id == job_id,
+                    BackgroundJob.status == "processing",
+                    BackgroundJob.worker_id == worker_id,
+                    BackgroundJob.lease_token == lease_token,
+                    BackgroundJob.lease_expires_at > now,
                 )
-
-                statement = (
-                    update(BackgroundJob)
-                    .where(
-                        BackgroundJob.organization_id
-                        == organization_id,
-                        BackgroundJob.job_id == job_id,
-                        BackgroundJob.status == "processing",
-                        BackgroundJob.worker_id == worker_id,
-                        BackgroundJob.lease_token == lease_token,
-                        BackgroundJob.lease_expires_at > now,
-                    )
-                    .values(
-                        lease_expires_at=now
-                        + timedelta(seconds=lease_seconds),
-                    )
-                    .returning(BackgroundJob.id)
+                .values(
+                    lease_expires_at=now + timedelta(seconds=lease_seconds),
                 )
+                .returning(BackgroundJob.id)
+            )
 
-                updated_id = await session.scalar(statement)
+            updated_id = await session.scalar(statement)
 
-                return updated_id is not None
+            return updated_id is not None
 
     async def complete(
         self,
@@ -321,39 +301,37 @@ class PostgresBackgroundJobStore:
 
         now = datetime.now(UTC)
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                organization_id = await self._organization_id(
-                    session,
-                    tenant_id,
+        async with self.session_factory() as session, session.begin():
+            organization_id = await self._organization_id(
+                session,
+                tenant_id,
+            )
+
+            statement = (
+                update(BackgroundJob)
+                .where(
+                    BackgroundJob.organization_id == organization_id,
+                    BackgroundJob.job_id == job_id,
+                    BackgroundJob.status == "processing",
+                    BackgroundJob.worker_id == worker_id,
+                    BackgroundJob.lease_token == lease_token,
+                    BackgroundJob.lease_expires_at > now,
                 )
-
-                statement = (
-                    update(BackgroundJob)
-                    .where(
-                        BackgroundJob.organization_id
-                        == organization_id,
-                        BackgroundJob.job_id == job_id,
-                        BackgroundJob.status == "processing",
-                        BackgroundJob.worker_id == worker_id,
-                        BackgroundJob.lease_token == lease_token,
-                        BackgroundJob.lease_expires_at > now,
-                    )
-                    .values(
-                        status="succeeded",
-                        worker_id=None,
-                        lease_token=None,
-                        lease_expires_at=None,
-                        next_retry_at=None,
-                        error_code=None,
-                        finished_at=now,
-                    )
-                    .returning(BackgroundJob.id)
+                .values(
+                    status="succeeded",
+                    worker_id=None,
+                    lease_token=None,
+                    lease_expires_at=None,
+                    next_retry_at=None,
+                    error_code=None,
+                    finished_at=now,
                 )
+                .returning(BackgroundJob.id)
+            )
 
-                updated_id = await session.scalar(statement)
+            updated_id = await session.scalar(statement)
 
-                return updated_id is not None
+            return updated_id is not None
 
     async def fail(
         self,
@@ -381,10 +359,7 @@ class PostgresBackgroundJobStore:
         if not lease_token:
             raise ValueError("lease_token is required")
 
-        if (
-            not isinstance(retry_delay_seconds, int)
-            or retry_delay_seconds < 0
-        ):
+        if not isinstance(retry_delay_seconds, int) or retry_delay_seconds < 0:
             raise ValueError("retry_delay_seconds must be >= 0")
 
         if error_code not in self.SAFE_ERROR_CODES:
@@ -392,60 +367,50 @@ class PostgresBackgroundJobStore:
 
         now = datetime.now(UTC)
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                organization_id = await self._organization_id(
-                    session,
-                    tenant_id,
+        async with self.session_factory() as session, session.begin():
+            organization_id = await self._organization_id(
+                session,
+                tenant_id,
+            )
+
+            record = await session.scalar(
+                select(BackgroundJob)
+                .where(
+                    BackgroundJob.organization_id == organization_id,
+                    BackgroundJob.job_id == job_id,
                 )
+                .with_for_update()
+            )
 
-                record = await session.scalar(
-                    select(BackgroundJob)
-                    .where(
-                        BackgroundJob.organization_id
-                        == organization_id,
-                        BackgroundJob.job_id == job_id,
-                    )
-                    .with_for_update()
-                )
+            if record is None:
+                return None
 
-                if record is None:
-                    return None
+            if (
+                record.status != "processing"
+                or record.worker_id != worker_id
+                or record.lease_token != lease_token
+                or record.lease_expires_at is None
+                or record.lease_expires_at <= now
+            ):
+                return None
 
-                if (
-                    record.status != "processing"
-                    or record.worker_id != worker_id
-                    or record.lease_token != lease_token
-                    or record.lease_expires_at is None
-                    or record.lease_expires_at <= now
-                ):
-                    return None
+            exhausted = record.attempts >= record.max_attempts
 
-                exhausted = (
-                    record.attempts >= record.max_attempts
-                )
+            record.status = "failed" if exhausted else "retrying"
 
-                record.status = (
-                    "failed" if exhausted else "retrying"
-                )
+            record.worker_id = None
+            record.lease_token = None
+            record.lease_expires_at = None
+            record.error_code = error_code
 
-                record.worker_id = None
-                record.lease_token = None
-                record.lease_expires_at = None
-                record.error_code = error_code
+            if exhausted:
+                record.next_retry_at = None
+                record.finished_at = now
+            else:
+                record.next_retry_at = now + timedelta(seconds=retry_delay_seconds)
+                record.finished_at = None
 
-                if exhausted:
-                    record.next_retry_at = None
-                    record.finished_at = now
-                else:
-                    record.next_retry_at = (
-                        now + timedelta(
-                            seconds=retry_delay_seconds
-                        )
-                    )
-                    record.finished_at = None
-
-                return record.status
+            return record.status
 
     async def list_expired(
         self,

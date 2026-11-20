@@ -1,4 +1,3 @@
-
 """Atomic, read-only Redis recovery snapshot.
 
 Development-only. Not connected to the running Docker worker.
@@ -14,7 +13,6 @@ Do not use this result alone to authorize recovery completion.
 from __future__ import annotations
 
 from typing import Any, Literal
-
 
 RecoverySnapshotResult = Literal[
     "processing",
@@ -112,10 +110,7 @@ async def inspect_recovery_snapshot(
 
     keys = [processing_key, pending_key, evidence_key]
 
-    if any(
-        not isinstance(key, str) or not key.strip()
-        for key in keys
-    ):
+    if any(not isinstance(key, str) or not key.strip() for key in keys):
         raise ValueError("All Redis keys are required")
 
     if len(set(keys)) != 3:
@@ -142,6 +137,4 @@ async def inspect_recovery_snapshot(
     try:
         return outcomes[int(result)]
     except (KeyError, TypeError, ValueError) as exc:
-        raise RuntimeError(
-            "Unexpected Redis recovery snapshot result"
-        ) from exc
+        raise RuntimeError("Unexpected Redis recovery snapshot result") from exc

@@ -12,7 +12,9 @@ from schemas.leads.models import NormalizedLead
 
 
 class LeadStore(Protocol):
-    async def find_by_dedupe_keys(self, tenant_id: str, keys: list[str]) -> list[NormalizedLead]: ...
+    async def find_by_dedupe_keys(
+        self, tenant_id: str, keys: list[str]
+    ) -> list[NormalizedLead]: ...
 
     async def save(self, lead: NormalizedLead) -> None: ...
 

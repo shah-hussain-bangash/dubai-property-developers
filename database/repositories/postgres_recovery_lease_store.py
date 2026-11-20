@@ -1,4 +1,3 @@
-
 """PostgreSQL ownership leases for durable recovery operations.
 
 Development-only. Does not modify Redis or execute job handlers.
@@ -101,61 +100,55 @@ class PostgresRecoveryLeaseStore:
         now = datetime.now(UTC)
         token = uuid.uuid4().hex
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                organization_id = await session.scalar(
-                    select(Organization.id).where(
-                        Organization.slug == tenant_id,
-                        Organization.is_active.is_(True),
-                    )
+        async with self.session_factory() as session, session.begin():
+            organization_id = await session.scalar(
+                select(Organization.id).where(
+                    Organization.slug == tenant_id,
+                    Organization.is_active.is_(True),
                 )
+            )
 
-                if organization_id is None:
-                    return None
+            if organization_id is None:
+                return None
 
-                statement = (
-                    update(JobRecoveryOperation)
-                    .where(
-                        JobRecoveryOperation.id == operation_id,
-                        JobRecoveryOperation.organization_id
-                        == organization_id,
-                        or_(
-                            JobRecoveryOperation.status == "pending",
-                            (
-                                (JobRecoveryOperation.status == "retrying")
-                                & or_(
-                                    JobRecoveryOperation.next_attempt_at
-                                    .is_(None),
-                                    JobRecoveryOperation.next_attempt_at
-                                    <= now,
-                                )
-                            ),
-                            (
-                                (JobRecoveryOperation.status == "processing")
-                                & JobRecoveryOperation.lease_expires_at
-                                .is_not(None)
-                                & (
-                                    JobRecoveryOperation.lease_expires_at
-                                    <= now
-                                )
-                            ),
+            statement = (
+                update(JobRecoveryOperation)
+                .where(
+                    JobRecoveryOperation.id == operation_id,
+                    JobRecoveryOperation.organization_id == organization_id,
+                    or_(
+                        JobRecoveryOperation.status == "pending",
+                        (
+                            (JobRecoveryOperation.status == "retrying")
+                            & or_(
+                                JobRecoveryOperation.next_attempt_at.is_(None),
+                                JobRecoveryOperation.next_attempt_at <= now,
+                            )
                         ),
-                    )
-                    .values(
-                        status="processing",
-                        worker_id=worker_id,
-                        lease_token=token,
-                        lease_expires_at=(
-                            now + timedelta(seconds=lease_seconds)
+                        (
+                            (JobRecoveryOperation.status == "processing")
+                            & JobRecoveryOperation.lease_expires_at.is_not(None)
+                            & (JobRecoveryOperation.lease_expires_at <= now)
                         ),
-                        next_attempt_at=None,
-                        attempts=JobRecoveryOperation.attempts + 1,
-                    )
-                    .returning(JobRecoveryOperation.attempts)
+                    ),
                 )
+                .values(
+                    status="processing",
+                    worker_id=worker_id,
+                    lease_token=token,
+                    lease_expires_at=(now + timedelta(seconds=lease_seconds)),
+                    next_attempt_at=None,
+                    attempts=JobRecoveryOperation.attempts + 1,
+                )
+                .returning(JobRecoveryOperation.attempts)
+            )
 
-                generation = await session.scalar(statement)
-                return RecoveryLeaseClaim(lease_token=token, generation=generation) if generation is not None else None
+            generation = await session.scalar(statement)
+            return (
+                RecoveryLeaseClaim(lease_token=token, generation=generation)
+                if generation is not None
+                else None
+            )
 
     async def heartbeat(
         self,
@@ -175,38 +168,32 @@ class PostgresRecoveryLeaseStore:
 
         now = datetime.now(UTC)
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                organization_id = await session.scalar(
-                    select(Organization.id).where(
-                        Organization.slug == tenant_id,
-                        Organization.is_active.is_(True),
-                    )
+        async with self.session_factory() as session, session.begin():
+            organization_id = await session.scalar(
+                select(Organization.id).where(
+                    Organization.slug == tenant_id,
+                    Organization.is_active.is_(True),
                 )
+            )
 
-                if organization_id is None:
-                    return False
+            if organization_id is None:
+                return False
 
-                statement = (
-                    update(JobRecoveryOperation)
-                    .where(
-                        JobRecoveryOperation.id == operation_id,
-                        JobRecoveryOperation.organization_id
-                        == organization_id,
-                        JobRecoveryOperation.status == "processing",
-                        JobRecoveryOperation.worker_id == worker_id,
-                        JobRecoveryOperation.lease_token == lease_token,
-                        JobRecoveryOperation.lease_expires_at > now,
-                    )
-                    .values(
-                        lease_expires_at=(
-                            now + timedelta(seconds=lease_seconds)
-                        )
-                    )
-                    .returning(JobRecoveryOperation.id)
+            statement = (
+                update(JobRecoveryOperation)
+                .where(
+                    JobRecoveryOperation.id == operation_id,
+                    JobRecoveryOperation.organization_id == organization_id,
+                    JobRecoveryOperation.status == "processing",
+                    JobRecoveryOperation.worker_id == worker_id,
+                    JobRecoveryOperation.lease_token == lease_token,
+                    JobRecoveryOperation.lease_expires_at > now,
                 )
+                .values(lease_expires_at=(now + timedelta(seconds=lease_seconds)))
+                .returning(JobRecoveryOperation.id)
+            )
 
-                return await session.scalar(statement) is not None
+            return await session.scalar(statement) is not None
 
     async def complete(
         self,
@@ -224,42 +211,40 @@ class PostgresRecoveryLeaseStore:
 
         now = datetime.now(UTC)
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                organization_id = await session.scalar(
-                    select(Organization.id).where(
-                        Organization.slug == tenant_id,
-                        Organization.is_active.is_(True),
-                    )
+        async with self.session_factory() as session, session.begin():
+            organization_id = await session.scalar(
+                select(Organization.id).where(
+                    Organization.slug == tenant_id,
+                    Organization.is_active.is_(True),
                 )
+            )
 
-                if organization_id is None:
-                    return False
+            if organization_id is None:
+                return False
 
-                statement = (
-                    update(JobRecoveryOperation)
-                    .where(
-                        JobRecoveryOperation.id == operation_id,
-                        JobRecoveryOperation.organization_id
-                        == organization_id,
-                        JobRecoveryOperation.status == "processing",
-                        JobRecoveryOperation.worker_id == worker_id,
-                        JobRecoveryOperation.lease_token == lease_token,
-                        JobRecoveryOperation.lease_expires_at > now,
-                    )
-                    .values(
-                        status="completed",
-                        worker_id=None,
-                        lease_token=None,
-                        lease_expires_at=None,
-                        next_attempt_at=None,
-                        completed_at=now,
-                        error_code=None,
-                    )
-                    .returning(JobRecoveryOperation.id)
+            statement = (
+                update(JobRecoveryOperation)
+                .where(
+                    JobRecoveryOperation.id == operation_id,
+                    JobRecoveryOperation.organization_id == organization_id,
+                    JobRecoveryOperation.status == "processing",
+                    JobRecoveryOperation.worker_id == worker_id,
+                    JobRecoveryOperation.lease_token == lease_token,
+                    JobRecoveryOperation.lease_expires_at > now,
                 )
+                .values(
+                    status="completed",
+                    worker_id=None,
+                    lease_token=None,
+                    lease_expires_at=None,
+                    next_attempt_at=None,
+                    completed_at=now,
+                    error_code=None,
+                )
+                .returning(JobRecoveryOperation.id)
+            )
 
-                return await session.scalar(statement) is not None
+            return await session.scalar(statement) is not None
 
     async def fail(
         self,
@@ -278,10 +263,7 @@ class PostgresRecoveryLeaseStore:
         if not lease_token:
             raise ValueError("lease_token is required")
 
-        if (
-            type(retry_delay_seconds) is not int
-            or retry_delay_seconds < 0
-        ):
+        if type(retry_delay_seconds) is not int or retry_delay_seconds < 0:
             raise ValueError("Invalid retry_delay_seconds")
 
         if error_code not in self.SAFE_ERRORS:
@@ -289,40 +271,36 @@ class PostgresRecoveryLeaseStore:
 
         now = datetime.now(UTC)
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                organization_id = await session.scalar(
-                    select(Organization.id).where(
-                        Organization.slug == tenant_id,
-                        Organization.is_active.is_(True),
-                    )
+        async with self.session_factory() as session, session.begin():
+            organization_id = await session.scalar(
+                select(Organization.id).where(
+                    Organization.slug == tenant_id,
+                    Organization.is_active.is_(True),
                 )
+            )
 
-                if organization_id is None:
-                    return False
+            if organization_id is None:
+                return False
 
-                statement = (
-                    update(JobRecoveryOperation)
-                    .where(
-                        JobRecoveryOperation.id == operation_id,
-                        JobRecoveryOperation.organization_id
-                        == organization_id,
-                        JobRecoveryOperation.status == "processing",
-                        JobRecoveryOperation.worker_id == worker_id,
-                        JobRecoveryOperation.lease_token == lease_token,
-                        JobRecoveryOperation.lease_expires_at > now,
-                    )
-                    .values(
-                        status="retrying",
-                        worker_id=None,
-                        lease_token=None,
-                        lease_expires_at=None,
-                        next_attempt_at=(
-                            now + timedelta(seconds=retry_delay_seconds)
-                        ),
-                        error_code=error_code,
-                    )
-                    .returning(JobRecoveryOperation.id)
+            statement = (
+                update(JobRecoveryOperation)
+                .where(
+                    JobRecoveryOperation.id == operation_id,
+                    JobRecoveryOperation.organization_id == organization_id,
+                    JobRecoveryOperation.status == "processing",
+                    JobRecoveryOperation.worker_id == worker_id,
+                    JobRecoveryOperation.lease_token == lease_token,
+                    JobRecoveryOperation.lease_expires_at > now,
                 )
+                .values(
+                    status="retrying",
+                    worker_id=None,
+                    lease_token=None,
+                    lease_expires_at=None,
+                    next_attempt_at=(now + timedelta(seconds=retry_delay_seconds)),
+                    error_code=error_code,
+                )
+                .returning(JobRecoveryOperation.id)
+            )
 
-                return await session.scalar(statement) is not None
+            return await session.scalar(statement) is not None

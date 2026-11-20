@@ -1,17 +1,16 @@
-
 import asyncio
 import json
 import uuid
-from urllib.request import Request, urlopen
 from urllib.error import HTTPError
+from urllib.request import Request, urlopen
 
-from sqlalchemy import select, delete
+from sqlalchemy import delete, select
 
 from core.config.settings import Settings
-from database.sessions.engine import create_engine, create_session_factory
 from database.models.crm import Lead
 from database.models.identity import Organization
 from database.repositories.postgres_lead_store import lead_dedupe_keys
+from database.sessions.engine import create_engine, create_session_factory
 
 API_URL = "http://127.0.0.1:8000/api/v1/leads/demo-process"
 
@@ -20,9 +19,7 @@ async def main():
     settings = Settings()
 
     if not settings.is_dev_like or settings.integrations_mode != "mock":
-        raise RuntimeError(
-            "Development mode with mock integrations required"
-        )
+        raise RuntimeError("Development mode with mock integrations required")
 
     token = uuid.uuid4().hex
     email = f"live-api-{token}@example.com"
@@ -57,7 +54,7 @@ async def main():
         )
 
         try:
-            with urlopen(request, timeout=30) as response:
+            with urlopen(request, timeout=30) as response:  # noqa: S310 -- Fixed loopback HTTP endpoint; redirects are disabled or this is a local acceptance script.
                 return json.load(response)
         except HTTPError as exc:
             print("HTTP error:", exc.code)
@@ -82,9 +79,7 @@ async def main():
 
         async with factory() as session:
             org_id = await session.scalar(
-                select(Organization.id).where(
-                    Organization.slug == settings.default_tenant_id
-                )
+                select(Organization.id).where(Organization.slug == settings.default_tenant_id)
             )
 
             assert org_id is not None
@@ -116,41 +111,38 @@ async def main():
 
     finally:
         try:
-            async with factory() as session:
-                async with session.begin():
-                    org_id = await session.scalar(
-                        select(Organization.id).where(
-                            Organization.slug == settings.default_tenant_id
-                        )
-                    )
+            async with factory() as session, session.begin():
+                org_id = await session.scalar(
+                    select(Organization.id).where(Organization.slug == settings.default_tenant_id)
+                )
 
-                    if org_id is not None:
-                        ids = list(
-                            (
-                                await session.scalars(
-                                    select(Lead.id).where(
-                                        Lead.organization_id == org_id,
-                                        Lead.email == email,
-                                    )
-                                )
-                            ).all()
-                        )
-
-                        if ids:
-                            await session.execute(
-                                delete(lead_dedupe_keys).where(
-                                    lead_dedupe_keys.c.organization_id == org_id,
-                                    lead_dedupe_keys.c.lead_id.in_(ids),
-                                )
-                            )
-
-                            await session.execute(
-                                delete(Lead).where(
+                if org_id is not None:
+                    ids = list(
+                        (
+                            await session.scalars(
+                                select(Lead.id).where(
                                     Lead.organization_id == org_id,
-                                    Lead.id.in_(ids),
                                     Lead.email == email,
                                 )
                             )
+                        ).all()
+                    )
+
+                    if ids:
+                        await session.execute(
+                            delete(lead_dedupe_keys).where(
+                                lead_dedupe_keys.c.organization_id == org_id,
+                                lead_dedupe_keys.c.lead_id.in_(ids),
+                            )
+                        )
+
+                        await session.execute(
+                            delete(Lead).where(
+                                Lead.organization_id == org_id,
+                                Lead.id.in_(ids),
+                                Lead.email == email,
+                            )
+                        )
 
             print("Fictional test record cleanup: COMPLETED")
 

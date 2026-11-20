@@ -1,4 +1,3 @@
-
 """PostgreSQL integration tests for workflow execution history.
 
 Tests:
@@ -19,7 +18,6 @@ from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from core.config.settings import get_settings
 from database.models.agent import WorkflowExecution
@@ -34,7 +32,6 @@ from workflows.engine.core import (
     WorkflowRun,
     WorkflowStatus,
 )
-
 
 pytestmark = [
     pytest.mark.integration,
@@ -76,22 +73,17 @@ async def workflow_store_context() -> AsyncIterator[tuple]:
             ).all()
 
             if set(organizations) != {ORG_A, ORG_B}:
-                pytest.skip(
-                    "Required test organizations are missing"
-                )
+                pytest.skip("Required test organizations are missing")
 
         yield store, factory, created_ids
 
     finally:
         try:
             if created_ids:
-                async with factory() as session:
-                    async with session.begin():
-                        await session.execute(
-                            delete(WorkflowExecution).where(
-                                WorkflowExecution.id.in_(created_ids)
-                            )
-                        )
+                async with factory() as session, session.begin():
+                    await session.execute(
+                        delete(WorkflowExecution).where(WorkflowExecution.id.in_(created_ids))
+                    )
         finally:
             await engine.dispose()
 
@@ -135,7 +127,7 @@ def new_workflow(
 async def test_save_and_retrieve_workflow(
     workflow_store_context,
 ) -> None:
-    store, factory, created_ids = workflow_store_context
+    store, _factory, created_ids = workflow_store_context
 
     run = new_workflow(created_ids)
 
@@ -199,9 +191,7 @@ async def test_update_workflow_status(
     async with factory() as session:
         rows = (
             await session.scalars(
-                select(WorkflowExecution).where(
-                    WorkflowExecution.id == uuid.UUID(run.execution_id)
-                )
+                select(WorkflowExecution).where(WorkflowExecution.id == uuid.UUID(run.execution_id))
             )
         ).all()
 
@@ -212,7 +202,7 @@ async def test_update_workflow_status(
 async def test_tenant_isolation(
     workflow_store_context,
 ) -> None:
-    store, factory, created_ids = workflow_store_context
+    store, _factory, created_ids = workflow_store_context
 
     run = new_workflow(created_ids, ORG_A)
 
@@ -247,7 +237,7 @@ async def test_tenant_isolation(
 async def test_sensitive_state_is_not_persisted(
     workflow_store_context,
 ) -> None:
-    store, factory, created_ids = workflow_store_context
+    store, _factory, created_ids = workflow_store_context
 
     run = new_workflow(created_ids)
 

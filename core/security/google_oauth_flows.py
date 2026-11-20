@@ -4,6 +4,7 @@ No client or network connection is created here. Application composition must
 supply an appropriately configured Redis client. Authlib must still validate
 OAuth state, PKCE, nonce, and the Google ID token.
 """
+
 import hashlib
 import re
 from uuid import UUID
@@ -17,14 +18,15 @@ end
 return 0
 """
 
+
 class OAuthFlowError(Exception):
     pass
 
+
 class GoogleOAuthFlowStore:
     def __init__(self, redis_client, *, ttl_seconds=600):
-        if (
-            not callable(getattr(redis_client, "set", None))
-            or not callable(getattr(redis_client, "eval", None))
+        if not callable(getattr(redis_client, "set", None)) or not callable(
+            getattr(redis_client, "eval", None)
         ):
             raise ValueError("async Redis client required")
         if type(ttl_seconds) is not int or not 60 <= ttl_seconds <= 600:

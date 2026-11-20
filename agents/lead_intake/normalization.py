@@ -9,7 +9,9 @@ import phonenumbers
 DEFAULT_REGION = "AE"
 
 
-def normalize_phone(raw: str | None, default_region: str = DEFAULT_REGION) -> tuple[str | None, str | None]:
+def normalize_phone(
+    raw: str | None, default_region: str = DEFAULT_REGION
+) -> tuple[str | None, str | None]:
     """Return (E.164, region) or (None, None) when the number is not valid."""
     if not raw:
         return None, None

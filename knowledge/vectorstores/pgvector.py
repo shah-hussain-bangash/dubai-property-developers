@@ -35,7 +35,9 @@ class PgVectorStore:
             "planned for the next phase (see docs/development/roadmap.md)."
         )
 
-    async def search(self, vector: list[float], *, k: int, filters: RetrievalFilter) -> list[ScoredChunk]:
+    async def search(
+        self, vector: list[float], *, k: int, filters: RetrievalFilter
+    ) -> list[ScoredChunk]:
         distance = ChunkEmbedding.embedding.cosine_distance(vector)
         stmt = (
             select(KnowledgeChunk, KnowledgeDocument, distance.label("distance"))

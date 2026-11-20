@@ -6,7 +6,7 @@ import re
 import unicodedata
 
 _MULTI_BLANK = re.compile(r"\n{3,}")
-_SPACES = re.compile(r"[ \t ]+")
+_SPACES = re.compile(r"[ \t\u00a0]+")
 _HYPHEN_BREAK = re.compile(r"(\w)-\n(\w)")
 
 
