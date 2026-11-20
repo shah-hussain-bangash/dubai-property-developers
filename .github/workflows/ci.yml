@@ -68,6 +68,8 @@ jobs:
       DATABASE_URL: postgresql+asyncpg://dubai_ai:dubai_ai_ci@localhost:5432/dubai_ai
       REDIS_URL: redis://localhost:6379/0
       RUN_INTEGRATION_TESTS: "1"
+      RUN_EXECUTION_LEDGER_DB_TESTS: "1"
+      ENVIRONMENT: test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -83,8 +85,24 @@ jobs:
         run: python -m database.seeds.load_demo
         env:
           ENVIRONMENT: test
+      - name: Prepare fictional integration records
+        run: python -m tests.integration.prepare_ci
+      - name: Create isolated execution-ledger database
+        run: docker exec ${{ job.services.postgres.id }} createdb --username=dubai_ai dubai_ai_test
+      - name: Migrate isolated execution-ledger database
+        run: python -m alembic upgrade 0008_tool_request_fingerprint
+        env:
+          DATABASE_URL: postgresql+asyncpg://dubai_ai:dubai_ai_ci@localhost:5432/dubai_ai_test
       - name: Integration tests
-        run: python -m pytest -m integration
+        run: python -m pytest tests/integration --junitxml=integration-results.xml
+      - name: Reject unexpected integration skips
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          skipped = ET.parse("integration-results.xml").findall(".//testcase/skipped")
+          unexpected = [case.attrib for case in skipped if case.get("type") != "pytest.xfail"]
+          assert not unexpected, f"Unexpected integration skips: {unexpected}"
+          PY
 
   frontend:
     runs-on: ubuntu-latest
