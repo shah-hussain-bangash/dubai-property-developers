@@ -1,0 +1,1 @@
+import type {Metadata} from 'next';import {AdminAgentManagement} from '@/features/agent-portal/AdminAgentManagement';export const metadata:Metadata={title:'Admin · Agent management'};export default function Page(){return <AdminAgentManagement preview={process.env.DUBAI_PORTAL_DESIGN_PREVIEW==='1'}/>;}

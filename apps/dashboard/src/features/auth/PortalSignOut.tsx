@@ -1,0 +1,3 @@
+'use client';
+import {useState} from 'react';
+export function PortalSignOut({destination='/login'}:{destination?:'/login'|'/admin/login'}){const [busy,setBusy]=useState(false);const [error,setError]=useState(false);return <div><button className="btn" disabled={busy} onClick={async()=>{setBusy(true);setError(false);try{const response=await fetch('/api/portal-auth/logout',{method:'POST',credentials:'same-origin',cache:'no-store',redirect:'error'});if(!response.ok)throw new Error();window.location.assign(destination);}catch{setError(true);setBusy(false);}}}>{busy?'Signing out…':'Sign out'}</button>{error&&<span role="alert">Sign-out failed. Try again.</span>}</div>;}

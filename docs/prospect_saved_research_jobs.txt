@@ -1,0 +1,57 @@
+SAVED RESEARCH JOBS - STEP 633
+
+Open Prospect Research > Saved research jobs. Set a location, public search scope
+and source-candidate target from 1 to 500. Create research job saves a plan without
+a search. Load research jobs lists up to 20 jobs for the current organization.
+Open a job to reload its progress after a browser reload or API restart.
+
+A job contains 60 queries combining CEO, director, entrepreneur, investor, real
+estate agent and business-owner terms with ten business sectors. These are query
+labels, not verified personal roles or evidence of buying ability. Company pages,
+directories and irrelevant results can appear. No private social login is used.
+
+Run next query makes at most one SerpApi request using the existing shared quota.
+It never increases the allowance or bypasses an exhausted day. Failed or uncertain
+attempts can consume credits. If today's allowance was used in manual discovery,
+the job saves quota_wait and the next Dubai midnight. No automatic wake-up or
+unattended scheduler is installed. Resume preserves pending quota waits.
+
+Pause/Resume/Cancel affect saved jobs; cancelling retains sources. An unresolved
+request is not automatically retried. Reload it, then explicitly Skip unconfirmed
+query if its result could not be recovered. An active request holds a PostgreSQL
+session advisory lock so a second advance or status action cannot overlap it.
+Stale client revisions fail. The pre-request checkpoint commits before the
+provider request; state is stored separately from the prospect workspace.
+
+Review batch source in prospect form offers a source URL and snippet, then asks
+before replacing the unfinished form's source evidence. It does not infer a name,
+company, email, phone, WhatsApp status, wealth, investment capacity or permission.
+Saved source candidates do not automatically become saved prospect records.
+Existing individual, combined PDF and ZIP exports still export saved prospects.
+
+Job states: ready, paused, quota_wait, request_uncertain, completed,
+queries_exhausted, cancelled, error. A completed source target does not mean 500
+verified people or contacts. Exhausted queries keep partial results. Quota-service
+failure stops with error and no provider request. No generic automatic retries.
+Reload after an uncertain client failure before acting again.
+
+Storage: dedicated prospect_research_batches_v1 table with organization identity,
+batch ID, optimistic revision, validated JSON state and update timestamp. Each
+organization is limited to 20 jobs in this stage; no deletion interface is added.
+The explicit installer provisions only this new table and does not change saved
+prospects or run a research job. Existing organization membership remains intact.
+
+API access requires the same isolated local development configuration, explicit
+research-storage setting, read/write permissions and allowed browser origins as
+the existing workspace. Browser requests create no tables. Read acceptance checks
+list jobs only; no job is created or advanced during verification.
+
+API/dashboard refresh requires private SerpApi key entry when already configured.
+The masked window passes it through a child environment to the container, without
+host key files or command-line secrets; Docker administrators can inspect it.
+PostgreSQL and Redis keep running. In-memory fictional demo records reset.
+
+Still not connected: unattended 24-hour collection, automatic contact extraction,
+email/WhatsApp delivery, incoming reply sync, owner alerts, callback tasks or AI
+calling. The selected future reply action remains owner/agent notification plus a
+human callback task. No paid provider upgrade, purchase or extra budget is made.

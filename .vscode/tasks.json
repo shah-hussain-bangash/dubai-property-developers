@@ -1,0 +1,10 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "Setup (venv + deps)", "type": "shell", "command": "powershell -ExecutionPolicy Bypass -File scripts/setup/setup-windows.ps1", "problemMatcher": [] },
+    { "label": "Run API", "type": "shell", "command": ".venv/Scripts/python -m uvicorn apps.api.app.main:app --reload --port 8000", "isBackground": true, "problemMatcher": [] },
+    { "label": "Run tests", "type": "shell", "command": ".venv/Scripts/python -m pytest", "group": "test", "problemMatcher": [] },
+    { "label": "Lint", "type": "shell", "command": ".venv/Scripts/python -m ruff check .", "problemMatcher": [] },
+    { "label": "Dashboard dev", "type": "shell", "command": "npm run dev", "options": { "cwd": "${workspaceFolder}/apps/dashboard" }, "isBackground": true, "problemMatcher": [] }
+  ]
+}

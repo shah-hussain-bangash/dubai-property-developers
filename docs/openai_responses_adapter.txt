@@ -1,0 +1,49 @@
+OPENAI RESPONSES ADAPTER - STEP 611
+
+Purpose
+core/llm/openai_responses.py implements the existing LLMProvider contract for
+text generation through https://api.openai.com/v1/responses.
+Official contract: https://developers.openai.com/api/docs/guides/text
+
+Installation is separate from activation
+The existing model factory, environment, running services and mock demo remain
+unchanged. The adapter is not registered in the model factory by this step.
+No API key is requested, saved or read from the environment during these tests.
+No paid request or real model acceptance has been performed.
+
+Behavior
+The future caller must explicitly supply a SecretStr API key and model identifier.
+There is no default paid model, endpoint override or implicit environment lookup.
+The fixed HTTPS endpoint uses a 30-second default timeout (maximum 120 seconds),
+no proxy environment, no redirects and no automatic retries inside the adapter.
+The existing model router may retry according to its own policy when integrated.
+Requests use store=false, stream=false and tools=[]; local metadata is omitted.
+store=false is a response-storage setting, not a claim about all provider data
+retention. Review provider data controls before sending real customer information.
+Only completed assistant text is accepted; incomplete, refused, tool-call or
+malformed output is rejected. Reasoning items are not exposed as answer text.
+Actual response model and usage counts are retained. Mock success is not invented
+when a real request fails. Provider bodies and transport details are not included
+in surfaced error messages.
+
+Limits and model compatibility
+At most 100 messages and 100000 input characters; all messages must be nonblank.
+Output budget is 16-16384 tokens and includes model reasoning tokens where used.
+Responses are bounded to 2 MiB. Cancellation propagates and clients are closed.
+Model availability and capacity are not verified by these isolated tests.
+The project's temperature field is forwarded only when supports_temperature=True
+is explicitly selected for a compatible model; otherwise model defaults apply.
+This is a text-only adapter. It does not implement streaming, tools or JSON schema.
+
+Verification
+16 standalone unittest cases use httpx.MockTransport with a fictional unit key.
+External connection and held-source execution attempts are blocked and counted.
+Windows asyncio's private event-loop wakeup socketpair is allowed separately.
+Tests check request contents, role ordering, Unicode, usage, errors, invalid
+inputs, size limits, refusal, partial output, cancellation and resource cleanup.
+
+Next integration work
+Register the provider behind explicit configuration, retain mock as the default,
+and validate the selected model and settings before any real request. Live
+acceptance requires a privately supplied key, an explicit model and a bounded
+fictional prompt. It must not automatically enable messaging or other providers.

@@ -1,0 +1,31 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DemoPropertyForm } from '@/features/properties/DemoPropertyForm';
+import { DemoPropertyShortlist } from '@/features/properties/DemoPropertyShortlist';
+import { toggleDemoShortlist } from '@/services/demoPropertyShortlist';
+import { parsePropertyDemo } from '@/services/demoProperties';
+
+const disclaimer = 'Prices must be confirmed with the developer. No investment return is implied or guaranteed.';
+const success = () => ({ dev_only: true, uses_mock_integrations: true, status: 'succeeded', output: {
+  contains_demo_data: true, no_match_reason: null as string | null, disclaimer,
+  recommendations: [{ score: 0.8, reasons: ['Matches demo criteria'], caveats: ['DEMO DATA: fictional listing.', 'No return is guaranteed.'],
+    listing: { is_demo: true, source: 'demo-seed', listing_id: 'DEMO-001', project_name: 'Fictional Test Project',
+      community: 'Dubai Marina', bedrooms: 1, price_aed: '1450000' as string | null, data_as_of: '2026-01-01', availability: 'available' } }] } });
+const response = (body: unknown, ok = true) => ({ ok, json: async () => body } as Response);
+const capability = { enabled: true, mock_integrations: true, memory_storage: true };
+const fetcher = (body: unknown = success()) => vi.fn().mockResolvedValueOnce(response(capability)).mockResolvedValueOnce(response(body));
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+
+const match=()=>parsePropertyDemo(success()).matches[0];
+describe('fictional property shortlist',()=>{
+  it('copies source dates and caveats without sharing arrays',()=>{const item=match();const saved=toggleDemoShortlist([],item);item.name='changed';item.caveats.push('later');expect(saved[0].name).toBe('Fictional Test Project');expect(saved[0].date).toBe('2026-01-01');expect(saved[0].caveats).not.toContain('later');});
+  it('never stores more than three listings',()=>{let items=toggleDemoShortlist([],match());for(const id of ['DEMO-002','DEMO-003','DEMO-004'])items=toggleDemoShortlist(items,{...match(),id});expect(items.map(i=>i.id)).toEqual(['DEMO-001','DEMO-002','DEMO-003']);});
+  it('toggles an existing listing off instead of duplicating it',()=>{const saved=toggleDemoShortlist([],match());expect(toggleDemoShortlist(saved,match())).toEqual([]);expect(saved).toHaveLength(1);});
+  it('preserves unknown prices, dates and explicit warnings',()=>{const item=match();item.price=null;item.caveats.push('Price not confirmed');render(<DemoPropertyShortlist items={[item]} busy={false} onClear={()=>{}} onRemove={()=>{}}/>);expect(screen.getByText('Price needs confirmation')).toBeVisible();expect(screen.getByText('Price not confirmed')).toBeVisible();expect(screen.getByText(/Data as of 2026-01-01/)).toBeVisible();expect(screen.getByText(/No investment return/)).toBeVisible();});
+  it('shows an empty shortlist and disabled clear',()=>{render(<DemoPropertyShortlist items={[]} busy={false} onClear={()=>{}} onRemove={()=>{}}/>);expect(screen.getByText(/then choose Add to shortlist/)).toBeVisible();expect(screen.getByRole('button',{name:'Clear shortlist'})).toBeDisabled();});
+  it('clears and removes only local selections without requests',()=>{const f=vi.fn();vi.stubGlobal('fetch',f);const clear=vi.fn();const remove=vi.fn();render(<DemoPropertyShortlist items={[match()]} busy={false} onClear={clear} onRemove={remove}/>);fireEvent.click(screen.getByRole('button',{name:'Remove saved DEMO-001 from shortlist'}));fireEvent.click(screen.getByRole('button',{name:'Clear shortlist'}));expect(remove).toHaveBeenCalledWith('DEMO-001');expect(clear).toHaveBeenCalledOnce();expect(f).not.toHaveBeenCalled();});
+  it('adds a result and removes it without another API call',async()=>{const f=fetcher();vi.stubGlobal('fetch',f);render(<DemoPropertyForm/>);fireEvent.click(screen.getByRole('button',{name:'Match demo properties'}));fireEvent.click(await screen.findByRole('button',{name:'Add DEMO-001 to shortlist'}));expect(screen.getByText('Fictional property shortlist (1/3)')).toBeVisible();fireEvent.click(screen.getByRole('button',{name:'Remove saved DEMO-001 from shortlist'}));expect(screen.getByText('Fictional property shortlist (0/3)')).toBeVisible();expect(f).toHaveBeenCalledTimes(2);});
+  it('retains earlier snapshots across a new search with no matches',async()=>{const empty=success();empty.output.recommendations=[];empty.output.contains_demo_data=false;empty.output.no_match_reason='No eligible fictional listings';const f=fetcher().mockResolvedValueOnce(response(capability)).mockResolvedValueOnce(response(empty));vi.stubGlobal('fetch',f);render(<DemoPropertyForm/>);fireEvent.click(screen.getByRole('button',{name:'Match demo properties'}));fireEvent.click(await screen.findByRole('button',{name:'Add DEMO-001 to shortlist'}));fireEvent.click(screen.getByRole('button',{name:'Match demo properties'}));await screen.findByText('No matching demo properties');expect(screen.getByText('Shortlisted: Fictional Test Project')).toBeVisible();fireEvent.click(screen.getByRole('button',{name:'Clear shortlist'}));expect(screen.getByText('No matching demo properties')).toBeVisible();expect(f).toHaveBeenCalledTimes(4);});
+  it('disables shortlist actions while matching',()=>{render(<DemoPropertyShortlist items={[match()]} busy={true} onClear={()=>{}} onRemove={()=>{}}/>);expect(screen.getByRole('button',{name:'Clear shortlist'})).toBeDisabled();expect(screen.getByRole('button',{name:'Remove saved DEMO-001 from shortlist'})).toBeDisabled();});
+  it('keeps shortlist text escaped and stores nothing persistently',async()=>{const body=success();body.output.recommendations[0].listing.project_name='<script>fictional</script>';const f=fetcher(body);vi.stubGlobal('fetch',f);const storage=vi.spyOn(Storage.prototype,'setItem');const {container}=render(<DemoPropertyForm/>);fireEvent.click(screen.getByRole('button',{name:'Match demo properties'}));fireEvent.click(await screen.findByRole('button',{name:'Add DEMO-001 to shortlist'}));expect(screen.getByText('Shortlisted: <script>fictional</script>')).toBeVisible();expect(container.querySelector('script')).toBeNull();expect(storage).not.toHaveBeenCalled();});
+});

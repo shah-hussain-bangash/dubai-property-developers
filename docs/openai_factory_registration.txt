@@ -1,0 +1,29 @@
+OPENAI FACTORY REGISTRATION - STEP 612
+
+The model factory now recognizes mock and openai. Mock remains the default.
+No environment file, key, container configuration or running service is changed
+by installing this step. No paid API request is made by its tests.
+
+OpenAI construction requires all of the following future configuration:
+LLM_PROVIDER=openai
+LLM_PRIMARY_MODEL=<explicit model available to your own API project>
+LLM_API_KEY=<privately supplied secret; do not paste it in chat>
+Optional LLM_FALLBACK_MODELS must contain explicit OpenAI model identifiers.
+The default mock-deterministic model is rejected for the OpenAI provider.
+Timeout must be greater than zero and at most 120 seconds. Retries are 0-3;
+at most four fallback models are accepted. Retries and fallback attempts may
+produce additional API requests when live generation is later enabled.
+Temperature is not forwarded by this factory; selected model defaults apply.
+
+Construction itself does not call the provider. A later router.complete call
+can make a paid request when configured for OpenAI. This is therefore a factory
+registration, not a live-acceptance or production-readiness result.
+OpenAI failure does not silently substitute a fictional mock success.
+The API key alone does not switch a mock-configured router to OpenAI.
+
+The 14 new factory checks use a fictional key and in-memory HTTP responses.
+The 16 adapter contract checks are also repeated. Real model availability,
+account billing and provider behavior still require bounded live acceptance.
+The existing standalone demo panels are explicitly fictional mock workflows;
+they should not be treated as proof that a real agent workflow uses this router.
+Other integrations, messaging, registration and sign-in remain unchanged.

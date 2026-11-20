@@ -1,0 +1,33 @@
+PROSPECT RESEARCH CSV IMPORT (STEP 624)
+
+Open Prospect Research and find Import prospects from CSV.
+Download the blank template. Use these eight required headers (any order), optionally adding the contact headers below:
+name,company,role,country,email,phone,source,relevance
+Optional: whatsapp,whatsapp_source,contact_resources
+A reported WhatsApp number needs its public source URL. For multiple contact
+resource URLs, use one HTTPS URL per line inside a quoted CSV field (up to five).
+
+Use UTF-8 comma-separated CSV. Quoted fields can contain commas, newlines
+and doubled quotation marks. Up to 500 nonblank prospect records and 2 MB.
+Email and phone values may be blank; keep the columns present. Other fields
+are required. Phones use international format, e.g. +971 followed by digits,
+without spaces. Keep phone cells as text when editing in a spreadsheet.
+Every row needs a public HTTPS source without login details and evidence
+explaining business relevance. Do not infer buying interest from job titles.
+
+Choosing a file parses it in the browser only. Expand Review all CSV records.
+Invalid rows block the entire batch until the file is corrected. Duplicate
+emails, phone/WhatsApp numbers across either field, or name/company pairs are skipped, including archived records
+and earlier rows within the same file. No partial capacity-limited batch is
+saved. Existing plus new records must fit the 500-record workspace limit.
+
+Select Import N new prospects to PostgreSQL explicitly to save. The entire
+merged workspace is sent once using the current revision. The API revalidates
+it and rejects outdated revisions. Existing records and audience settings stay
+unchanged. If a response fails, reload to establish the last committed state
+before retrying. There is no automatic retry or fallback to browser storage.
+
+Imported records start awaiting review; source contents, email deliverability,
+phone ownership and WhatsApp availability remain unverified. Permission stays
+unknown for every channel. No research, PDF generation, messaging, AI calling
+or meeting booking is activated. This delivery refreshes only the dashboard.

@@ -1,0 +1,95 @@
+STEP 641 — ADMIN CONSOLE AND SEPARATE PROPERTY AGENT PORTAL
+
+Entry points
+localhost:3000/admin/login — existing owner account, now labelled Admin.
+Admin sign-in opens /overview, the existing Dubai Real Estate AI operations
+console. Admin has a new Agent management section at /agent-management.
+The Properties navigation opens /agent-properties, showing actual agent records.
+The previous demonstration property workflow stays at /properties, clearly
+labelled Property AI demo under AI System.
+localhost:3000/login — Agent/member sign-in with an explicit Admin tab.
+localhost:3000/agent-signup — new account registration with Property agent selected.
+localhost:3000/agent-portal — the separate Agent Portal; never the AI agent registry.
+
+Agent workflow
+1. Register an agent account, or use an existing member account.
+2. Open the Agent Portal and choose Request agent access.
+3. Admin signs in, opens Agent management and approves that registered member.
+4. Agent checks approval status or signs in again. Approval unlocks their portal.
+5. Add properties, edit details, view records, search/filter/sort listings, change
+   status and move properties to Trash. Trash provides restore as Draft.
+
+Property fields: title, community/location, property type, Sale/Rent purpose,
+AED price (annual for Rent), bedrooms, bathrooms, area in square feet, description,
+illustrative cover and Draft/Available/Under offer/Closed status. A generated
+reference, timestamps and server version are retained for every property.
+Current cover choices use three bundled illustrations. Photo upload and live
+website publication are not implemented. Property records remain private to
+the owning agent and Admin. Available is an internal agent-entered status,
+not independent verification of a live offer. No listing is seeded in production.
+
+Agent design
+Dedicated navy sidebar, white workspace, professional locally bundled fonts,
+Dubai skyline welcome banner, real portfolio counts, listing cards, property
+editor, detail view, profile and recoverable Trash. Dialogs have keyboard focus
+containment, Escape/cancel handling and focus restoration. Responsive layouts
+adapt to narrower screens. Desktop browser visual QA is recorded; an automated
+mobile viewport capture was unavailable in the attached browser controls.
+
+Admin controls
+Member directory with name/email/company; pending requests; approval and
+revocation; a cross-agent property view with edit, delete-to-Trash and restore.
+Admin approval grants access to an application's property portal only. It does
+not verify professional qualifications, email ownership or property details.
+Revocation takes effect on the next server operation, including for existing
+signed-in sessions. It preserves the member account and its property records.
+
+Identity and security
+The existing owner credential remains the sole Admin identity. Selecting a
+portal or signup role never grants Admin access. Agent sign-in rejects owner
+credentials and directs the owner to Admin. Admin sign-in rejects member accounts.
+The legacy login request shape is retained for existing local tooling and tests.
+Agents use the existing separate HttpOnly member cookie. The owner API gateway
+still accepts only the owner session. Non-owner requests to dashboard pages
+redirect to Admin sign-in. Registered members need separate Admin approval for
+property access. Client-supplied ownership or access fields are refused.
+
+Every mutation checks an authenticated session, matching localhost Origin,
+bounded JSON input and allowed fields. Property ownership and approval are
+checked again while holding the same file lock as the mutation. Cross-agent
+record ids return Not found. Stale update/delete/restore versions return 409
+and leave the newer record intact. Corrupt storage fails closed.
+
+Persistence
+agent-portal.json and agent-portal.lock live inside the existing /app/portal-data
+named volume, alongside the unchanged owner sessions and member data.
+Writes use an interprocess lock, atomic replacement and file sync. The store
+retains an internal audit trail bounded to the latest 1000 changes. Limits are
+200 access records and 500 property records, including Trash. Existing member
+profiles are read for Admin without password hashes or session tokens.
+The volume contains private property and account data and should be included
+in private local backups. Prospect JSON exports do not include this separate store.
+
+Install and compatibility
+Run step641_apply.ps1. It includes the previously prepared Step640 font/hero
+update, so an installation already serving Step639 can go directly to Step641.
+A completed Step640 installation is also accepted. Source hashes, original
+backups, earlier successful reports and all 33 review holds are preserved.
+Only the dashboard image is built and refreshed. The API, PostgreSQL, Redis
+and foreground researcher remain running. Existing owner/member credentials
+and named storage volume are reused; no password or provider key is requested.
+Use step641_start_research.ps1 if the researcher later needs restarting.
+
+Verification
+Existing frontend regressions plus agent ownership/access/storage/API tests and
+interactive component tests; strict TypeScript; offline refresh orchestration
+checks. Actual HTTP preview exercises registration, request, Admin approval,
+property create/edit/delete/restore, cross-agent denial, direct Admin/gateway
+denial, stale-write conflict, revocation, CSRF and role-aware login/logout.
+All HTTP fixtures are fictional and use a separate local preview data directory.
+No real account, access decision, property, prospect, search, message or call is
+changed by these checks. Production acceptance is read-only and signed out.
+
+The application remains a local development installation. The directly bound
+localhost:8000 backend retains its previous trusted-development boundary.
+Public deployment and email verification/password recovery are separate work.

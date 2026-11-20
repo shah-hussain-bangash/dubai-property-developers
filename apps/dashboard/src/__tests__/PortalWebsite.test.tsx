@@ -1,0 +1,11 @@
+import {render,screen,fireEvent} from '@testing-library/react';
+import {afterEach,expect,it,vi} from 'vitest';
+import {PublicHome} from '@/features/portal/PublicHome';
+import {LoginForm} from '@/features/auth/LoginForm';
+import {getApiBaseUrl,getApiCredentials} from '@/lib/config';
+afterEach(()=>{vi.unstubAllGlobals();vi.unstubAllEnvs();});
+it('presents the website with sign-in links and an honest workflow',()=>{render(<PublicHome/>);expect(screen.getByRole('heading',{level:1})).toHaveTextContent('Invest. Build.Grow together.');expect(screen.getByRole('link',{name:/Admin console/})).toHaveAttribute('href','/admin/login');expect(screen.getByRole('heading',{name:'Choose your Dubai property path.'})).toBeVisible();});
+it('does not submit credentials before the user signs in',()=>{const fetch=vi.fn();vi.stubGlobal('fetch',fetch);render(<LoginForm/>);expect(fetch).not.toHaveBeenCalled();expect(screen.getByLabelText('Password')).toHaveAttribute('type','password');});
+it('sends login credentials only to the same-origin sign-in route',async()=>{const fetch=vi.fn().mockResolvedValue({ok:false,json:async()=>({error:'Email or password is incorrect.'})});vi.stubGlobal('fetch',fetch);render(<LoginForm/>);fireEvent.change(screen.getByLabelText('Email address'),{target:{value:'owner@example.com'}});fireEvent.change(screen.getByLabelText('Password'),{target:{value:'FictionalWrongPassword'}});fireEvent.click(screen.getByRole('button',{name:'Sign in to your workspace'}));expect(await screen.findByRole('alert')).toHaveTextContent('incorrect');expect(fetch.mock.calls[0][0]).toBe('/api/portal-auth/login');expect(fetch.mock.calls[0][1].credentials).toBe('same-origin');});
+it('uses the current website origin and credentials when portal proxy is enabled',()=>{vi.stubEnv('NEXT_PUBLIC_PORTAL_PROXY','1');expect(getApiBaseUrl()).toBe(window.location.origin);expect(getApiCredentials()).toBe('same-origin');});
+it('retains the developer transport when portal proxy is disabled',()=>{vi.stubEnv('NEXT_PUBLIC_PORTAL_PROXY','0');vi.stubEnv('NEXT_PUBLIC_API_BASE_URL','http://localhost:8000');expect(getApiBaseUrl()).toBe('http://localhost:8000');expect(getApiCredentials()).toBe('omit');});

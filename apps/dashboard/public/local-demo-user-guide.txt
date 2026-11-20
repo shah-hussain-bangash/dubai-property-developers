@@ -1,0 +1,160 @@
+DUBAI REAL ESTATE AI - LOCAL DEMO GUIDE
+Updated through Step 605; combined verification checkpoint: Step 604.
+
+WHAT IS READY
+Open http://localhost:3000/ and use Try the demo.
+The demo uses fictional data, mock integrations and temporary in-memory records.
+It does not send live messages, book appointments or enable Google sign-in.
+The Overview charts and sample tables are separate, static demonstration data;
+running a form does not update those figures.
+
+1. GUIDED WORKFLOW
+Open http://localhost:3000/workflows#demo-scenario-title
+Choose Matching apartment example, then Run guided demo.
+The example uses an illustrative AED 2000000 budget, Business Bay and 1 bedroom.
+Review qualification, fictional property matching and the unsent viewing draft.
+Open Why this qualification score? to inspect the returned scoring reasons.
+Use Download demo report for JSON or Download readable report for text.
+Run same scenario checks for a duplicate; it does not create a second mock CRM
+write. An earlier completed result remains available on that page.
+Choose New demo scenario before editing the requirements. It confirms the reset
+and returns focus to the budget field. Your chosen values and saved comparisons
+stay available; the earlier current result and its report controls are cleared.
+Comparison feedback announces new runs, clearing and replacement of the oldest
+snapshot when a fourth distinct scenario enters the three-item comparison.
+The No-match budget example uses an illustrative AED 1000 budget. Matching and
+reply outcomes should explicitly explain the lack of eligible fictional matches.
+Select different examples and run them to populate Compare recent demo scenarios.
+Download comparison report saves a readable summary of up to three recent runs.
+
+2. LEAD QUALIFICATION
+Open http://localhost:3000/leads#demo-lead-title
+Choose Near-term apartment example, Later enquiry example or Own-home studio
+example to fill the requirements, then select Run demo qualification.
+Selecting an example does not submit the form. It starts a new fictional identity.
+You can also choose requirements manually before the first attempt.
+A fictional contact is generated automatically; do not enter real customer data.
+Review the score, reasons, category, routing queue and Workflow steps.
+Download lead report saves a readable qualification snapshot.
+Requirements lock after the first attempt. Choose New fictional lead to edit them.
+New fictional lead confirms the reset and returns focus to the budget field.
+It keeps the chosen values, clears the earlier result and report controls, and
+makes no request until you choose Run demo qualification again.
+A duplicate retry keeps the earlier qualification details when available.
+If no earlier result was received, a duplicate response does not invent a score.
+
+3. PROPERTY MATCHING
+Open http://localhost:3000/properties#demo-property-title
+Choose Marina apartment example, JVC studio example or No-match search example,
+or set budget, location, bedrooms and payment-plan preference manually.
+Selecting an example fills the form without submitting it. Choose Match demo properties.
+The No-match search example uses AED 1000, Business Bay and 1 bedroom; the
+explicit no-match outcome applies to these criteria in the fictional catalog.
+These prices and listings are fictional. Inspect reasons, caveats and source dates.
+Changing a requirement clears the earlier matches; submit again to get new ones.
+Add up to three results to the shortlist. Saved items retain their earlier listing
+snapshots and match scores; they are not re-scored when the search changes.
+Download shortlist report saves the selected snapshots and caveats.
+Shortlist feedback announces additions, removals and clearing. At three saved
+items, remove one before adding another. These actions do not send an enquiry.
+Download search report saves the submitted criteria and returned matches, or the
+explicit no-match reason. It is separate from the saved shortlist report.
+Changing requirements clears the previous search report control along with matches.
+Unconfirmed prices do not establish budget fit. A returned unknown-price listing
+is not proof that its price is within the entered budget; confirm its price first.
+Availability not verified: confirm before offering. Unknown catalog availability
+does not mean a property is available. Cards, saved shortlists and their reports
+retain these price and availability warnings, including earlier saved snapshots.
+A shortlist does not reserve a property or send an enquiry.
+
+4. KNOWLEDGE ANSWERS
+Open http://localhost:3000/knowledge#demo-knowledge-title
+Use a supplied example or enter a fictional question, then Ask demo question.
+Review the draft answer, cited document versions and quoted passages.
+The No-answer example demonstrates a human handoff without a fabricated answer.
+Download knowledge report includes the submitted question, answer or handoff,
+review notes and fictional citations.
+Editing the question clears the old draft, citations and download control.
+Clear demo question empties the question and removes its draft, citations,
+errors and download control, then returns focus to the question. Nothing is sent.
+It is disabled while a request is pending. Choose an example or enter a new
+fictional question, then submit explicitly to get another answer.
+Answers require human review before sharing.
+
+5. SALES DRAFTS
+Open http://localhost:3000/conversations#demo-reply-title
+Use a supplied fictional message and select Prepare demo reply.
+Payment plan example demonstrates a cited draft. Complaint example demonstrates
+staff handoff. Stop-contact example demonstrates handling an opt-out message.
+These are unsent web-chat demo drafts. This panel does not send WhatsApp/email,
+change live consent, book an appointment or create an approval-queue entry.
+Download reply report includes the original fictional message, draft, citations,
+language and any staff-handoff reason.
+Editing the message clears the previous draft and download control.
+Clear demo message empties the message and removes the draft, citations, errors
+and download control, then returns focus to the message. It does not send a reply
+or change live consent. Clearing is disabled while a request is pending.
+Downloading a report does not approve or send the reply.
+
+6. FIND AGENTS AND WORKFLOW DEFINITIONS
+Open http://localhost:3000/agents or http://localhost:3000/workflows
+Search names, responsibilities, permitted tools or workflow steps, and combine
+the search with an implementation-status filter.
+When filters find nothing, choose Show all agents or Show all workflow definitions.
+This resets both filters and returns focus to search. The regular Reset filters
+control does the same. Filtering makes no request or tool execution.
+An actually empty backend registry has its own empty state; resetting cannot
+create missing definitions. Workflow filtering leaves the guided demo available.
+
+7. UNDERSTAND INTEGRATION STATUSES
+Open http://localhost:3000/integrations
+Read What these integration statuses mean. The cards are a static demo catalog,
+not connection checks or proof of the currently saved provider configuration.
+Mock means simulated behavior. Not configured means setup is listed as pending.
+Pending access means authorized provider access is still required; no portal
+scraping is performed. The page collects no credentials and enables no connector.
+Google Workspace email/calendar access is separate from Google sign-in.
+Use its local demo links to try fictional workflows or unsent replies.
+
+TEMPORARY RECORDS AND DOWNLOADS
+Leaving or reloading the relevant page clears browser comparisons and shortlists.
+Restarting the API clears its in-memory demo records. A dashboard-only refresh
+preserves the running API's records, but an open browser page may still reload.
+Download reports before leaving. Files are ordinary local text or JSON snapshots;
+they do not restore selections or import data back into the application.
+Browser downloads may ask where to save. Check the browser's downloads list.
+If a download fails, the current result remains available so you can try again.
+Clear comparison and Clear shortlist affect browser selections only.
+
+IF SOMETHING DOES NOT WORK
+If localhost:3000 does not open, the local dashboard may not be running.
+If API online is missing, check the existing API service before submitting forms.
+The API health endpoint is http://localhost:8000/health and its documentation is
+http://localhost:8000/docs when the API is running in this local demo mode.
+Do not start another server on an occupied port: port 3000 is the dashboard and
+port 8000 is the API. Earlier EADDRINUSE/10048 errors meant a listener already
+owned the requested port. Inspect the existing service instead of killing an
+unidentified process or repeatedly starting duplicates.
+If source installation succeeds but an old panel is visible, use that step's
+provided dashboard refresh procedure and reload the browser.
+If an apply script says evidence already exists, preserve it; do not delete the
+report to force another installation. Share its result or use a supplied recovery.
+Never include credentials or real customer records when sharing error output.
+
+VERIFICATION CHECKPOINTS
+Step 604: 96 isolated backend checks, 353 frontend tests and TypeScript passed.
+All 41 read-only checks passed against the served local demo, including guide,
+examples, reports, retry guidance and property price/availability warnings.
+These served checks inspect route declarations and pages/assets; they do not
+submit forms or exercise a Google login or a live integration.
+Evidence files are in database/project_knowledge/reports/.
+Steps 605-606 add integration explanations and update this guide and its downloadable copy. They do not activate live use.
+
+WHAT STILL NEEDS SEPARATE WORK FOR LIVE USE
+Google sign-in and live registration remain unactivated by these demo steps.
+Live credentials, organization/owner configuration, approved access controls and
+integration-specific acceptance still need to be verified for a real rollout.
+Mock workflow success does not prove a live provider, live LLM or live messaging
+service works. Demo prices are not market data or offers. Confirm actual prices,
+availability and terms with the developer; no investment return is guaranteed.
+Do not publish the development demo as a production service.

@@ -1,0 +1,27 @@
+SEARCH RECOVERY AND CONTACT REVIEW SHORTCUT - STEP 630
+
+Go to contact review - no search needed jumps directly to the public source
+text helper below discovery. It works even when the daily search limit is used.
+The limit remains one attempt per organization per Dubai day, shared by scopes.
+It resets at midnight Dubai time. This update does not increase or reset quota.
+
+Successful future searches keep their latest public source result in this tab's
+session storage. Restore last search results - no credit restores its query,
+scope and source snippets without contacting SerpApi. Restored sources are old,
+not refreshed or verified contacts. Changing search fields hides current results
+but preserves that last successful result for explicit restore. Failures do not
+overwrite a previous successful search. Clear cached search results removes the
+cached/visible result without affecting saved prospect records or search quota.
+
+Session results are browser data, not encrypted by this app or synchronized to
+PostgreSQL. They can be read by scripts with access to this app's browser origin.
+Restore rejects results older than 24 hours, malformed entries and unsafe links.
+Closing the tab normally discards session data; browser session restoration or
+browser tab duplication may preserve it. Use Clear cached search results before
+sharing a browser profile. If browser storage is unavailable, current-page memory
+still supports restore while the page remains open.
+
+Results lost before this update cannot be recovered. No server-side search
+history or backend changes are included. Only the dashboard is refreshed, keeping
+the API container, SerpApi configuration, PostgreSQL records and daily quota.
+No live search, collection scheduler, contact save or outreach is run by setup.

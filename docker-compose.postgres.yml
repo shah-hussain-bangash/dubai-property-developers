@@ -1,0 +1,10 @@
+﻿services:
+  api:
+    environment:
+      LEAD_STORE_BACKEND: postgres
+      WORKFLOW_STORE_BACKEND: postgres
+
+  worker:
+    environment:
+      LEAD_STORE_BACKEND: postgres
+      WORKFLOW_STORE_BACKEND: postgres

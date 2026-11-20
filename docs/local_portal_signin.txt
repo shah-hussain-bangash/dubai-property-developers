@@ -1,0 +1,89 @@
+LOCAL FRONT WEBSITE AND OWNER SIGN-IN - STEP 638
+
+Website: http://localhost:3000/
+Sign-in: http://localhost:3000/login
+Dashboard overview after sign-in: http://localhost:3000/overview
+The existing prospect research, property, knowledge and workflow URLs are kept.
+
+The public homepage introduces the real project workflow with a navy, warm-white
+and gold design and a code-native Dubai skyline illustration. Its buttons open
+sign-in or jump to the workflow section. It does not claim investment returns,
+verified buying ability, automatic 500-profile research or connected outreach.
+
+Sign-in is a working single-owner LOCAL portal account, not the old preview form.
+The installer opens a private Windows form for your email and a NEW project
+password (12-128 characters). Do not use or paste a Gmail/SerpApi password here.
+Enter and confirm the password yourself. Cancelling preserves running services.
+No owner password is preset. The example.com account used in QA is not installed
+or accepted in the user's deployment. Signup, team invitations and password reset
+by email are not connected in this stage.
+
+Owner passwords are salted with 16 random bytes and hashed using scrypt
+N=32768, r=8, p=3, 64-byte output. This is one of the equivalent minimum profiles
+listed in OWASP's Password Storage Cheat Sheet:
+https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
+Only the salted hash and account email are passed to the dashboard container's
+environment. The plaintext password stays in the private setup process and the
+local sign-in acceptance request; it is not written to host files, command-line
+arguments, delivery reports or logs. Docker administrators can inspect container
+configuration and session storage, so the Docker host remains trusted.
+
+Sessions use opaque 256-bit random tokens in an HttpOnly, SameSite=Strict cookie,
+path /. Only token digests are stored server-side. Local HTTP uses a non-Secure
+cookie; the code sets Secure on HTTPS. Sessions expire after eight hours. Signing
+out removes the server-side token and expires the cookie. A changed owner hash
+invalidates previous sessions. Failed attempts are limited to 10 per 15 minutes.
+Session updates are serialized with file locks and atomic replacement. Corrupt
+or unavailable storage fails closed. Session files are in the dedicated named
+Docker volume portal_auth_data, writable only by the dashboard process.
+
+Dashboard layouts verify the session on the server before rendering. Dashboard
+API requests use the same-origin authenticated gateway instead of direct browser
+access to port 8000. Anonymous gateway requests return 401. Writes require a
+matching local Origin. Arbitrary upstream hosts, traversal and redirects are
+refused. Browser cookies, bearer tokens and X-Dev-Roles claims are not forwarded
+to the developer API. Gateway responses are uncached and PDFs remain streamed.
+Existing service tests keep their developer transport when the portal flag is
+off; the installed dashboard build enables the portal transport.
+
+IMPORTANT LOCAL BOUNDARY
+The backend API on 127.0.0.1:8000 stays in its existing trusted development mode.
+Direct local API access is not authenticated by this website session. This keeps
+the current researcher and isolated demo/AI routes working. The portal protects
+website pages and its gateway; it is NOT an internet-facing, multi-user security
+deployment. Do not expose port 8000 or this development Compose stack publicly.
+Production identity, backend user roles, HTTPS, provider verification and upgrades
+must be completed separately before shared hosting. Existing backend accounts/
+Google OAuth previews are not activated or represented as connected.
+
+INSTALLATION
+Run step638_apply.ps1 in your second terminal. It backs up changed sources,
+preserves all 33 review holds and runs the frontend tests plus strict TypeScript.
+The old root overview route is backed up and moved to /overview; the public
+homepage becomes /. Existing dashboard sections keep their URLs.
+
+After the private owner form, only the dashboard image is built and recreated.
+The session volume is prepared with ownership for the non-root dashboard user.
+The API, PostgreSQL, Redis, SerpApi settings and running research process are not
+restarted or changed. No SerpApi key entry is needed. Saved prospects, replies,
+callback tasks and jobs remain in PostgreSQL. No source search, AI generation,
+email, WhatsApp message or call is triggered by setup or acceptance.
+
+Read-only acceptance checks homepage/login, signed-out redirects, anonymous
+gateway rejection, a legitimate owner login, PostgreSQL reads through the gateway,
+and logout revocation. The verification session is signed out afterward. Reports
+contain boolean checks and source hashes, not passwords or cookies.
+
+Open localhost:3000, choose Sign in, and enter your owner credentials. The top bar
+offers Sign out. Existing overview charts remain explicitly labelled fictional.
+The website itself uses no invented customer testimonials or performance figures.
+
+RESEARCH RUNNER
+An already-running researcher can stay open during this dashboard-only update.
+If you need to restart it afterward, use step638_start_research.ps1, which checks
+the current source hashes. Older numbered startup scripts check historical hashes
+and will refuse after this update. The runner still calls the trusted local API
+directly, shares the one-search-per-Dubai-day limit and needs an awake computer.
+
+Framework reference for this Next.js 14 project:
+https://nextjs.org/docs/14/app/api-reference/functions/cookies

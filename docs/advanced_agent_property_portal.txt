@@ -1,0 +1,35 @@
+Step 642 - Advanced local Agent Portal
+
+Agent workspace: http://localhost:3000/agent-portal after Agent sign-in.
+Admin remains the owner-only multi-agent operations console.
+
+Included functional tools
+- Redesigned navy, ivory and gold dashboard with bundled professional fonts and Dubai imagery.
+- Actual current portfolio totals, listing pipeline, quality progress and community distribution.
+- Asking values distinguish sale listings from annual rental listings and exclude Closed records.
+- Grid/table views, title/community/reference search, status/purpose filters, price sorting, pagination (12/page).
+- Filtered CSV export; spreadsheet formula prefixes are escaped.
+- Up to ten named, persistent saved filter views per approved agent; load/remove controls.
+- Bulk status, Trash and restore actions for up to fifty selected listings, with confirmation.
+  Ownership, approval and every record version are checked before any batch changes are saved.
+- Private photo studio: save a property, choose Photos, upload JPEG/PNG/WebP up to 2 MB each.
+  Six photos per listing; first is cover. Remove the first photo to promote the next one.
+  Photo reads require the owning approved agent or Admin. No public asset URL is created.
+  Raster headers and dimensions are bounded; SVG and active documents are not accepted.
+- Activity timeline: latest 100 retained events for the agent's own listings/access, including Admin edits.
+- Existing property editor, detail gallery, Trash restore and Admin approval remain available.
+
+Persistence and compatibility
+Existing schema-1 agent-portal.json records are retained. Optional views/photos fields are added
+without resetting accounts or listings. Photo bytes are in property-photos under the same existing
+private portal-data volume. Back up the whole volume, not only the JSON. Removing a photo deletes
+its binary after committing its metadata removal; Trash retains photos for restoration.
+Activity uses the bounded shared audit (latest 1000 events overall), so older events may expire.
+Properties remain private local portal records; they are not automatically published to the public site.
+No fake leads, inbox sync, commissions, forecasts, messages or live calling features are introduced.
+
+Install using step642_apply.ps1. Prerequisite: Step 641 installed and serving.
+The launcher verifies protected hashes and 33 review holds, preserves source backups, validates
+TypeScript and frontend tests, and refreshes only the dashboard using existing owner credentials.
+No API/database/Redis restart, key entry, provider search or research runner restart is requested.
+Existing localhost:8000 remains the trusted development API endpoint, as before.

@@ -1,0 +1,3 @@
+import {RecoveryForm} from '@/features/security/EmailSecurity';import {Brand} from '@/features/portal/Brand';
+export const dynamic='force-dynamic';export const metadata={title:'Verify your email address',referrer:'no-referrer',robots:{index:false,follow:false}};
+export default function Page(){return <main style={{minHeight:'100vh',background:'#f4f7f9',color:'#102b3b',padding:'32px 24px'}}><div style={{maxWidth:560,margin:'auto'}}><Brand/><section style={{background:'white',padding:32,borderRadius:16,marginTop:32}}><h1 style={{fontSize:32,marginBottom:24}}>Verify your email address</h1><RecoveryForm mode="verify"/></section></div></main>;}
