@@ -39,7 +39,9 @@ class DocumentSearchTool(BaseTool):
             access_levels=levels,
             principal_roles=set(payload.get("roles", [])),
         )
-        result = await self._retriever.retrieve(payload["query"], filters, k=int(payload.get("k", 4)))
+        result = await self._retriever.retrieve(
+            payload["query"], filters, k=int(payload.get("k", 4))
+        )
         return {
             "top_score": result.top_score,
             "has_stale": result.has_stale,

@@ -1,152 +1,76 @@
 Step 645 - Connected website, Admin operations and agent enquiries
 
-
-
 Website homepage community/path cards, collaboration CTA and Current opportunities
-
 cards now open a contextual /enquire form. No login is required. Name, interest,
-
 message, valid contact details and explicit permission about that enquiry are required.
-
 A private expiring form ticket and idempotent receipt prevent accidental double-save.
-
 This acknowledgement saves locally; it does not email or message the visitor.
-
 Member account history includes only submissions made while authenticated as that
-
 member. Matching an email address never grants access to anonymous enquiries.
 
-
-
 ADMIN: /overview uses actual saved portal records: enquiries, approved agents,
-
 properties, client briefs and planner counts. /enquiries is the shared intake inbox.
-
 Only Admin assigns approved agents. Assigned agents see only their own enquiries,
-
 review the source and permission, then create one owned client brief atomically.
-
 The Client Desk, matching, shortlist and viewing/follow-up planner remain connected.
-
 Agent revocation removes access immediately. Concurrent/stale edits fail safely.
-
 Opted-out, closed and spam enquiries cannot be converted to clients.
 
-
-
 INTEGRATIONS: /integrations prepares create-only source bridges for EspoCRM, Gmail,
-
 n8n and WhatsApp Business. Keys are shown once, stored as digests, excluded from
-
 Admin read responses, and can be disabled or rotated. They cannot read records.
-
 The source and connection name come from the authenticated bridge, not submitted
-
 source fields. Stable eventId retries return the original reference without duplicates.
-
 Downloaded n8n starter is inactive, has one HTTP Request node and no trigger or
-
 credentials. Add authorised source trigger, mapping and Header Auth credentials.
-
 There is no inbox sync, CRM sync, alert delivery, calling or outbound sending yet.
-
 WhatsApp is available for later configuration with your own platform account.
 
-
-
 Confirmed CRM base URL: https://crm.example.com/
-
 The appended /https://www.espocrm.com/cloud-registration/ was a second pasted URL;
-
 it is not part of the organisation CRM address. No CRM account was accessed.
-
 Gmail mailbox selection happens privately in the future authorised OAuth workflow.
-
 No mailbox address, password, provider credential or bridge key is bundled in JS.
-
 An n8n URL was not supplied. Source bridges do not install or activate n8n.
 
-
-
 EspoCRM webhook payloads are arrays, not this bridge payload format. Use a verified
-
 adapter to validate the Signature header, split events, map approved fields and
-
 supply a stable eventId (include event identity/version for updates). Direct native
-
 EspoCRM/Meta webhook posts are not supported by this generic bridge endpoint.
-
 A cloud CRM cannot reach this computer through localhost. A secured reachable
-
 workflow endpoint and account authorisation are required before enabling cloud events.
-
 Do not expose the local development dashboard or port8000 as a shortcut.
 
-
-
 Provider setup sources:
-
 https://docs.espocrm.com/administration/webhooks/
-
 https://www.espocrm.com/espocrm-api/
-
 https://developers.google.com/workspace/gmail/imap/imap-smtp
-
 https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/
-
 https://whatsappbusiness.com/developers/developer-hub/
 
-
-
 Limits: 1000 saved enquiries, eight bridges, 20 submissions/source/minute,
-
 100 website submissions/day and 1000 total/day (rolling24h). Unused form tickets:
-
 60/hour, expire20minutes for submission. Shared limits protect this local project,
-
 not a public production service. Saved records are not automatically deleted.
-
 Private portal-data stores agent and enquiry JSON under the existing atomic lock.
-
 Research remains separately in PostgreSQL; sources are not silently merged.
-
 Corrupt storage fails closed. Existing accounts, approvals, records and photos stay.
 
-
-
 WEBSITE / CONSOLE AUDIT
-
 Homepage: retain Dubai imagery, professional local fonts and large responsive menu;
-
 add contextual enquiry destinations instead of sending every visitor to registration.
-
 Current opportunities: illustrative opportunities lead to enquiry context; no fabricated
-
 live availability, commission, investment return or developer partnership is added.
-
 Membership: registration, approval and private Agent Portal stay separate from Admin.
-
 Account: authenticated enquiry tracking added; anonymous data is never claimed by email.
-
 Admin: real overview and enquiry workflow replace demo totals. Demo Lab and integration
-
 demo guide preserve prior demonstrations explicitly. AI tools, analytics, lead qualification
-
 and reply drafts remain demos. Native production AI pipelines are not claimed complete.
-
 External sources: authenticated mapping bridge ready; provider authorisation, adapters,
-
 reachable workflow hosting, delivery and monitoring remain setup work per provider.
 
-
-
 Install using step645_apply.ps1 after Step644 is installed and serving. Source backups,
-
 existing application tests, new enquiry checks, strict TypeScript and dashboard-only
-
 refresh simulations run. Only dashboard is rebuilt/refreshed. Existing owner account,
-
 API, PostgreSQL, Redis, research runner and all33 manual review holds are preserved.
-
 No password or SerpApi key entry is requested. Local-only; not internet deployment.
-

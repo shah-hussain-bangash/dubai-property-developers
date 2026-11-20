@@ -1,4 +1,3 @@
-
 """Processor integration tests for automatic lease heartbeats.
 
 All dependencies are mocked. No database or Redis connections.
@@ -108,21 +107,21 @@ async def test_rejected_lease_does_not_complete_fail_or_ack():
             "apps.worker.jobs.postgres_processor.acknowledge_job",
             new_callable=AsyncMock,
         ) as acknowledge,
-    ):
-        with pytest.raises(
+        pytest.raises(
             LeaseHeartbeatLost,
             match="renewal was rejected",
-        ):
-            await process_postgres_job(
-                object(),
-                object(),
-                job.model_dump_json(),
-                store,
-                authenticator=authenticator,
-                worker_id="worker-A",
-                lease_seconds=3,
-                heartbeat_interval_seconds=0.01,
-            )
+        ),
+    ):
+        await process_postgres_job(
+            object(),
+            object(),
+            job.model_dump_json(),
+            store,
+            authenticator=authenticator,
+            worker_id="worker-A",
+            lease_seconds=3,
+            heartbeat_interval_seconds=0.01,
+        )
 
     assert handler_cancelled.is_set()
     store.fail.assert_not_awaited()
@@ -134,9 +133,7 @@ async def test_rejected_lease_does_not_complete_fail_or_ack():
 async def test_heartbeat_database_outage_is_not_handler_failure():
     job, store, authenticator = setup_job()
 
-    store.heartbeat.side_effect = ConnectionError(
-        "Fictional PostgreSQL outage"
-    )
+    store.heartbeat.side_effect = ConnectionError("Fictional PostgreSQL outage")
 
     async def handler(runtime, received_job):
         await asyncio.sleep(10)
@@ -150,21 +147,21 @@ async def test_heartbeat_database_outage_is_not_handler_failure():
             "apps.worker.jobs.postgres_processor.acknowledge_job",
             new_callable=AsyncMock,
         ) as acknowledge,
-    ):
-        with pytest.raises(
+        pytest.raises(
             LeaseHeartbeatLost,
             match="PostgreSQL heartbeat failed",
-        ):
-            await process_postgres_job(
-                object(),
-                object(),
-                job.model_dump_json(),
-                store,
-                authenticator=authenticator,
-                worker_id="worker-A",
-                lease_seconds=3,
-                heartbeat_interval_seconds=0.01,
-            )
+        ),
+    ):
+        await process_postgres_job(
+            object(),
+            object(),
+            job.model_dump_json(),
+            store,
+            authenticator=authenticator,
+            worker_id="worker-A",
+            lease_seconds=3,
+            heartbeat_interval_seconds=0.01,
+        )
 
     store.fail.assert_not_awaited()
     store.complete.assert_not_awaited()

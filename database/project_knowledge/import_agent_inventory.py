@@ -1,4 +1,4 @@
-﻿"""Prepare an atomic, source-verified PostgreSQL agent inventory import."""
+"""Prepare an atomic, source-verified PostgreSQL agent inventory import."""
 
 import hashlib
 import json
@@ -67,14 +67,10 @@ for agent in agents:
     if not source_file.is_file() or source_file.is_symlink():
         raise ValueError("Agent source missing or symlinked")
 
-    actual_hash = hashlib.sha256(
-        source_file.read_bytes()
-    ).hexdigest()
+    actual_hash = hashlib.sha256(source_file.read_bytes()).hexdigest()
 
     if actual_hash != digest:
-        raise ValueError(
-            f"Agent source changed after extraction: {agent_id}"
-        )
+        raise ValueError(f"Agent source changed after extraction: {agent_id}")
 
     responsibilities = agent["responsibilities"]
     allowed_tools = agent["allowed_tools"]
@@ -82,19 +78,12 @@ for agent in agents:
     if (
         not isinstance(responsibilities, list)
         or not responsibilities
-        or not all(
-            isinstance(item, str) and item.strip()
-            for item in responsibilities
-        )
+        or not all(isinstance(item, str) and item.strip() for item in responsibilities)
     ):
         raise ValueError("Invalid responsibilities")
 
-    if (
-        not isinstance(allowed_tools, list)
-        or not all(
-            isinstance(item, str) and item.strip()
-            for item in allowed_tools
-        )
+    if not isinstance(allowed_tools, list) or not all(
+        isinstance(item, str) and item.strip() for item in allowed_tools
     ):
         raise ValueError("Invalid allowed tools")
 
@@ -102,25 +91,27 @@ for agent in agents:
         if not isinstance(agent[field], str) or not agent[field].strip():
             raise ValueError(f"Missing {field}")
 
-    records.append({
-        "entry_key": "agent:" + agent_id,
-        "category": "agents",
-        "title": agent["name"],
-        "content": agent["description"],
-        "status": "documented",
-        "verification_status": "verified",
-        "source_reference": path,
-        "metadata": {
-            "agent_id": agent_id,
-            "class_name": agent["class_name"],
-            "implementation_status": status,
-            "responsibilities": responsibilities,
-            "allowed_tools": allowed_tools,
-            "source_sha256": digest,
-            "verification_method": "static_source_declaration",
-            "production_enabled": None,
-        },
-    })
+    records.append(
+        {
+            "entry_key": "agent:" + agent_id,
+            "category": "agents",
+            "title": agent["name"],
+            "content": agent["description"],
+            "status": "documented",
+            "verification_status": "verified",
+            "source_reference": path,
+            "metadata": {
+                "agent_id": agent_id,
+                "class_name": agent["class_name"],
+                "implementation_status": status,
+                "responsibilities": responsibilities,
+                "allowed_tools": allowed_tools,
+                "source_sha256": digest,
+                "verification_method": "static_source_declaration",
+                "production_enabled": None,
+            },
+        }
+    )
 
 payload = json.dumps(
     records,
@@ -200,22 +191,13 @@ END
 $verify_agents$;
 
 COMMIT;
-"""
+"""  # noqa: S608 -- Escaped JSON/fixed metadata in an offline SQL generator.
 
 DESTINATION.write_text(sql, encoding="utf-8")
 
 print("PASS: Agent SQL import generated")
 print("Validated agents:", len(records))
-print("Functional:", sum(
-    a["implementation_status"] == "functional"
-    for a in agents
-))
-print("Partial:", sum(
-    a["implementation_status"] == "partial"
-    for a in agents
-))
-print("Interface only:", sum(
-    a["implementation_status"] == "interface_only"
-    for a in agents
-))
+print("Functional:", sum(a["implementation_status"] == "functional" for a in agents))
+print("Partial:", sum(a["implementation_status"] == "partial" for a in agents))
+print("Interface only:", sum(a["implementation_status"] == "interface_only" for a in agents))
 print("SQL file:", DESTINATION)

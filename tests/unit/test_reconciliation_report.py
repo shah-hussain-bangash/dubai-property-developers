@@ -1,4 +1,4 @@
-﻿from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -7,7 +7,6 @@ import pytest
 from core.resilience.reconciliation_report import (
     build_reconciliation_report,
 )
-
 
 NOW = datetime(2026, 10, 16, 12, 0, tzinfo=UTC)
 
@@ -37,9 +36,7 @@ def make_record(state, minutes_old, tool="crm.create_lead"):
         ("in_progress", 4, "low"),
     ],
 )
-def test_report_priority(
-    state, minutes_old, expected
-):
+def test_report_priority(state, minutes_old, expected):
     records = [make_record(state, minutes_old)]
 
     report = build_reconciliation_report(

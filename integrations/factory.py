@@ -30,7 +30,12 @@ from integrations.meta.client import descriptor as meta_descriptor
 from integrations.n8n.client import HttpN8nClient, MockN8nClient, N8nClient, N8nConfig
 from integrations.n8n.client import descriptor as n8n_descriptor
 from integrations.propertyfinder import client as propertyfinder
-from integrations.slack.client import MockSlackNotifier, SlackConfig, SlackNotifier, WebhookSlackNotifier
+from integrations.slack.client import (
+    MockSlackNotifier,
+    SlackConfig,
+    SlackNotifier,
+    WebhookSlackNotifier,
+)
 from integrations.slack.client import descriptor as slack_descriptor
 from integrations.telephony.client import MockTelephonyClient, TelephonyClient, TelephonyConfig
 from integrations.telephony.client import descriptor as telephony_descriptor

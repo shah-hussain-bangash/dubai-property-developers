@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import asyncio
 from typing import Any, ClassVar
@@ -47,7 +47,18 @@ class SharedGatewayTool(BaseTool):
 
 
 @pytest.mark.asyncio
-async def test_shared_gateways_must_not_execute_action_twice() -> None:
+@pytest.mark.parametrize(
+    ("first_entrypoint", "second_entrypoint"),
+    [
+        ("approved", "approved"),
+        ("approved", "invoke"),
+        ("invoke", "approved"),
+        ("invoke", "invoke"),
+    ],
+)
+async def test_shared_gateways_must_not_execute_action_twice(
+    first_entrypoint: str, second_entrypoint: str
+) -> None:
     registry = ToolRegistry()
     tool = SharedGatewayTool()
     registry.register(tool)
@@ -102,18 +113,27 @@ async def test_shared_gateways_must_not_execute_action_twice() -> None:
         decided_by="manager",
     )
 
-    first_task = asyncio.create_task(
-        gateway_a.execute_approved(pending.approval_id, approver)
-    )
+    async def execute(gateway: ToolGateway, entrypoint: str):
+        if entrypoint == "approved":
+            return await gateway.execute_approved(pending.approval_id, approver)
+        return await gateway.invoke(
+            ToolCallContext(
+                principal=approver,
+                tenant_id="demo-org",
+                correlation_id="cross-gateway-invoke-test",
+            ),
+            "test.cross_gateway_send",
+            {"to": "mock-recipient"},
+        )
+
+    first_task = asyncio.create_task(execute(gateway_a, first_entrypoint))
 
     second_task = None
 
     try:
         await asyncio.wait_for(tool.started.wait(), timeout=2)
 
-        second_task = asyncio.create_task(
-            gateway_b.execute_approved(pending.approval_id, approver)
-        )
+        second_task = asyncio.create_task(execute(gateway_b, second_entrypoint))
 
         await asyncio.sleep(0.05)
 
@@ -137,11 +157,7 @@ async def test_shared_gateways_must_not_execute_action_twice() -> None:
     finally:
         tool.release.set()
 
-        tasks = [
-            task
-            for task in (first_task, second_task)
-            if task is not None
-        ]
+        tasks = [task for task in (first_task, second_task) if task is not None]
 
         for task in tasks:
             if not task.done():

@@ -11,7 +11,9 @@ from tests.factories import integration_enabled
 
 pytestmark = [
     pytest.mark.integration,
-    pytest.mark.skipif(not integration_enabled(), reason="set RUN_INTEGRATION_TESTS=1 with services running"),
+    pytest.mark.skipif(
+        not integration_enabled(), reason="set RUN_INTEGRATION_TESTS=1 with services running"
+    ),
 ]
 
 

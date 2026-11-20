@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 from typing import Any, ClassVar
@@ -75,9 +74,7 @@ def _ctx(
         correlation_id="c-1",
         agent_id="tester",
         allowed_tools=frozenset(
-            allowed
-            if allowed is not None
-            else {"test.send", "whatsapp.send_message"}
+            allowed if allowed is not None else {"test.send", "whatsapp.send_message"}
         ),
     )
 
@@ -201,9 +198,7 @@ async def test_rejected_approval_cannot_execute() -> None:
 
 
 async def test_rbac_applies_when_approval_disabled() -> None:
-    gateway, tool = _gateway(
-        ApprovalPolicy(outbound_messages=False)
-    )
+    gateway, tool = _gateway(ApprovalPolicy(outbound_messages=False))
 
     # SYSTEM does not have MESSAGES_SEND permission.
     with pytest.raises(AuthorizationError):
@@ -246,6 +241,4 @@ async def test_whatsapp_policy_blocks_before_approval() -> None:
             },
         )
 
-    assert await gateway.approvals.list_pending(
-        "demo-org"
-    ) == []
+    assert await gateway.approvals.list_pending("demo-org") == []

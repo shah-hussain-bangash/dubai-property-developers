@@ -1,4 +1,3 @@
-
 """Unit tests for recovery coordinator input authorization.
 
 No PostgreSQL or Redis connections are required.

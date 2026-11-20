@@ -73,7 +73,12 @@ class MockWhatsAppClient:
     ) -> str:
         return self._record(
             idempotency_key,
-            {"to": to_e164, "type": "template", "template": template_name, "language": language_code},
+            {
+                "to": to_e164,
+                "type": "template",
+                "template": template_name,
+                "language": language_code,
+            },
         )
 
 
@@ -92,7 +97,9 @@ class HttpWhatsAppClient:
         )
 
     async def _post(self, payload: dict[str, Any], idempotency_key: str) -> str:
-        body = await self._http.request("POST", self._path, json=payload, idempotency_key=idempotency_key)
+        body = await self._http.request(
+            "POST", self._path, json=payload, idempotency_key=idempotency_key
+        )
         return str(body["messages"][0]["id"])
 
     async def send_text(self, *, to_e164: str, body: str, idempotency_key: str) -> str:

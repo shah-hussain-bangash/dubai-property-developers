@@ -1,3 +1,4 @@
+# ruff: noqa: E402 -- Integration-only helper imports are grouped with their scenarios.
 """Isolated PostgreSQL integration tests for tool execution claims.
 
 Only runs with RUN_EXECUTION_LEDGER_DB_TESTS=1.
@@ -16,7 +17,6 @@ import pytest
 from sqlalchemy import delete, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
-    AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
@@ -28,7 +28,6 @@ from database.repositories.tool_execution_claims import (
     PostgresToolExecutionClaimStore,
 )
 
-
 pytestmark = [
     pytest.mark.integration,
     pytest.mark.skipif(
@@ -39,12 +38,8 @@ pytestmark = [
 
 
 @pytest.fixture
-async def ledger_environment() -> AsyncIterator[
-    tuple[PostgresToolExecutionClaimStore, str, str]
-]:
-    application_url = make_url(
-        get_settings().database_url.get_secret_value()
-    )
+async def ledger_environment() -> AsyncIterator[tuple[PostgresToolExecutionClaimStore, str, str]]:
+    application_url = make_url(get_settings().database_url.get_secret_value())
 
     if application_url.database != "dubai_ai":
         raise RuntimeError("Unexpected configured application database")
@@ -72,42 +67,33 @@ async def ledger_environment() -> AsyncIterator[
 
     try:
         async with engine.connect() as connection:
-            database_name = await connection.scalar(
-                text("SELECT current_database()")
-            )
+            database_name = await connection.scalar(text("SELECT current_database()"))
 
             if database_name != "dubai_ai_test":
-                raise RuntimeError(
-                    f"Unsafe test database: {database_name}"
-                )
+                raise RuntimeError(f"Unsafe test database: {database_name}")
 
-            version = await connection.scalar(
-                text("SELECT version_num FROM alembic_version")
-            )
+            version = await connection.scalar(text("SELECT version_num FROM alembic_version"))
 
             if version != "0008_tool_request_fingerprint":
-                raise RuntimeError(
-                    f"Unexpected test database revision: {version}"
-                )
+                raise RuntimeError(f"Unexpected test database revision: {version}")
 
-        async with factory() as session:
-            async with session.begin():
-                session.add_all(
-                    [
-                        Organization(
-                            id=first_id,
-                            name="Temporary Ledger Test A",
-                            slug=first_tenant,
-                            is_active=True,
-                        ),
-                        Organization(
-                            id=second_id,
-                            name="Temporary Ledger Test B",
-                            slug=second_tenant,
-                            is_active=True,
-                        ),
-                    ]
-                )
+        async with factory() as session, session.begin():
+            session.add_all(
+                [
+                    Organization(
+                        id=first_id,
+                        name="Temporary Ledger Test A",
+                        slug=first_tenant,
+                        is_active=True,
+                    ),
+                    Organization(
+                        id=second_id,
+                        name="Temporary Ledger Test B",
+                        slug=second_tenant,
+                        is_active=True,
+                    ),
+                ]
+            )
 
         created = True
 
@@ -120,23 +106,16 @@ async def ledger_environment() -> AsyncIterator[
     finally:
         try:
             if created:
-                async with factory() as session:
-                    async with session.begin():
-                        await session.execute(
-                            delete(ToolExecutionLedger).where(
-                                ToolExecutionLedger.organization_id.in_(
-                                    [first_id, second_id]
-                                )
-                            )
+                async with factory() as session, session.begin():
+                    await session.execute(
+                        delete(ToolExecutionLedger).where(
+                            ToolExecutionLedger.organization_id.in_([first_id, second_id])
                         )
+                    )
 
-                        await session.execute(
-                            delete(Organization).where(
-                                Organization.id.in_(
-                                    [first_id, second_id]
-                                )
-                            )
-                        )
+                    await session.execute(
+                        delete(Organization).where(Organization.id.in_([first_id, second_id]))
+                    )
         finally:
             await engine.dispose()
 
@@ -151,7 +130,12 @@ async def test_concurrent_postgres_claim_has_one_owner(
     results = await asyncio.wait_for(
         asyncio.gather(
             *(
-                store.claim(tenant, key, "test.send", request_fingerprint=make_request_fingerprint(tenant, "test.send", {}))
+                store.claim(
+                    tenant,
+                    key,
+                    "test.send",
+                    request_fingerprint=make_request_fingerprint(tenant, "test.send", {}),
+                )
                 for _ in range(10)
             )
         ),
@@ -176,22 +160,33 @@ async def test_wrong_owner_cannot_complete(
     store, tenant, _ = ledger_environment
     key = f"test:ownership:{uuid.uuid4().hex}"
 
-    owner = await store.claim(tenant, key, "test.send", request_fingerprint=make_request_fingerprint(tenant, "test.send", {}))
+    owner = await store.claim(
+        tenant,
+        key,
+        "test.send",
+        request_fingerprint=make_request_fingerprint(tenant, "test.send", {}),
+    )
     assert owner is not None
 
-    assert await store.complete(
-        tenant,
-        key,
-        "incorrect-owner",
-        {"message_id": "wrong"},
-    ) is False
+    assert (
+        await store.complete(
+            tenant,
+            key,
+            "incorrect-owner",
+            {"message_id": "wrong"},
+        )
+        is False
+    )
 
-    assert await store.complete(
-        tenant,
-        key,
-        owner,
-        {"message_id": "correct"},
-    ) is True
+    assert (
+        await store.complete(
+            tenant,
+            key,
+            owner,
+            {"message_id": "correct"},
+        )
+        is True
+    )
 
     record = await store.get(tenant, key)
 
@@ -199,7 +194,15 @@ async def test_wrong_owner_cannot_complete(
     assert record.state == "completed"
     assert record.result_json == {"message_id": "correct"}
 
-    assert await store.claim(tenant, key, "test.send", request_fingerprint=make_request_fingerprint(tenant, "test.send", {})) is None
+    assert (
+        await store.claim(
+            tenant,
+            key,
+            "test.send",
+            request_fingerprint=make_request_fingerprint(tenant, "test.send", {}),
+        )
+        is None
+    )
 
 
 @pytest.mark.asyncio
@@ -210,23 +213,32 @@ async def test_tenants_are_isolated(
     key = f"test:shared-key:{uuid.uuid4().hex}"
 
     first_owner = await store.claim(
-        first_tenant, key, "test.send"
-    , request_fingerprint=make_request_fingerprint(first_tenant, "test.send", {}))
+        first_tenant,
+        key,
+        "test.send",
+        request_fingerprint=make_request_fingerprint(first_tenant, "test.send", {}),
+    )
 
     second_owner = await store.claim(
-        second_tenant, key, "test.send"
-    , request_fingerprint=make_request_fingerprint(second_tenant, "test.send", {}))
+        second_tenant,
+        key,
+        "test.send",
+        request_fingerprint=make_request_fingerprint(second_tenant, "test.send", {}),
+    )
 
     assert first_owner is not None
     assert second_owner is not None
     assert first_owner != second_owner
 
-    assert await store.complete(
-        second_tenant,
-        key,
-        first_owner,
-        {"message_id": "invalid"},
-    ) is False
+    assert (
+        await store.complete(
+            second_tenant,
+            key,
+            first_owner,
+            {"message_id": "invalid"},
+        )
+        is False
+    )
 
     first = await store.get(first_tenant, key)
     second = await store.get(second_tenant, key)
@@ -243,21 +255,35 @@ async def test_uncertain_claim_cannot_be_reclaimed(
     store, tenant, _ = ledger_environment
     key = f"test:uncertain:{uuid.uuid4().hex}"
 
-    owner = await store.claim(tenant, key, "test.send", request_fingerprint=make_request_fingerprint(tenant, "test.send", {}))
-    assert owner is not None
-
-    assert await store.mark_uncertain(
-        tenant, key, owner
-    ) is True
-
-    assert await store.claim(tenant, key, "test.send", request_fingerprint=make_request_fingerprint(tenant, "test.send", {})) is None
-
-    assert await store.complete(
+    owner = await store.claim(
         tenant,
         key,
-        owner,
-        {"message_id": "late"},
-    ) is False
+        "test.send",
+        request_fingerprint=make_request_fingerprint(tenant, "test.send", {}),
+    )
+    assert owner is not None
+
+    assert await store.mark_uncertain(tenant, key, owner) is True
+
+    assert (
+        await store.claim(
+            tenant,
+            key,
+            "test.send",
+            request_fingerprint=make_request_fingerprint(tenant, "test.send", {}),
+        )
+        is None
+    )
+
+    assert (
+        await store.complete(
+            tenant,
+            key,
+            owner,
+            {"message_id": "late"},
+        )
+        is False
+    )
 
     record = await store.get(tenant, key)
     assert record is not None
@@ -271,7 +297,12 @@ async def test_claim_persists_across_sessions(
     store, tenant, _ = ledger_environment
     key = f"test:persist:{uuid.uuid4().hex}"
 
-    owner = await store.claim(tenant, key, "test.send", request_fingerprint=make_request_fingerprint(tenant, "test.send", {}))
+    owner = await store.claim(
+        tenant,
+        key,
+        "test.send",
+        request_fingerprint=make_request_fingerprint(tenant, "test.send", {}),
+    )
     assert owner is not None
 
     # Each repository method opens and closes its own session.
@@ -282,20 +313,22 @@ async def test_claim_persists_across_sessions(
     assert second is not None
     assert second.owner_token == owner
 
-    assert await store.complete(
-        tenant,
-        key,
-        owner,
-        {"message_id": "persisted"},
-    ) is True
+    assert (
+        await store.complete(
+            tenant,
+            key,
+            owner,
+            {"message_id": "persisted"},
+        )
+        is True
+    )
 
     completed = await store.get(tenant, key)
 
     assert completed is not None
     assert completed.state == "completed"
-    assert completed.result_json == {
-        "message_id": "persisted"
-    }
+    assert completed.result_json == {"message_id": "persisted"}
+
 
 # Step 272: PostgreSQL-backed coordinator integration tests
 
@@ -329,18 +362,14 @@ async def test_two_coordinators_share_postgres_claim(
         return {"message_id": "postgres-message-1"}
 
     first_task = asyncio.create_task(
-        coordinator_a.execute(
-            tenant, key, "test.send", external_action
-        , payload={})
+        coordinator_a.execute(tenant, key, "test.send", external_action, payload={})
     )
 
     try:
         await asyncio.wait_for(started.wait(), timeout=10)
 
         second = await asyncio.wait_for(
-            coordinator_b.execute(
-                tenant, key, "test.send", external_action
-            , payload={}),
+            coordinator_b.execute(tenant, key, "test.send", external_action, payload={}),
             timeout=10,
         )
 
@@ -355,9 +384,7 @@ async def test_two_coordinators_share_postgres_claim(
     assert first.status == CoordinationStatus.EXECUTED
     assert calls == 1
 
-    replay = await coordinator_b.execute(
-        tenant, key, "test.send", external_action
-    , payload={})
+    replay = await coordinator_b.execute(tenant, key, "test.send", external_action, payload={})
 
     assert replay.status == CoordinationStatus.REPLAYED
     assert replay.data == {"message_id": "postgres-message-1"}
@@ -388,21 +415,18 @@ async def test_postgres_coordinator_uncertain_prevents_retry(
         raise RuntimeError("Simulated ambiguous provider failure")
 
     with pytest.raises(ExecutionOutcomeUncertain):
-        await coordinator_a.execute(
-            tenant, key, "test.send", failing_action
-        , payload={})
+        await coordinator_a.execute(tenant, key, "test.send", failing_action, payload={})
 
     record = await store.get(tenant, key)
 
     assert record is not None
     assert record.state == "uncertain"
 
-    second = await coordinator_b.execute(
-        tenant, key, "test.send", failing_action
-    , payload={})
+    second = await coordinator_b.execute(tenant, key, "test.send", failing_action, payload={})
 
     assert second.status == CoordinationStatus.UNCERTAIN
     assert calls == 1
+
 
 @pytest.mark.asyncio
 async def test_reused_key_cannot_replay_another_tool(
@@ -420,12 +444,7 @@ async def test_reused_key_cannot_replay_another_tool(
         calls += 1
         return {"message_id": "original-result"}
 
-    original = await coordinator.execute(
-        tenant,
-        key,
-        "crm.create_lead",
-        action,
-     payload={})
+    original = await coordinator.execute(tenant, key, "crm.create_lead", action, payload={})
 
     assert original.status == CoordinationStatus.EXECUTED
     assert calls == 1
@@ -436,16 +455,12 @@ async def test_reused_key_cannot_replay_another_tool(
 
     with pytest.raises(
         ExecutionOutcomeUncertain,
-        match="(?i)(tool|identity|mismatch)",
+        match=r"(?i)(tool|identity|mismatch)",
     ):
-        await coordinator.execute(
-            tenant,
-            key,
-            "whatsapp.send_message",
-            action,
-         payload={})
+        await coordinator.execute(tenant, key, "whatsapp.send_message", action, payload={})
 
     assert calls == 1
+
 
 @pytest.mark.asyncio
 async def test_request_fingerprint_persisted_in_postgres(
@@ -464,9 +479,7 @@ async def test_request_fingerprint_persisted_in_postgres(
         "budget": 1000000,
     }
 
-    fingerprint = make_request_fingerprint(
-        tenant, tool, payload
-    )
+    fingerprint = make_request_fingerprint(tenant, tool, payload)
 
     owner = await store.claim(
         tenant,
@@ -498,6 +511,7 @@ async def test_request_fingerprint_persisted_in_postgres(
     assert unchanged is not None
     assert unchanged.request_fingerprint == fingerprint
 
+
 @pytest.mark.asyncio
 async def test_same_tool_key_changed_payload_must_be_rejected(
     ledger_environment,
@@ -528,7 +542,7 @@ async def test_same_tool_key_changed_payload_must_be_rejected(
 
     with pytest.raises(
         ExecutionOutcomeUncertain,
-        match="(?i)(fingerprint|payload|identity|mismatch)",
+        match=r"(?i)(fingerprint|payload|identity|mismatch)",
     ):
         await coordinator.execute(
             tenant,
@@ -543,6 +557,7 @@ async def test_same_tool_key_changed_payload_must_be_rejected(
 
     assert calls == 1
 
+
 @pytest.mark.asyncio
 async def test_missing_request_fingerprint_is_rejected(
     ledger_environment,
@@ -553,7 +568,7 @@ async def test_missing_request_fingerprint_is_rejected(
 
     with pytest.raises(
         (TypeError, ValueError),
-        match="(?i)(fingerprint|missing)",
+        match=r"(?i)(fingerprint|missing)",
     ):
         await store.claim(
             tenant,
@@ -564,7 +579,11 @@ async def test_missing_request_fingerprint_is_rejected(
     record = await store.get(tenant, key)
     assert record is None
 
-from core.resilience.request_fingerprint import make_request_fingerprint
+
+from core.resilience.request_fingerprint import (
+    make_request_fingerprint,
+)
+
 
 @pytest.mark.asyncio
 async def test_identical_request_replays_persisted_result(
@@ -627,6 +646,7 @@ async def test_identical_request_replays_persisted_result(
         )
     )
 
+
 @pytest.mark.asyncio
 async def test_reconciliation_lists_only_unresolved_claims(
     ledger_environment,
@@ -635,31 +655,21 @@ async def test_reconciliation_lists_only_unresolved_claims(
 
     prefix = f"reconcile:{uuid.uuid4().hex}"
     tool = "crm.create_lead"
-    fingerprint = make_request_fingerprint(
-        tenant, tool, {"name": "Reconciliation Test"}
-    )
+    fingerprint = make_request_fingerprint(tenant, tool, {"name": "Reconciliation Test"})
 
     pending_key = f"{prefix}:pending"
     uncertain_key = f"{prefix}:uncertain"
     completed_key = f"{prefix}:completed"
 
-    pending_owner = await store.claim(
-        tenant, pending_key, tool, fingerprint
-    )
-    uncertain_owner = await store.claim(
-        tenant, uncertain_key, tool, fingerprint
-    )
-    completed_owner = await store.claim(
-        tenant, completed_key, tool, fingerprint
-    )
+    pending_owner = await store.claim(tenant, pending_key, tool, fingerprint)
+    uncertain_owner = await store.claim(tenant, uncertain_key, tool, fingerprint)
+    completed_owner = await store.claim(tenant, completed_key, tool, fingerprint)
 
     assert pending_owner is not None
     assert uncertain_owner is not None
     assert completed_owner is not None
 
-    assert await store.mark_uncertain(
-        tenant, uncertain_key, uncertain_owner
-    )
+    assert await store.mark_uncertain(tenant, uncertain_key, uncertain_owner)
     assert await store.complete(
         tenant,
         completed_key,
@@ -668,10 +678,7 @@ async def test_reconciliation_lists_only_unresolved_claims(
     )
 
     records = await store.list_unresolved(tenant, limit=50)
-    indexed = {
-        record.idempotency_key: record
-        for record in records
-    }
+    indexed = {record.idempotency_key: record for record in records}
 
     assert pending_key in indexed
     assert uncertain_key in indexed
@@ -704,29 +711,18 @@ async def test_reconciliation_discovery_is_tenant_scoped(
         first_tenant,
         key,
         tool,
-        make_request_fingerprint(
-            first_tenant, tool, {"message": "test"}
-        ),
+        make_request_fingerprint(first_tenant, tool, {"message": "test"}),
     )
 
     assert owner is not None
 
-    first_records = await store.list_unresolved(
-        first_tenant, limit=50
-    )
-    second_records = await store.list_unresolved(
-        second_tenant, limit=50
-    )
+    first_records = await store.list_unresolved(first_tenant, limit=50)
+    second_records = await store.list_unresolved(second_tenant, limit=50)
 
-    assert any(
-        record.idempotency_key == key
-        for record in first_records
-    )
+    assert any(record.idempotency_key == key for record in first_records)
 
-    assert all(
-        record.idempotency_key != key
-        for record in second_records
-    )
+    assert all(record.idempotency_key != key for record in second_records)
+
 
 @pytest.mark.asyncio
 async def test_reconciliation_rejects_invalid_inputs(
@@ -737,16 +733,12 @@ async def test_reconciliation_rejects_invalid_inputs(
     # Invalid tenant identifiers must not reach an unrestricted query.
     for invalid_tenant in ("", "   "):
         with pytest.raises(ValueError):
-            await store.list_unresolved(
-                invalid_tenant, limit=10
-            )
+            await store.list_unresolved(invalid_tenant, limit=10)
 
     # Reject unbounded, negative, Boolean, and non-integer limits.
     for invalid_limit in (0, -1, 101, True, False, 1.5, "10"):
         with pytest.raises(ValueError, match="limit"):
-            await store.list_unresolved(
-                tenant, limit=invalid_limit
-            )
+            await store.list_unresolved(tenant, limit=invalid_limit)
 
 
 @pytest.mark.asyncio
@@ -771,39 +763,29 @@ async def test_reconciliation_limit_and_order_are_stable(
     ]
 
     for key in keys:
-        owner = await store.claim(
-            tenant, key, tool, fingerprint
-        )
+        owner = await store.claim(tenant, key, tool, fingerprint)
         assert owner is not None
 
-    records = await store.list_unresolved(
-        tenant, limit=2
-    )
+    records = await store.list_unresolved(tenant, limit=2)
 
     assert len(records) == 2
 
-    ordering = [
-        (record.claimed_at, record.id)
-        for record in records
-    ]
+    ordering = [(record.claimed_at, record.id) for record in records]
 
     assert ordering == sorted(ordering)
 
     # Reading the same unchanged ledger should return
     # the same ordered records.
-    repeated = await store.list_unresolved(
-        tenant, limit=2
-    )
+    repeated = await store.list_unresolved(tenant, limit=2)
 
-    assert [record.id for record in records] == [
-        record.id for record in repeated
-    ]
+    assert [record.id for record in records] == [record.id for record in repeated]
 
     # The query must never modify these claims.
     for key in keys:
         record = await store.get(tenant, key)
         assert record is not None
         assert record.state == "in_progress"
+
 
 @pytest.mark.asyncio
 async def test_reconciliation_cursor_paginates_without_duplicates(
@@ -813,27 +795,20 @@ async def test_reconciliation_cursor_paginates_without_duplicates(
 
     tool = "crm.create_lead"
     payload = {"source": "cursor-pagination-test"}
-    fingerprint = make_request_fingerprint(
-        tenant, tool, payload
-    )
+    fingerprint = make_request_fingerprint(tenant, tool, payload)
 
     prefix = f"reconcile:cursor:{uuid.uuid4().hex}"
 
-    keys = [
-        f"{prefix}:{number}"
-        for number in range(5)
-    ]
+    keys = [f"{prefix}:{number}" for number in range(5)]
 
     for key in keys:
-        owner = await store.claim(
-            tenant, key, tool, fingerprint
-        )
+        owner = await store.claim(tenant, key, tool, fingerprint)
         assert owner is not None
 
     all_records = []
     cursor = None
 
-    for page_number in range(4):
+    for _page_number in range(4):
         page = await store.list_unresolved(
             tenant,
             limit=2,
@@ -850,19 +825,13 @@ async def test_reconciliation_cursor_paginates_without_duplicates(
         last = page[-1]
         cursor = (last.claimed_at, last.id)
 
-    returned_keys = [
-        record.idempotency_key
-        for record in all_records
-    ]
+    returned_keys = [record.idempotency_key for record in all_records]
 
     assert len(returned_keys) == 5
     assert len(set(returned_keys)) == 5
     assert set(returned_keys) == set(keys)
 
-    ordering = [
-        (record.claimed_at, record.id)
-        for record in all_records
-    ]
+    ordering = [(record.claimed_at, record.id) for record in all_records]
     assert ordering == sorted(ordering)
 
     # The same cursor must not expose another tenant's claims.
@@ -872,10 +841,7 @@ async def test_reconciliation_cursor_paginates_without_duplicates(
         after=cursor,
     )
 
-    assert all(
-        record.idempotency_key not in keys
-        for record in other_page
-    )
+    assert all(record.idempotency_key not in keys for record in other_page)
 
     # Pagination must not change states or ownership.
     for key in keys:
@@ -883,11 +849,12 @@ async def test_reconciliation_cursor_paginates_without_duplicates(
         assert record is not None
         assert record.state == "in_progress"
 
+
 @pytest.mark.asyncio
 async def test_reconciliation_rejects_invalid_cursors(
     ledger_environment,
 ) -> None:
-    from datetime import datetime, UTC
+    from datetime import UTC, datetime
     from uuid import uuid4
 
     store, tenant, _ = ledger_environment
@@ -921,9 +888,7 @@ async def test_reconciliation_handles_state_changes_between_pages(
 
     tool = "crm.create_lead"
     payload = {"source": "state-change-pagination-test"}
-    fingerprint = make_request_fingerprint(
-        tenant, tool, payload
-    )
+    fingerprint = make_request_fingerprint(tenant, tool, payload)
 
     prefix = f"reconcile:state-change:{uuid.uuid4().hex}"
 
@@ -979,10 +944,7 @@ async def test_reconciliation_handles_state_changes_between_pages(
         after=cursor,
     )
 
-    returned_keys = {
-        record.idempotency_key
-        for record in second_page
-    }
+    returned_keys = {record.idempotency_key for record in second_page}
 
     assert keys[0] not in returned_keys
     assert keys[1] not in returned_keys

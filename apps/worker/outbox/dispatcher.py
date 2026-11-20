@@ -1,4 +1,3 @@
-
 """Single-attempt PostgreSQL-to-Redis outbox dispatcher.
 
 This module does not start a background process.
@@ -113,9 +112,7 @@ class OutboxDispatcher:
         except Exception as exc:
             # Store only a safe classification, never raw exception
             # text or decrypted customer payload data.
-            if isinstance(exc, JobEncryptionError):
-                error_code = "invalid_envelope"
-            elif isinstance(exc, (ValueError, KeyError)):
+            if isinstance(exc, (JobEncryptionError, ValueError, KeyError)):
                 error_code = "invalid_envelope"
             else:
                 error_code = "publish_error"
@@ -130,9 +127,7 @@ class OutboxDispatcher:
             )
 
             if not recorded:
-                raise RuntimeError(
-                    "Outbox publication failure could not be recorded"
-                ) from exc
+                raise RuntimeError("Outbox publication failure could not be recorded") from exc
 
             return "retrying"
 

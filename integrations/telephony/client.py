@@ -32,7 +32,9 @@ class MockTelephonyClient:
 
     async def request_callback(self, *, to_e164: str, reason: str, idempotency_key: str) -> str:
         call_id = f"mock-call-{next(self._ids):05d}"
-        self.callbacks.append({"id": call_id, "to": to_e164, "reason": reason, "key": idempotency_key})
+        self.callbacks.append(
+            {"id": call_id, "to": to_e164, "reason": reason, "key": idempotency_key}
+        )
         return call_id
 
     async def get_transcript(self, call_id: str) -> str | None:

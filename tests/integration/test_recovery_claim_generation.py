@@ -1,4 +1,3 @@
-
 """Integration tests for generation-aware PostgreSQL recovery claims.
 
 Development-only. Uses fictional PostgreSQL jobs and the existing
@@ -22,9 +21,7 @@ from database.repositories.postgres_recovery_lease_store import (
 from tests.integration.test_postgres_recovery_lease_store import (
     create_operation,
     get_operation,
-    recovery_setup,
 )
-
 
 pytestmark = [
     pytest.mark.asyncio,
@@ -38,9 +35,7 @@ pytestmark = [
 async def test_first_claim_returns_generation_one(recovery_setup):
     jobs, recovery, leases, factory, ids = recovery_setup
 
-    operation_id = await create_operation(
-        jobs, recovery, factory, ids
-    )
+    operation_id = await create_operation(jobs, recovery, factory, ids)
 
     result = await leases.claim_with_generation(
         "demo-org",
@@ -63,9 +58,7 @@ async def test_first_claim_returns_generation_one(recovery_setup):
 async def test_active_lease_cannot_be_claimed_again(recovery_setup):
     jobs, recovery, leases, factory, ids = recovery_setup
 
-    operation_id = await create_operation(
-        jobs, recovery, factory, ids
-    )
+    operation_id = await create_operation(jobs, recovery, factory, ids)
 
     first = await leases.claim_with_generation(
         "demo-org",
@@ -93,9 +86,7 @@ async def test_active_lease_cannot_be_claimed_again(recovery_setup):
 async def test_expired_lease_increases_generation(recovery_setup):
     jobs, recovery, leases, factory, ids = recovery_setup
 
-    operation_id = await create_operation(
-        jobs, recovery, factory, ids
-    )
+    operation_id = await create_operation(jobs, recovery, factory, ids)
 
     first = await leases.claim_with_generation(
         "demo-org",
@@ -107,17 +98,12 @@ async def test_expired_lease_increases_generation(recovery_setup):
     assert first.generation == 1
 
     # Expire only this fictional test operation's lease.
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(JobRecoveryOperation)
-                .where(JobRecoveryOperation.id == operation_id)
-                .values(
-                    lease_expires_at=(
-                        datetime.now(UTC) - timedelta(minutes=5)
-                    )
-                )
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(JobRecoveryOperation)
+            .where(JobRecoveryOperation.id == operation_id)
+            .values(lease_expires_at=(datetime.now(UTC) - timedelta(minutes=5)))
+        )
 
     second = await leases.claim_with_generation(
         "demo-org",
@@ -139,9 +125,7 @@ async def test_expired_lease_increases_generation(recovery_setup):
 async def test_legacy_claim_still_returns_string_token(recovery_setup):
     jobs, recovery, leases, factory, ids = recovery_setup
 
-    operation_id = await create_operation(
-        jobs, recovery, factory, ids
-    )
+    operation_id = await create_operation(jobs, recovery, factory, ids)
 
     token = await leases.claim(
         "demo-org",
@@ -161,9 +145,7 @@ async def test_legacy_claim_still_returns_string_token(recovery_setup):
 async def test_wrong_tenant_receives_no_generation(recovery_setup):
     jobs, recovery, leases, factory, ids = recovery_setup
 
-    operation_id = await create_operation(
-        jobs, recovery, factory, ids
-    )
+    operation_id = await create_operation(jobs, recovery, factory, ids)
 
     result = await leases.claim_with_generation(
         "nonexistent-generation-tenant",

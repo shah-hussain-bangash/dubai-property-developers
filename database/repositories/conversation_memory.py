@@ -14,11 +14,18 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from core.memory.base import MemoryMessage
 from database.models.conversation import Conversation, Message
 
-_ROLE_TO_SENDER = {"customer": "customer", "agent": "ai_agent", "staff": "staff", "system": "system"}
+_ROLE_TO_SENDER = {
+    "customer": "customer",
+    "agent": "ai_agent",
+    "staff": "staff",
+    "system": "system",
+}
 
 
 class SqlConversationMemory:
-    def __init__(self, factory: async_sessionmaker[AsyncSession], organization_id: uuid.UUID) -> None:
+    def __init__(
+        self, factory: async_sessionmaker[AsyncSession], organization_id: uuid.UUID
+    ) -> None:
         self._factory = factory
         self._org = organization_id
 

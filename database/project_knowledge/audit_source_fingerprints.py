@@ -1,9 +1,8 @@
-﻿"""Step 360: read-only comparison of PostgreSQL source hashes and local files."""
+"""Step 360: read-only comparison of PostgreSQL source hashes and local files."""
 
 import csv
 import hashlib
 import io
-import json
 import subprocess
 from collections import Counter
 from datetime import datetime
@@ -14,7 +13,7 @@ RESTORE_DB = "dubai_ai_knowledge_verify_20261019_095633"
 EXPECTED_COUNT = 325
 
 
-def fetch_registered_sources():
+def fetch_registered_sources() -> list[dict[str, str]]:
     sql = """
     COPY (
         SELECT source_path, content_sha256
@@ -29,12 +28,25 @@ def fetch_registered_sources():
     """
 
     command = [
-        "docker", "compose", "exec", "-T", "postgres",
-        "psql", "-U", "dubai_ai", "-d", RESTORE_DB,
-        "-X", "-q", "-v", "ON_ERROR_STOP=1", "-c", sql,
+        "docker",
+        "compose",
+        "exec",
+        "-T",
+        "postgres",
+        "psql",
+        "-U",
+        "dubai_ai",
+        "-d",
+        RESTORE_DB,
+        "-X",
+        "-q",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        sql,
     ]
 
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S603 -- Trusted local executable and argument list; no shell or request input.
         command,
         cwd=ROOT,
         capture_output=True,
@@ -49,9 +61,7 @@ def fetch_registered_sources():
     records = list(csv.DictReader(io.StringIO(result.stdout)))
 
     if len(records) != EXPECTED_COUNT:
-        raise RuntimeError(
-            f"Unexpected source count: {len(records)}"
-        )
+        raise RuntimeError(f"Unexpected source count: {len(records)}")
 
     paths = [row["source_path"] for row in records]
 
@@ -61,7 +71,7 @@ def fetch_registered_sources():
     return records
 
 
-def inspect_file(row):
+def inspect_file(row: dict[str, str]) -> dict[str, str]:
     original_path = row["source_path"]
     expected_hash = row["content_sha256"]
 
@@ -112,9 +122,7 @@ def inspect_file(row):
 
         actual_hash = digest.hexdigest()
         result["local_sha256"] = actual_hash
-        result["status"] = (
-            "match" if actual_hash == expected_hash else "changed"
-        )
+        result["status"] = "match" if actual_hash == expected_hash else "changed"
 
     except (OSError, ValueError):
         result["status"] = "inspection_error"
@@ -122,7 +130,7 @@ def inspect_file(row):
     return result
 
 
-def main():
+def main() -> None:
     records = fetch_registered_sources()
 
     print("PASS: Retrieved 325 source fingerprints from restored database")

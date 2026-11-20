@@ -40,9 +40,7 @@ _SECRET_PATTERNS: tuple[re.Pattern[str], ...] = (
 _EMAIL = re.compile(r"\b([A-Za-z0-9._%+\-])[A-Za-z0-9._%+\-]*@([A-Za-z0-9.\-]+\.[A-Za-z]{2,})\b")
 # International (+ / 00 prefix) numbers and UAE local mobiles (05X XXX XXXX). Deliberately
 # narrow so dates, amounts and identifiers are not mangled.
-_PHONE = re.compile(
-    r"(?<![\w+])(?:(?:\+|00)\d[\d\s\-]{7,16}\d|05\d[\s\-]?\d{3}[\s\-]?\d{4})(?!\w)"
-)
+_PHONE = re.compile(r"(?<![\w+])(?:(?:\+|00)\d[\d\s\-]{7,16}\d|05\d[\s\-]?\d{3}[\s\-]?\d{4})(?!\w)")
 
 
 def _mask_phone(match: re.Match[str]) -> str:
@@ -74,7 +72,11 @@ def redact_value(value: Any, *, mask_pii: bool = True, _depth: int = 0) -> Any:
         return redact_text(value, mask_pii=mask_pii)
     if isinstance(value, Mapping):
         return {
-            k: (REDACTED if is_sensitive_key(str(k)) else redact_value(v, mask_pii=mask_pii, _depth=_depth + 1))
+            k: (
+                REDACTED
+                if is_sensitive_key(str(k))
+                else redact_value(v, mask_pii=mask_pii, _depth=_depth + 1)
+            )
             for k, v in value.items()
         }
     if isinstance(value, list | tuple | set):

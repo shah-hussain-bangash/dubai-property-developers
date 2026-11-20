@@ -10,18 +10,31 @@ import base64
 import hashlib
 import hmac
 import re
+from typing import NoReturn, TypedDict
 from urllib.parse import urlsplit
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 
+from core.security.account_contracts import ActorFactory, Dependency, VerifiedActor
+from core.security.rbac import Principal
+from database.repositories.account_sessions import AccountSessions
 
-async def unavailable():
+BrowserContext = tuple[str, Principal, UUID, UUID, AccountSessions]
+
+
+class BrowserTransport(TypedDict):
+    router: APIRouter
+    principal_dependency: Dependency
+    get_actor: Dependency
+
+
+async def unavailable() -> NoReturn:
     raise HTTPException(503, "browser authentication unavailable")
 
 
-def private(response):
+def private(response: Response) -> Response:
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
     response.headers["Referrer-Policy"] = "no-referrer"
@@ -30,14 +43,14 @@ def private(response):
 
 def create_browser_session_transport(
     *,
-    trusted_origin,
-    csrf_secret,
-    actor_factory,
-    get_organization=unavailable,
-    get_sessions=unavailable,
-    rate_guard=unavailable,
-    allow_local_http=False,
-):
+    trusted_origin: object,
+    csrf_secret: object,
+    actor_factory: ActorFactory,
+    get_organization: Dependency = unavailable,
+    get_sessions: Dependency = unavailable,
+    rate_guard: Dependency = unavailable,
+    allow_local_http: bool = False,
+) -> BrowserTransport:
     if type(allow_local_http) is not bool:
         raise ValueError("explicit local HTTP setting required")
     if not isinstance(csrf_secret, bytes) or len(csrf_secret) < 32:
@@ -73,11 +86,11 @@ def create_browser_session_transport(
     cookie_name = "__Host-account_session" if secure else "account_session_local"
     flow_name = "__Host-account_google_flow" if secure else "account_google_flow_local"
 
-    def csrf(token, organization):
+    def csrf(token: str, organization: UUID) -> str:
         message = f"account-browser-csrf-v1|{trusted_origin}|{organization}|{token}"
         return hmac.new(csrf_secret, message.encode("ascii"), hashlib.sha256).hexdigest()
 
-    def browser_token(request):
+    def browser_token(request: Request) -> str:
         if f"{request.url.scheme}://{request.url.netloc}" != trusted_origin:
             raise HTTPException(400, "browser origin unavailable")
         if request.headers.getlist("authorization"):
@@ -99,10 +112,10 @@ def create_browser_session_transport(
 
     async def context(
         request: Request,
-        organization=Depends(get_organization),
-        sessions=Depends(get_sessions),
-        _guard=Depends(rate_guard),
-    ):
+        organization: UUID = Depends(get_organization),
+        sessions: AccountSessions = Depends(get_sessions),
+        _guard: object = Depends(rate_guard),
+    ) -> BrowserContext:
         if not isinstance(organization, UUID) or organization.int == 0:
             raise HTTPException(503, "organization configuration unavailable")
         token = browser_token(request)
@@ -136,20 +149,20 @@ def create_browser_session_transport(
             raise HTTPException(401, "account identity unavailable") from None
         return token, principal, user_id, tenant_id, sessions
 
-    async def principal_dependency(value=Depends(context)):
+    async def principal_dependency(value: BrowserContext = Depends(context)) -> Principal:
         return value[1]
 
-    async def get_actor(value=Depends(context)):
+    async def get_actor(value: BrowserContext = Depends(context)) -> VerifiedActor:
         return actor_factory(user_id=value[2], organization_id=value[3])
 
     router = APIRouter(prefix="/auth/browser", tags=["browser authentication"])
 
     @router.get("/csrf")
-    async def csrf_token(value=Depends(context)):
+    async def csrf_token(value: BrowserContext = Depends(context)) -> Response:
         return private(JSONResponse({"csrf_token": csrf(value[0], value[3])}))
 
     @router.post("/logout", status_code=204)
-    async def logout(value=Depends(context)):
+    async def logout(value: BrowserContext = Depends(context)) -> Response:
         try:
             await value[4].revoke(value[0])
         except Exception:

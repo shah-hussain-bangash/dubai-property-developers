@@ -4,11 +4,17 @@ Creates no engine and imports no project modules. A trusted composition layer
 must supply a dedicated async session factory, verified actors, and owner UUIDs.
 Requires the reviewed account-approval schema to be applied before live use.
 """
+
+from collections.abc import Mapping
 from types import MappingProxyType
+from typing import Any
 from uuid import UUID, uuid4
 
 import sqlalchemy as sa
 from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.security.account_contracts import AccountRecord, SessionFactory, VerifiedActor
 
 users = sa.table(
     "users",
@@ -37,12 +43,14 @@ audit_logs = sa.table(
     sa.column("details", sa.JSON()),
 )
 
-def _uuid(value):
+
+def _uuid(value: object) -> UUID:
     if not isinstance(value, UUID):
         raise ValueError("UUID identifier required")
     return value
 
-def _view(row):
+
+def _view(row: Mapping[Any, Any]) -> AccountRecord:
     return {
         "account_id": row["id"],
         "organization_id": row["organization_id"],
@@ -50,8 +58,9 @@ def _view(row):
         "approval_status": row["approval_status"],
     }
 
+
 class TransactionalAccountService:
-    def __init__(self, session_factory, *, owners):
+    def __init__(self, session_factory: SessionFactory, *, owners: Mapping[UUID, UUID]) -> None:
         if not callable(session_factory):
             raise ValueError("dedicated session factory required")
         copied = {}
@@ -60,13 +69,13 @@ class TransactionalAccountService:
         self._factory = session_factory
         self._owners = MappingProxyType(copied)
 
-    def owner_subject(self, organization_id):
+    def owner_subject(self, organization_id: UUID) -> UUID | None:
         return self._owners.get(_uuid(organization_id))
 
-    def _actor(self, actor):
+    def _actor(self, actor: VerifiedActor) -> tuple[UUID, UUID]:
         return _uuid(actor.user_id), _uuid(actor.organization_id)
 
-    async def _lock_organization(self, session, organization_id):
+    async def _lock_organization(self, session: AsyncSession, organization_id: UUID) -> None:
         statement = (
             sa.select(organizations.c.id)
             .where(
@@ -79,7 +88,9 @@ class TransactionalAccountService:
         if row is None:
             raise HTTPException(403, "account access denied")
 
-    async def _lock_owner(self, session, user_id, organization_id):
+    async def _lock_owner(
+        self, session: AsyncSession, user_id: UUID, organization_id: UUID
+    ) -> None:
         if self.owner_subject(organization_id) != user_id:
             raise HTTPException(403, "owner approval required")
         statement = (
@@ -96,34 +107,37 @@ class TransactionalAccountService:
         if row is None:
             raise HTTPException(403, "owner approval required")
 
-    async def list_pending(self, actor, *, limit):
+    async def list_pending(self, actor: VerifiedActor, *, limit: int) -> list[AccountRecord]:
         user_id, organization_id = self._actor(actor)
         if type(limit) is not int or not 1 <= limit <= 100:
             raise ValueError("limit must be an integer from 1 to 100")
         if self.owner_subject(organization_id) != user_id:
             raise HTTPException(403, "owner approval required")
-        async with self._factory() as session:
-            async with session.begin():
-                await self._lock_organization(session, organization_id)
-                await self._lock_owner(session, user_id, organization_id)
-                statement = (
-                    sa.select(
-                        users.c.id, users.c.organization_id,
-                        users.c.full_name, users.c.approval_status,
-                    )
-                    .where(
-                        users.c.organization_id == organization_id,
-                        users.c.is_active.is_(True),
-                        users.c.approval_status == "pending",
-                    )
-                    .order_by(users.c.id)
-                    .limit(limit)
+        async with self._factory() as session, session.begin():
+            await self._lock_organization(session, organization_id)
+            await self._lock_owner(session, user_id, organization_id)
+            statement = (
+                sa.select(
+                    users.c.id,
+                    users.c.organization_id,
+                    users.c.full_name,
+                    users.c.approval_status,
                 )
-                rows = (await session.execute(statement)).mappings().all()
-                result = [_view(row) for row in rows]
+                .where(
+                    users.c.organization_id == organization_id,
+                    users.c.is_active.is_(True),
+                    users.c.approval_status == "pending",
+                )
+                .order_by(users.c.id)
+                .limit(limit)
+            )
+            rows = (await session.execute(statement)).mappings().all()
+            result = [_view(row) for row in rows]
         return result
 
-    async def decide(self, actor, target_id, *, approve):
+    async def decide(
+        self, actor: VerifiedActor, target_id: UUID, *, approve: bool
+    ) -> AccountRecord:
         user_id, organization_id = self._actor(actor)
         _uuid(target_id)
         if type(approve) is not bool:
@@ -133,70 +147,72 @@ class TransactionalAccountService:
         if target_id == user_id:
             raise HTTPException(403, "self-approval prohibited")
         status = "approved" if approve else "rejected"
-        async with self._factory() as session:
-            async with session.begin():
-                await self._lock_organization(session, organization_id)
-                await self._lock_owner(session, user_id, organization_id)
-                statement = (
-                    sa.update(users)
-                    .where(
-                        users.c.id == target_id,
-                        users.c.organization_id == organization_id,
-                        users.c.is_active.is_(True),
-                        users.c.approval_status == "pending",
-                    )
-                    .values(
-                        approval_status=status,
-                        approval_decided_by=user_id,
-                        approval_decided_at=sa.func.now(),
-                    )
-                    .returning(
-                        users.c.id, users.c.organization_id,
-                        users.c.full_name, users.c.approval_status,
-                    )
+        async with self._factory() as session, session.begin():
+            await self._lock_organization(session, organization_id)
+            await self._lock_owner(session, user_id, organization_id)
+            statement = (
+                sa.update(users)
+                .where(
+                    users.c.id == target_id,
+                    users.c.organization_id == organization_id,
+                    users.c.is_active.is_(True),
+                    users.c.approval_status == "pending",
                 )
-                row = (await session.execute(statement)).mappings().first()
-                if row is None:
-                    raise HTTPException(409, "account is not eligible for a decision")
-                await session.execute(
-                    sa.insert(audit_logs).values(
-                        id=uuid4(),
-                        organization_id=organization_id,
-                        actor=str(user_id),
-                        action="account.approval.decided",
-                        resource_type="user",
-                        resource_id=str(target_id),
-                        outcome=status,
-                        details={"previous_status": "pending", "status": status},
-                    )
+                .values(
+                    approval_status=status,
+                    approval_decided_by=user_id,
+                    approval_decided_at=sa.func.now(),
                 )
-                result = _view(row)
+                .returning(
+                    users.c.id,
+                    users.c.organization_id,
+                    users.c.full_name,
+                    users.c.approval_status,
+                )
+            )
+            row = (await session.execute(statement)).mappings().first()
+            if row is None:
+                raise HTTPException(409, "account is not eligible for a decision")
+            await session.execute(
+                sa.insert(audit_logs).values(
+                    id=uuid4(),
+                    organization_id=organization_id,
+                    actor=str(user_id),
+                    action="account.approval.decided",
+                    resource_type="user",
+                    resource_id=str(target_id),
+                    outcome=status,
+                    details={"previous_status": "pending", "status": status},
+                )
+            )
+            result = _view(row)
         return result
 
-    async def get_self(self, actor):
+    async def get_self(self, actor: VerifiedActor) -> AccountRecord:
         user_id, organization_id = self._actor(actor)
-        async with self._factory() as session:
-            async with session.begin():
-                await self._lock_organization(session, organization_id)
-                statement = (
-                    sa.select(
-                        users.c.id, users.c.organization_id,
-                        users.c.full_name, users.c.approval_status,
-                    )
-                    .where(
-                        users.c.id == user_id,
-                        users.c.organization_id == organization_id,
-                        users.c.is_active.is_(True),
-                    )
-                    .with_for_update(read=True)
+        async with self._factory() as session, session.begin():
+            await self._lock_organization(session, organization_id)
+            statement = (
+                sa.select(
+                    users.c.id,
+                    users.c.organization_id,
+                    users.c.full_name,
+                    users.c.approval_status,
                 )
-                row = (await session.execute(statement)).mappings().first()
-                if row is None:
-                    raise HTTPException(403, "account access denied")
-                result = _view(row)
+                .where(
+                    users.c.id == user_id,
+                    users.c.organization_id == organization_id,
+                    users.c.is_active.is_(True),
+                )
+                .with_for_update(read=True)
+            )
+            row = (await session.execute(statement)).mappings().first()
+            if row is None:
+                raise HTTPException(403, "account access denied")
+            result = _view(row)
         return result
 
-    async def require_dashboard_access(self, actor):
+    async def require_dashboard_access(self, actor: VerifiedActor) -> AccountRecord:
         result = await self.get_self(actor)
         if result["approval_status"] != "approved":
             raise HTTPException(403, "approved account required")

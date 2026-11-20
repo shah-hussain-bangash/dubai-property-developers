@@ -84,7 +84,10 @@ class WorkflowContext:
             error = result.error
             raise WorkflowError(
                 f"agent '{agent_id}' {result.status.value}",
-                details={"agent_id": agent_id, "agent_error": error.model_dump() if error else None},
+                details={
+                    "agent_id": agent_id,
+                    "agent_error": error.model_dump() if error else None,
+                },
             )
         return result
 
@@ -99,7 +102,7 @@ class Step:
 
 
 @dataclass(frozen=True)
-class WorkflowDefinition(Generic[StateT]):
+class WorkflowDefinition(Generic[StateT]):  # noqa: UP046 -- Retain the public Generic/TypeVar API and runtime introspection.
     workflow_id: str
     name: str
     description: str
@@ -156,7 +159,9 @@ class WorkflowRunner:
             else definition.state_model.model_validate(initial)
         )
         run = WorkflowRun(
-            workflow_id=definition.workflow_id, tenant_id=ctx.tenant_id, correlation_id=ctx.correlation_id
+            workflow_id=definition.workflow_id,
+            tenant_id=ctx.tenant_id,
+            correlation_id=ctx.correlation_id,
         )
         wctx = WorkflowContext(
             execution=ExecutionContext(
@@ -174,19 +179,33 @@ class WorkflowRunner:
             try:
                 outcome = await step.handler(state, wctx)
             except PlatformError as exc:
-                run.steps.append(StepRecord(name=step.name, outcome="failed", duration_ms=_ms(started), error_code=exc.code))
+                run.steps.append(
+                    StepRecord(
+                        name=step.name,
+                        outcome="failed",
+                        duration_ms=_ms(started),
+                        error_code=exc.code,
+                    )
+                )
                 run.status = WorkflowStatus.FAILED
                 run.error = exc.to_dict()
                 break
             except Exception as exc:
                 logger.exception("workflow step crashed", extra={"step": step.name})
                 run.steps.append(
-                    StepRecord(name=step.name, outcome="failed", duration_ms=_ms(started), error_code="internal_error")
+                    StepRecord(
+                        name=step.name,
+                        outcome="failed",
+                        duration_ms=_ms(started),
+                        error_code="internal_error",
+                    )
                 )
                 run.status = WorkflowStatus.FAILED
                 run.error = {"code": "internal_error", "message": type(exc).__name__, "details": {}}
                 break
-            run.steps.append(StepRecord(name=step.name, outcome=outcome.value, duration_ms=_ms(started)))
+            run.steps.append(
+                StepRecord(name=step.name, outcome=outcome.value, duration_ms=_ms(started))
+            )
             if outcome in _TERMINAL:
                 run.status = _TERMINAL[outcome]
                 break

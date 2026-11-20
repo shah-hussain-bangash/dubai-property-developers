@@ -1,4 +1,4 @@
-﻿"""Import missing agent/workflow source metadata without changing old records."""
+"""Import missing agent/workflow source metadata without changing old records."""
 
 import hashlib
 import json
@@ -49,11 +49,7 @@ for directory in ("agents", "workflows"):
         raise RuntimeError(f"Missing source directory: {directory}")
 
     for file in sorted(folder.rglob("*.py")):
-        if (
-            not file.is_file()
-            or file.is_symlink()
-            or "__pycache__" in file.parts
-        ):
+        if not file.is_file() or file.is_symlink() or "__pycache__" in file.parts:
             continue
 
         relative = file.relative_to(ROOT).as_posix()
@@ -68,13 +64,15 @@ for directory in ("agents", "workflows"):
 
         digest = hashlib.sha256(file.read_bytes()).hexdigest()
 
-        new_records.append({
-            "reference_key": "source:" + relative,
-            "reference_type": "source_file",
-            "source_path": relative,
-            "description": f".py source file; {size} bytes",
-            "content_sha256": digest,
-        })
+        new_records.append(
+            {
+                "reference_key": "source:" + relative,
+                "reference_type": "source_file",
+                "source_path": relative,
+                "description": f".py source file; {size} bytes",
+                "content_sha256": digest,
+            }
+        )
 
 if len(new_records) != 61:
     raise RuntimeError(
@@ -141,7 +139,7 @@ END
 $verify_count$;
 
 COMMIT;
-"""
+"""  # noqa: S608 -- Escaped JSON/fixed metadata in an offline SQL generator.
 
 OUTPUT.write_text(sql, encoding="utf-8")
 

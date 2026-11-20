@@ -8,18 +8,25 @@ No application mounting or middleware installation occurs here.
 
 import re
 import secrets
+from typing import NoReturn
 from urllib.parse import parse_qs, urlsplit
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
+from starlette.responses import Response
+
+from core.security.account_contracts import Dependency
+from core.security.google_oauth_flows import GoogleOAuthFlowStore
+from core.security.google_oidc import GoogleOIDC
+from database.repositories.account_authentication import AccountAuthentication
 
 
-async def unavailable():
+async def unavailable() -> NoReturn:
     raise HTTPException(503, "Google sign-in unavailable")
 
 
-def private(response):
+def private(response: Response) -> Response:
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
     response.headers["Referrer-Policy"] = "no-referrer"
@@ -28,13 +35,13 @@ def private(response):
 
 def create_google_auth_router(
     *,
-    get_organization=unavailable,
-    get_provider=unavailable,
-    get_authentication=unavailable,
-    get_flow_store=unavailable,
-    rate_guard=unavailable,
-    allow_local_http=False,
-):
+    get_organization: Dependency = unavailable,
+    get_provider: Dependency = unavailable,
+    get_authentication: Dependency = unavailable,
+    get_flow_store: Dependency = unavailable,
+    rate_guard: Dependency = unavailable,
+    allow_local_http: bool = False,
+) -> APIRouter:
     if type(allow_local_http) is not bool:
         raise ValueError("explicit local HTTP setting required")
     router = APIRouter(
@@ -43,7 +50,7 @@ def create_google_auth_router(
         dependencies=[Depends(rate_guard)],
     )
 
-    def transport(request):
+    def transport(request: Request) -> bool:
         local = (
             allow_local_http
             and request.url.scheme == "http"
@@ -53,17 +60,17 @@ def create_google_auth_router(
             raise HTTPException(400, "HTTPS required")
         return not local
 
-    def cookie_names(secure):
+    def cookie_names(secure: bool) -> tuple[str, str]:
         if secure:
             return "__Host-account_google_flow", "__Host-account_session"
         return "account_google_flow_local", "account_session_local"
 
-    def organization_id(value):
+    def organization_id(value: object) -> UUID:
         if not isinstance(value, UUID) or value.int == 0:
             raise HTTPException(503, "organization configuration unavailable")
         return value
 
-    def failed(status, secure, detail):
+    def failed(status: int, secure: bool, detail: str) -> Response:
         flow_cookie, _session_cookie = cookie_names(secure)
         response = JSONResponse({"detail": detail}, status_code=status)
         response.delete_cookie(
@@ -78,10 +85,10 @@ def create_google_auth_router(
     @router.get("/start")
     async def start(
         request: Request,
-        organization=Depends(get_organization),
-        provider=Depends(get_provider),
-        store=Depends(get_flow_store),
-    ):
+        organization: UUID = Depends(get_organization),
+        provider: GoogleOIDC = Depends(get_provider),
+        store: GoogleOAuthFlowStore = Depends(get_flow_store),
+    ) -> Response:
         secure = transport(request)
         organization = organization_id(organization)
         if "session" not in request.scope:
@@ -121,10 +128,10 @@ def create_google_auth_router(
     @router.get("/callback")
     async def callback(
         request: Request,
-        organization=Depends(get_organization),
-        authentication=Depends(get_authentication),
-        store=Depends(get_flow_store),
-    ):
+        organization: UUID = Depends(get_organization),
+        authentication: AccountAuthentication = Depends(get_authentication),
+        store: GoogleOAuthFlowStore = Depends(get_flow_store),
+    ) -> Response:
         secure = transport(request)
         organization = organization_id(organization)
         flow_cookie, session_cookie = cookie_names(secure)

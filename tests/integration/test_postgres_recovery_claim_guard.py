@@ -1,4 +1,3 @@
-
 """Integration tests for background-job recovery claim protection.
 
 Requires PostgreSQL migration 0006 and RUN_INTEGRATION_TESTS=1.
@@ -32,7 +31,6 @@ from database.sessions.engine import (
     create_session_factory,
 )
 
-
 pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.skipif(
@@ -62,22 +60,15 @@ async def recovery_guard_setup():
     finally:
         try:
             if created_ids:
-                async with factory() as session:
-                    async with session.begin():
-                        await session.execute(
-                            delete(JobRecoveryOperation).where(
-                                JobRecoveryOperation.job_id.in_(
-                                    created_ids
-                                )
-                            )
+                async with factory() as session, session.begin():
+                    await session.execute(
+                        delete(JobRecoveryOperation).where(
+                            JobRecoveryOperation.job_id.in_(created_ids)
                         )
-                        await session.execute(
-                            delete(BackgroundJob).where(
-                                BackgroundJob.job_id.in_(
-                                    created_ids
-                                )
-                            )
-                        )
+                    )
+                    await session.execute(
+                        delete(BackgroundJob).where(BackgroundJob.job_id.in_(created_ids))
+                    )
         finally:
             await engine.dispose()
 
@@ -107,18 +98,12 @@ async def create_recoverable_job(
     )
     assert token is not None
 
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(BackgroundJob)
-                .where(BackgroundJob.id == record.id)
-                .values(
-                    lease_expires_at=(
-                        datetime.now(UTC)
-                        - timedelta(minutes=5)
-                    )
-                )
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(BackgroundJob)
+            .where(BackgroundJob.id == record.id)
+            .values(lease_expires_at=(datetime.now(UTC) - timedelta(minutes=5)))
+        )
 
     operation_id = await recovery.begin_expired_recovery(
         "demo-org",
@@ -138,13 +123,12 @@ async def set_operation_status(
 ):
     """Change only this fictional recovery operation's status."""
 
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(JobRecoveryOperation)
-                .where(JobRecoveryOperation.id == operation_id)
-                .values(status=status)
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(JobRecoveryOperation)
+            .where(JobRecoveryOperation.id == operation_id)
+            .values(status=status)
+        )
 
 
 async def get_job(jobs, job_id):
@@ -280,27 +264,24 @@ async def test_all_unresolved_attempts_must_finish(
         ids,
     )
 
-    async with factory() as session:
-        async with session.begin():
-            original = await session.scalar(
-                select(JobRecoveryOperation).where(
-                    JobRecoveryOperation.id == operation_id
-                )
-            )
+    async with factory() as session, session.begin():
+        original = await session.scalar(
+            select(JobRecoveryOperation).where(JobRecoveryOperation.id == operation_id)
+        )
 
-            assert original is not None
-            original.status = "completed"
+        assert original is not None
+        original.status = "completed"
 
-            session.add(
-                JobRecoveryOperation(
-                    id=uuid.uuid4(),
-                    organization_id=original.organization_id,
-                    job_id=job_id,
-                    job_attempt=2,
-                    status="pending",
-                    attempts=0,
-                )
+        session.add(
+            JobRecoveryOperation(
+                id=uuid.uuid4(),
+                organization_id=original.organization_id,
+                job_id=job_id,
+                job_attempt=2,
+                status="pending",
+                attempts=0,
             )
+        )
 
     token = await jobs.claim(
         "demo-org",

@@ -1,4 +1,3 @@
-
 """Unit tests for the read-only Redis reservation inspector.
 
 Uses mocked Redis only. No real Redis or PostgreSQL access.
@@ -13,7 +12,6 @@ import pytest
 from apps.worker.jobs.redis_reservation_inspector import (
     inspect_reservation,
 )
-
 
 PROCESSING = "queue:jobs:processing:test"
 PENDING = "queue:jobs:pending:test"
@@ -176,9 +174,7 @@ async def test_missing_queue_key_is_rejected():
 @pytest.mark.asyncio
 async def test_redis_communication_error_propagates():
     redis = AsyncMock()
-    redis.lpos.side_effect = ConnectionError(
-        "Redis temporarily unavailable"
-    )
+    redis.lpos.side_effect = ConnectionError("Redis temporarily unavailable")
 
     with pytest.raises(ConnectionError):
         await inspect_reservation(

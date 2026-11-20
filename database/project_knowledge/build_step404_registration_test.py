@@ -1,4 +1,4 @@
-﻿"""Generate metadata-only, rollback-only eighth-batch registration SQL."""
+"""Generate metadata-only, rollback-only eighth-batch registration SQL."""
 
 import csv
 import hashlib
@@ -18,12 +18,12 @@ DATABASE = "dubai_ai_knowledge_verify_20261019_095633"
 EXPECTED_TYPES = {".yaml": 1, ".yml": 1, ".sql": 1, ".md": 7}
 
 
-def read_csv(path):
+def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f))
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 404 SQL already exists. Stop.")
 
@@ -92,9 +92,7 @@ def main():
             "review_status": "fingerprint_and_type_verified",
         }
 
-        if review is None or any(
-            review.get(k) != v for k, v in expected_review.items()
-        ):
+        if review is None or any(review.get(k) != v for k, v in expected_review.items()):
             raise RuntimeError(f"Safety review mismatch: {path}")
 
         current = ROOT
@@ -142,11 +140,7 @@ def main():
     if match is None:
         raise RuntimeError("Template VALUES clause not found.")
 
-    sql = (
-        sql[:match.start(1)]
-        + ",\n".join(values)
-        + sql[match.end(1):]
-    )
+    sql = sql[: match.start(1)] + ",\n".join(values) + sql[match.end(1) :]
 
     if (
         len(re.findall(r"<> 385\b", sql)) != 4

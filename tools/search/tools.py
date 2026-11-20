@@ -21,7 +21,9 @@ class LeadDuplicateSearchTool(BaseTool):
         self._store = store
 
     async def execute(self, payload: dict[str, Any]) -> dict[str, Any]:
-        matches = await self._store.find_by_dedupe_keys(payload["tenant_id"], payload["dedupe_keys"])
+        matches = await self._store.find_by_dedupe_keys(
+            payload["tenant_id"], payload["dedupe_keys"]
+        )
         return {"matches": [m.model_dump(mode="json") for m in matches]}
 
 

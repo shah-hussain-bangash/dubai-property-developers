@@ -30,7 +30,16 @@ from schemas.integrations.models import ApiAccessStatus, IntegrationMode
 def test_factory_defaults_to_mock_and_describes_all(settings: Settings) -> None:
     integrations = build_integrations(settings)
     names = {d.name for d in integrations.descriptors}
-    assert names == {"espocrm", "meta_whatsapp", "google", "bayut", "propertyfinder", "telephony", "n8n", "slack"}
+    assert names == {
+        "espocrm",
+        "meta_whatsapp",
+        "google",
+        "bayut",
+        "propertyfinder",
+        "telephony",
+        "n8n",
+        "slack",
+    }
     assert all(d.mode == IntegrationMode.MOCK for d in integrations.descriptors)
     portals = {d.name: d.api_access for d in integrations.descriptors}
     assert portals["bayut"] == ApiAccessStatus.PENDING_AUTHORIZED_ACCESS
@@ -44,8 +53,12 @@ def test_live_mode_without_credentials_stays_mock(settings: Settings) -> None:
 
 async def test_mock_crm_idempotent_create() -> None:
     crm = MockEspoCRMClient()
-    a = await crm.create_lead({"lastName": "X", "emailAddress": "x@example.com"}, idempotency_key="k")
-    b = await crm.create_lead({"lastName": "X", "emailAddress": "x@example.com"}, idempotency_key="k")
+    a = await crm.create_lead(
+        {"lastName": "X", "emailAddress": "x@example.com"}, idempotency_key="k"
+    )
+    b = await crm.create_lead(
+        {"lastName": "X", "emailAddress": "x@example.com"}, idempotency_key="k"
+    )
     assert a == b and len(crm.leads) == 1
     assert await crm.find_leads(email="x@example.com", phone=None)
 
@@ -54,18 +67,34 @@ async def test_mock_calendar_and_telephony() -> None:
     cal = MockCalendarClient()
     start = datetime.now(UTC)
     with pytest.raises(ValueError):
-        await cal.create_event(summary="s", start=start, end=start, attendee_emails=[], description="", idempotency_key="k")
+        await cal.create_event(
+            summary="s",
+            start=start,
+            end=start,
+            attendee_emails=[],
+            description="",
+            idempotency_key="k",
+        )
     tel = MockTelephonyClient()
-    assert (await tel.request_callback(to_e164="+971500000001", reason="r", idempotency_key="k")).startswith("mock-call")
+    assert (
+        await tel.request_callback(to_e164="+971500000001", reason="r", idempotency_key="k")
+    ).startswith("mock-call")
 
 
 async def test_listing_portals_refuse_without_authorized_access() -> None:
     with pytest.raises(IntegrationNotConfiguredError):
-        await PendingAccessListingPortalClient("bayut").fetch_leads(since=datetime.now(UTC) - timedelta(days=1))
+        await PendingAccessListingPortalClient("bayut").fetch_leads(
+            since=datetime.now(UTC) - timedelta(days=1)
+        )
 
 
 def _espo(handler: httpx.MockTransport) -> HttpEspoCRMClient:
-    cfg = EspoCRMConfig(base_url="https://crm.example.test", api_key=SecretStr("test-key"), max_attempts=3, timeout_seconds=2)
+    cfg = EspoCRMConfig(
+        base_url="https://crm.example.test",
+        api_key=SecretStr("test-key"),
+        max_attempts=3,
+        timeout_seconds=2,
+    )
     return HttpEspoCRMClient(cfg, transport=handler)
 
 
@@ -107,10 +136,16 @@ async def test_meta_whatsapp_http_payload_shape() -> None:
         captured["body"] = json.loads(request.content)
         return httpx.Response(200, json={"messages": [{"id": "wamid.1"}]})
 
-    cfg = MetaWhatsAppConfig(phone_number_id="123", access_token=SecretStr("tok"), api_version="v20.0")
+    cfg = MetaWhatsAppConfig(
+        phone_number_id="123", access_token=SecretStr("tok"), api_version="v20.0"
+    )
     client = HttpWhatsAppClient(cfg, transport=httpx.MockTransport(handler))
     message_id = await client.send_template(
-        to_e164="+971500000001", template_name="t", language_code="en", components=[], idempotency_key="k"
+        to_e164="+971500000001",
+        template_name="t",
+        language_code="en",
+        components=[],
+        idempotency_key="k",
     )
     assert message_id == "wamid.1"
     assert captured["path"] == "/v20.0/123/messages"
@@ -126,7 +161,10 @@ async def test_n8n_and_slack_http_clients() -> None:
         paths.append(request.url.path)
         return httpx.Response(200, json={"ok": True})
 
-    n8n = HttpN8nClient(N8nConfig(webhook_base_url="https://n8n.example.test"), transport=httpx.MockTransport(handler))
+    n8n = HttpN8nClient(
+        N8nConfig(webhook_base_url="https://n8n.example.test"),
+        transport=httpx.MockTransport(handler),
+    )
     await n8n.trigger("lead-created", {"id": 1}, idempotency_key="k")
     slack = WebhookSlackNotifier(
         SlackConfig(webhook_url=SecretStr("https://hooks.example.test/services/T/B/X")),

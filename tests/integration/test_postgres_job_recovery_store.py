@@ -1,4 +1,3 @@
-
 """Integration tests for PostgreSQL expired-lease recovery.
 
 Uses fictional background jobs and removes their records.
@@ -27,7 +26,6 @@ from database.sessions.engine import (
     create_engine,
     create_session_factory,
 )
-
 
 pytestmark = [
     pytest.mark.asyncio,
@@ -58,15 +56,10 @@ async def recovery_setup():
     finally:
         try:
             if created_ids:
-                async with factory() as session:
-                    async with session.begin():
-                        await session.execute(
-                            delete(BackgroundJob).where(
-                                BackgroundJob.job_id.in_(
-                                    created_ids
-                                )
-                            )
-                        )
+                async with factory() as session, session.begin():
+                    await session.execute(
+                        delete(BackgroundJob).where(BackgroundJob.job_id.in_(created_ids))
+                    )
         finally:
             await engine.dispose()
 
@@ -91,18 +84,12 @@ async def create_job(
 
 
 async def expire_lease(factory, record_id):
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(BackgroundJob)
-                .where(BackgroundJob.id == record_id)
-                .values(
-                    lease_expires_at=(
-                        datetime.now(UTC)
-                        - timedelta(minutes=5)
-                    )
-                )
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(BackgroundJob)
+            .where(BackgroundJob.id == record_id)
+            .values(lease_expires_at=(datetime.now(UTC) - timedelta(minutes=5)))
+        )
 
 
 async def test_expired_lease_becomes_retrying(recovery_setup):
@@ -138,19 +125,25 @@ async def test_expired_lease_becomes_retrying(recovery_setup):
     assert saved.attempts == 1
 
     # Original worker can no longer complete the job.
-    assert await job_store.complete(
-        "demo-org",
-        job_id,
-        "worker-A",
-        token,
-    ) is False
+    assert (
+        await job_store.complete(
+            "demo-org",
+            job_id,
+            "worker-A",
+            token,
+        )
+        is False
+    )
 
     # Scheduled retry cannot be claimed prematurely.
-    assert await job_store.claim(
-        "demo-org",
-        job_id,
-        "worker-B",
-    ) is None
+    assert (
+        await job_store.claim(
+            "demo-org",
+            job_id,
+            "worker-B",
+        )
+        is None
+    )
 
 
 async def test_active_lease_cannot_be_recovered(recovery_setup):

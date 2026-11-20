@@ -1,4 +1,3 @@
-
 """Environment-based configuration.
 
 All values are read from environment variables (optionally a local ``.env``
@@ -39,7 +38,7 @@ class AuthMode(StrEnum):
     DEV = "dev"
 
     # Bearer tokens validated by a configured TokenVerifier.
-    TOKEN = "token"
+    TOKEN = "token"  # noqa: S105 -- Protocol/enum label; this literal is not a credential.
 
 
 class LeadStoreBackend(StrEnum):
@@ -60,11 +59,7 @@ def _split_csv(value: object) -> object:
     """Split comma-separated environment values into a list."""
 
     if isinstance(value, str):
-        return [
-            item.strip()
-            for item in value.split(",")
-            if item.strip()
-        ]
+        return [item.strip() for item in value.split(",") if item.strip()]
 
     return value
 
@@ -93,9 +88,7 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"  # noqa: S104
     api_port: int = 8000
 
-    cors_allowed_origins: Annotated[
-        list[str], NoDecode
-    ] = Field(
+    cors_allowed_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:3000"]
     )
 
@@ -105,9 +98,7 @@ class Settings(BaseSettings):
     # --- security ----------------------------------------------------------
     auth_mode: AuthMode = AuthMode.DEV
 
-    secret_key: SecretStr = SecretStr(
-        "change-me-local-development-only"
-    )
+    secret_key: SecretStr = SecretStr("change-me-local-development-only")
 
     webhook_signing_secret: SecretStr | None = None
     webhook_tolerance_seconds: int = 300
@@ -116,8 +107,7 @@ class Settings(BaseSettings):
 
     # --- persistence -------------------------------------------------------
     database_url: SecretStr = SecretStr(
-        "postgresql+asyncpg://"
-        "dubai_ai:dubai_ai_local@localhost:5432/dubai_ai"
+        "postgresql+asyncpg://dubai_ai:dubai_ai_local@localhost:5432/dubai_ai"
     )
 
     database_echo: bool = False
@@ -127,9 +117,7 @@ class Settings(BaseSettings):
         ge=1,
     )
 
-    redis_url: SecretStr = SecretStr(
-        "redis://localhost:6379/0"
-    )
+    redis_url: SecretStr = SecretStr("redis://localhost:6379/0")
 
     readiness_checks_required: bool = False
 
@@ -146,9 +134,7 @@ class Settings(BaseSettings):
     #
     # The backend is selected by workflows/runtime.py.
 
-    lead_store_backend: LeadStoreBackend = (
-        LeadStoreBackend.MEMORY
-    )
+    lead_store_backend: LeadStoreBackend = LeadStoreBackend.MEMORY
 
     # --- workflow history storage backend ---------------------------------
     #
@@ -167,9 +153,7 @@ class Settings(BaseSettings):
     # Keep MEMORY as the default to preserve existing
     # tests and application behavior until deployment.
 
-    workflow_store_backend: WorkflowStoreBackend = (
-        WorkflowStoreBackend.MEMORY
-    )
+    workflow_store_backend: WorkflowStoreBackend = WorkflowStoreBackend.MEMORY
 
     # --- LLM ---------------------------------------------------------------
     # Mock is the default; OpenAI requires explicit provider, model and key settings.
@@ -184,9 +168,7 @@ class Settings(BaseSettings):
 
     llm_primary_model: str = "mock-deterministic"
 
-    llm_fallback_models: Annotated[
-        list[str], NoDecode
-    ] = Field(default_factory=list)
+    llm_fallback_models: Annotated[list[str], NoDecode] = Field(default_factory=list)
 
     llm_timeout_seconds: float = 30.0
     llm_max_retries: int = 2
@@ -243,9 +225,7 @@ class Settings(BaseSettings):
 
     @property
     def is_production(self) -> bool:
-        return (
-            self.environment == Environment.PRODUCTION
-        )
+        return self.environment == Environment.PRODUCTION
 
     @property
     def is_dev_like(self) -> bool:
@@ -260,32 +240,17 @@ class Settings(BaseSettings):
         problems: list[str] = []
 
         if not self.is_dev_like:
-
             if self.auth_mode == AuthMode.DEV:
-                problems.append(
-                    "AUTH_MODE=dev is not allowed "
-                    "outside development/test"
-                )
+                problems.append("AUTH_MODE=dev is not allowed outside development/test")
 
             if self.enable_dev_routes:
-                problems.append(
-                    "ENABLE_DEV_ROUTES must be false "
-                    "outside development/test"
-                )
+                problems.append("ENABLE_DEV_ROUTES must be false outside development/test")
 
-            if self.secret_key.get_secret_value().startswith(
-                "change-me"
-            ):
-                problems.append(
-                    "SECRET_KEY must be set to a "
-                    "strong unique value"
-                )
+            if self.secret_key.get_secret_value().startswith("change-me"):
+                problems.append("SECRET_KEY must be set to a strong unique value")
 
             if "*" in self.cors_allowed_origins:
-                problems.append(
-                    "CORS wildcard origin is not "
-                    "allowed outside development"
-                )
+                problems.append("CORS wildcard origin is not allowed outside development")
 
         return problems
 
