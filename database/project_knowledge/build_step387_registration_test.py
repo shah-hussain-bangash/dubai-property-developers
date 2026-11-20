@@ -1,4 +1,4 @@
-﻿"""Generate a guarded rollback-only fifth-batch registration test."""
+"""Generate a guarded rollback-only fifth-batch registration test."""
 
 import csv
 import hashlib
@@ -137,17 +137,9 @@ def main():
     if match is None:
         raise RuntimeError("Expected source VALUES section missing.")
 
-    sql = (
-        sql[:match.start(1)]
-        + ",\n".join(values)
-        + sql[match.end(1):]
-    )
+    sql = sql[: match.start(1)] + ",\n".join(values) + sql[match.end(1) :]
 
-    if (
-        sql.count("<> 335") != 4
-        or sql.count("<> 345") != 4
-        or sql.count(") <> 20") != 1
-    ):
+    if sql.count("<> 335") != 4 or sql.count("<> 345") != 4 or sql.count(") <> 20") != 1:
         raise RuntimeError("Unexpected template count checks.")
 
     # Original template: 335 -> 345.

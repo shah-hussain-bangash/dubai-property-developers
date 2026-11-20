@@ -1,4 +1,4 @@
-﻿import csv
+import csv
 import hashlib
 import re
 from pathlib import Path
@@ -27,9 +27,11 @@ EXPECTED_PATHS = {
     "tools/property/tools.py",
 }
 
+
 def load_csv(path):
     with path.open(encoding="utf-8-sig", newline="") as handle:
         return list(csv.DictReader(handle))
+
 
 def main():
     if OUTPUT.exists():
@@ -41,10 +43,9 @@ def main():
     if len(batch) != 10 or len(reviews) != 10:
         raise RuntimeError("Unexpected manifest or review count.")
 
-    if (
-        {r["source_path"] for r in batch} != EXPECTED_PATHS
-        or len({r["source_path"] for r in batch}) != 10
-    ):
+    if {r["source_path"] for r in batch} != EXPECTED_PATHS or len(
+        {r["source_path"] for r in batch}
+    ) != 10:
         raise RuntimeError("Unexpected fifteenth-batch selection.")
 
     review_map = {r["source_path"]: r for r in reviews}
@@ -98,9 +99,7 @@ def main():
 
         review = review_map.get(path)
 
-        if review is None or any(
-            review.get(k) != v for k, v in review_required.items()
-        ):
+        if review is None or any(review.get(k) != v for k, v in review_required.items()):
             raise RuntimeError(f"Review mismatch: {path}")
 
         current = ROOT
@@ -146,11 +145,7 @@ def main():
 
     match = matches[0]
 
-    sql = (
-        sql[:match.start(2)]
-        + ",\n".join(tuples)
-        + sql[match.end(2):]
-    )
+    sql = sql[: match.start(2)] + ",\n".join(tuples) + sql[match.end(2) :]
 
     if (
         len(re.findall(r"<> 451\b", sql)) != 4
@@ -178,9 +173,7 @@ def main():
         len(re.findall(r"<> 461\b", sql)) != 4
         or len(re.findall(r"<> 471\b", sql)) != 4
         or len(re.findall(r"\) <> 146\b", sql)) != 1
-        or sql.count(
-            "IF (SELECT COUNT(*) FROM step446_batch) <> 10 THEN"
-        ) != 1
+        or sql.count("IF (SELECT COUNT(*) FROM step446_batch) <> 10 THEN") != 1
         or sql.count("IF v_valid <> 10 THEN") != 1
         or sql.count(new_notice) != 1
         or "Four-table integrity and history verified" not in sql
@@ -193,14 +186,9 @@ def main():
         raise RuntimeError("Generated SQL safety checks failed.")
 
     for item in batch:
-        entry = (
-            f"('{item['source_path']}', "
-            f"'{item['sha256']}', {item['size_bytes']})"
-        )
+        entry = f"('{item['source_path']}', '{item['sha256']}', {item['size_bytes']})"
         if sql.count(entry) != 1:
-            raise RuntimeError(
-                f"SQL tuple mismatch: {item['source_path']}"
-            )
+            raise RuntimeError(f"SQL tuple mismatch: {item['source_path']}")
 
     OUTPUT.write_text(sql, encoding="utf-8")
 
@@ -212,6 +200,7 @@ def main():
     print("PASS: Rollback-only SQL generated.")
     print("PASS: No registered Python source files executed.")
     print("File:", OUTPUT)
+
 
 if __name__ == "__main__":
     main()

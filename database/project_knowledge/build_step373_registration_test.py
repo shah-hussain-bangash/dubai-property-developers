@@ -1,4 +1,4 @@
-﻿"""Build a rollback-only test for the second ten-file batch."""
+"""Build a rollback-only test for the second ten-file batch."""
 
 import csv
 import hashlib
@@ -250,9 +250,7 @@ END
 $verify$;
 
 ROLLBACK;
-""".replace("__TARGET_DB__", DB).replace(
-        "__VALUES__", ",\n".join(values)
-    )
+""".replace("__TARGET_DB__", DB).replace("__VALUES__", ",\n".join(values))
 
     OUTPUT.write_text(sql, encoding="utf-8")
     print("PASS: Ten current fingerprints and file sizes verified")

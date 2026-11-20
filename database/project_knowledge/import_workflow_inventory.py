@@ -1,4 +1,4 @@
-﻿"""Validate workflow inventory and generate a transactional SQL import."""
+"""Validate workflow inventory and generate a transactional SQL import."""
 
 import hashlib
 import json
@@ -73,23 +73,15 @@ for workflow in workflows:
     if not source_file.is_file() or source_file.is_symlink():
         raise ValueError(f"Missing source file: {path}")
 
-    actual_hash = hashlib.sha256(
-        source_file.read_bytes()
-    ).hexdigest()
+    actual_hash = hashlib.sha256(source_file.read_bytes()).hexdigest()
 
     if actual_hash != digest:
-        raise ValueError(
-            f"Source file changed after extraction: {path}"
-        )
+        raise ValueError(f"Source file changed after extraction: {path}")
 
     if status not in {"functional", "partial", "interface_only"}:
         raise ValueError("Invalid implementation status")
 
-    expected_type = (
-        "sub_flow"
-        if workflow_id == "lead_requalification"
-        else "primary"
-    )
+    expected_type = "sub_flow" if workflow_id == "lead_requalification" else "primary"
 
     if workflow_type != expected_type:
         raise ValueError("Incorrect workflow type")
@@ -120,25 +112,27 @@ for workflow in workflows:
     if not isinstance(workflow["description"], str):
         raise ValueError("Invalid workflow description")
 
-    records.append({
-        "entry_key": "workflow:" + workflow_id,
-        "category": "workflows",
-        "title": workflow["name"],
-        "content": workflow["description"],
-        "status": "documented",
-        "verification_status": "verified",
-        "source_reference": path,
-        "metadata": {
-            "workflow_id": workflow_id,
-            "workflow_type": workflow_type,
-            "implementation_status": status,
-            "step_count": len(steps),
-            "steps": steps,
-            "source_sha256": digest,
-            "verification_method": "static_source_declaration",
-            "production_enabled": None,
-        },
-    })
+    records.append(
+        {
+            "entry_key": "workflow:" + workflow_id,
+            "category": "workflows",
+            "title": workflow["name"],
+            "content": workflow["description"],
+            "status": "documented",
+            "verification_status": "verified",
+            "source_reference": path,
+            "metadata": {
+                "workflow_id": workflow_id,
+                "workflow_type": workflow_type,
+                "implementation_status": status,
+                "step_count": len(steps),
+                "steps": steps,
+                "source_sha256": digest,
+                "verification_method": "static_source_declaration",
+                "production_enabled": None,
+            },
+        }
+    )
 
 payload = json.dumps(
     records,
@@ -217,13 +211,11 @@ END
 $verify_count$;
 
 COMMIT;
-"""
+"""  # noqa: S608 -- Escaped JSON/fixed metadata in an offline SQL generator.
 
 DESTINATION.write_text(sql, encoding="utf-8")
 
 print("PASS: Workflow SQL import generated")
 print("Validated workflows:", len(records))
-print("Total workflow steps:", sum(
-    len(w["steps"]) for w in workflows
-))
+print("Total workflow steps:", sum(len(w["steps"]) for w in workflows))
 print("SQL file:", DESTINATION)

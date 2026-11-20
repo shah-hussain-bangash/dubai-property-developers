@@ -1,4 +1,4 @@
-﻿"""Step 361: read-only audit of Git-visible files absent from source registry."""
+"""Step 361: read-only audit of Git-visible files absent from source registry."""
 
 import csv
 import io
@@ -11,19 +11,34 @@ ROOT = Path(__file__).resolve().parents[2]
 DB = "dubai_ai_knowledge_verify_20261019_095633"
 
 EXCLUDED_DIRS = {
-    ".git", ".venv", "venv", "node_modules",
-    "__pycache__", ".next", ".pytest_cache",
-    "dist", "build"
+    ".git",
+    ".venv",
+    "venv",
+    "node_modules",
+    "__pycache__",
+    ".next",
+    ".pytest_cache",
+    "dist",
+    "build",
 }
 
 EXCLUDED_SUFFIXES = {
-    ".pyc", ".pyo", ".log", ".dump", ".db", ".sqlite",
-    ".sqlite3", ".zip", ".tar", ".gz", ".bak"
+    ".pyc",
+    ".pyo",
+    ".log",
+    ".dump",
+    ".db",
+    ".sqlite",
+    ".sqlite3",
+    ".zip",
+    ".tar",
+    ".gz",
+    ".bak",
 }
 
 
 def run(command):
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S603 -- Trusted local executable and argument list; no shell or request input.
         command,
         cwd=ROOT,
         capture_output=True,
@@ -52,46 +67,51 @@ def registered_paths():
     ) TO STDOUT WITH (FORMAT CSV);
     """
 
-    output = run([
-        "docker", "compose", "exec", "-T", "postgres",
-        "psql", "-U", "dubai_ai", "-d", DB,
-        "-X", "-q", "-v", "ON_ERROR_STOP=1", "-c", sql,
-    ])
+    output = run(
+        [
+            "docker",
+            "compose",
+            "exec",
+            "-T",
+            "postgres",
+            "psql",
+            "-U",
+            "dubai_ai",
+            "-d",
+            DB,
+            "-X",
+            "-q",
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-c",
+            sql,
+        ]
+    )
 
     rows = csv.reader(io.StringIO(output.decode("utf-8-sig")))
-    paths = {
-        row[0].replace("\\", "/")
-        for row in rows if row
-    }
+    paths = {row[0].replace("\\", "/") for row in rows if row}
 
     if len(paths) != 325:
-        raise RuntimeError(
-            f"Unexpected registered source count: {len(paths)}"
-        )
+        raise RuntimeError(f"Unexpected registered source count: {len(paths)}")
 
     return paths
 
 
 def git_visible_paths():
     # Includes tracked files and non-ignored untracked files.
-    output = run([
-        "git", "ls-files", "--cached", "--others",
-        "--exclude-standard", "-z"
-    ])
+    output = run(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"])
 
     return {
         path.decode("utf-8", errors="replace").replace("\\", "/")
-        for path in output.split(b"\0") if path
+        for path in output.split(b"\0")
+        if path
     }
 
 
 def classification(path):
     suffix = Path(path).suffix.lower()
 
-    if suffix in {
-        ".py", ".js", ".jsx", ".ts", ".tsx",
-        ".sql", ".json", ".yaml", ".yml", ".toml"
-    }:
+    if suffix in {".py", ".js", ".jsx", ".ts", ".tsx", ".sql", ".json", ".yaml", ".yml", ".toml"}:
         return "code_or_configuration"
 
     if suffix in {".md", ".txt", ".rst"}:
@@ -123,11 +143,13 @@ def main():
         if target.name.startswith(".env"):
             continue
 
-        results.append({
-            "source_path": path,
-            "category": classification(path),
-            "size_bytes": target.stat().st_size,
-        })
+        results.append(
+            {
+                "source_path": path,
+                "category": classification(path),
+                "size_bytes": target.stat().st_size,
+            }
+        )
 
     counts = Counter(row["category"] for row in results)
 

@@ -1,4 +1,4 @@
-﻿"""Build a guarded rollback-only sixth-batch registration test."""
+"""Build a guarded rollback-only sixth-batch registration test."""
 
 import csv
 import hashlib
@@ -142,11 +142,7 @@ def main():
     if match is None:
         raise RuntimeError("Fifth-batch VALUES section missing.")
 
-    sql = (
-        sql[:match.start(1)]
-        + ",\n".join(values)
-        + sql[match.end(1):]
-    )
+    sql = sql[: match.start(1)] + ",\n".join(values) + sql[match.end(1) :]
 
     if (
         len(re.findall(r"<> 365\b", sql)) != 4

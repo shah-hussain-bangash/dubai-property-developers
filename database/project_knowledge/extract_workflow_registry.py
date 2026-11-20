@@ -1,9 +1,9 @@
-﻿"""Extract source-declared workflow definitions without executing them."""
+"""Extract source-declared workflow definitions without executing them."""
 
 import ast
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -52,16 +52,9 @@ for constant, filename in EXPECTED.items():
         if not isinstance(node, (ast.Assign, ast.AnnAssign)):
             continue
 
-        targets = (
-            node.targets
-            if isinstance(node, ast.Assign)
-            else [node.target]
-        )
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
 
-        if not any(
-            isinstance(target, ast.Name) and target.id == constant
-            for target in targets
-        ):
+        if not any(isinstance(target, ast.Name) and target.id == constant for target in targets):
             continue
 
         value = node.value
@@ -76,11 +69,7 @@ for constant, filename in EXPECTED.items():
     if len(definitions) != 1:
         raise RuntimeError(f"Expected one definition for {constant}")
 
-    keywords = {
-        kw.arg: kw.value
-        for kw in definitions[0].keywords
-        if kw.arg is not None
-    }
+    keywords = {kw.arg: kw.value for kw in definitions[0].keywords if kw.arg is not None}
 
     workflow_id = ast.literal_eval(keywords["workflow_id"])
     name = ast.literal_eval(keywords["name"])
@@ -123,29 +112,29 @@ for constant, filename in EXPECTED.items():
 
         handler = ast.unparse(step.args[1])
 
-        steps.append({
-            "name": step_name,
-            "handler_expression": handler,
-        })
+        steps.append(
+            {
+                "name": step_name,
+                "handler_expression": handler,
+            }
+        )
 
     if not steps:
         raise RuntimeError(f"No steps found for {workflow_id}")
 
-    workflows.append({
-        "workflow_id": workflow_id,
-        "name": name,
-        "description": description,
-        "implementation_status": status,
-        "workflow_type": (
-            "sub_flow"
-            if constant == "LEAD_REQUALIFICATION"
-            else "primary"
-        ),
-        "steps": steps,
-        "source_path": "workflows/" + filename,
-        "source_sha256": hashlib.sha256(content).hexdigest(),
-        "verification_method": "static_source_declaration",
-    })
+    workflows.append(
+        {
+            "workflow_id": workflow_id,
+            "name": name,
+            "description": description,
+            "implementation_status": status,
+            "workflow_type": ("sub_flow" if constant == "LEAD_REQUALIFICATION" else "primary"),
+            "steps": steps,
+            "source_path": "workflows/" + filename,
+            "source_sha256": hashlib.sha256(content).hexdigest(),
+            "verification_method": "static_source_declaration",
+        }
+    )
 
 ids = [w["workflow_id"] for w in workflows]
 
@@ -153,12 +142,15 @@ if len(workflows) != 7 or len(set(ids)) != 7:
     raise RuntimeError("Expected seven unique workflows")
 
 OUTPUT.write_text(
-    json.dumps({
-        "project_key": "dubai-real-estate-ai",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "workflow_count": len(workflows),
-        "workflows": workflows,
-    }, indent=2),
+    json.dumps(
+        {
+            "project_key": "dubai-real-estate-ai",
+            "generated_at": datetime.now(UTC).isoformat(),
+            "workflow_count": len(workflows),
+            "workflows": workflows,
+        },
+        indent=2,
+    ),
     encoding="utf-8",
 )
 
@@ -168,8 +160,10 @@ print("Total workflows:", len(workflows))
 for workflow in workflows:
     print(
         workflow["workflow_id"],
-        "|", workflow["implementation_status"],
-        "| steps:", len(workflow["steps"]),
+        "|",
+        workflow["implementation_status"],
+        "| steps:",
+        len(workflow["steps"]),
     )
     for step in workflow["steps"]:
         print("  -", step["name"])

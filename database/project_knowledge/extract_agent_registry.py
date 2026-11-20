@@ -1,24 +1,19 @@
-﻿"""Extract agent declarations without executing project modules."""
+"""Extract agent declarations without executing project modules."""
 
 import ast
 import hashlib
 import json
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parents[2]
 REGISTRY = ROOT / "agents" / "registry.py"
-OUTPUT = (
-    ROOT / "database" / "project_knowledge"
-    / "agent_inventory.json"
-)
+OUTPUT = ROOT / "database" / "project_knowledge" / "agent_inventory.json"
 
 if OUTPUT.exists():
     raise RuntimeError("Inventory already exists; do not overwrite.")
 
-registry_tree = ast.parse(
-    REGISTRY.read_text(encoding="utf-8-sig")
-)
+registry_tree = ast.parse(REGISTRY.read_text(encoding="utf-8-sig"))
 
 imports = {}
 for node in registry_tree.body:
@@ -32,15 +27,10 @@ agent_classes = None
 
 for node in registry_tree.body:
     if isinstance(node, ast.AnnAssign):
-        is_registry = (
-            isinstance(node.target, ast.Name)
-            and node.target.id == "AGENT_CLASSES"
-        )
+        is_registry = isinstance(node.target, ast.Name) and node.target.id == "AGENT_CLASSES"
     elif isinstance(node, ast.Assign):
         is_registry = any(
-            isinstance(target, ast.Name)
-            and target.id == "AGENT_CLASSES"
-            for target in node.targets
+            isinstance(target, ast.Name) and target.id == "AGENT_CLASSES" for target in node.targets
         )
     else:
         continue
@@ -51,26 +41,27 @@ for node in registry_tree.body:
     if not isinstance(node.value, (ast.Tuple, ast.List)):
         raise RuntimeError("Unexpected registry declaration")
 
-    agent_classes = [
-        item.id
-        for item in node.value.elts
-        if isinstance(item, ast.Name)
-    ]
+    agent_classes = [item.id for item in node.value.elts if isinstance(item, ast.Name)]
 
 if agent_classes is None or len(agent_classes) != 13:
     raise RuntimeError("Expected exactly 13 registry classes")
 
+
 def declared_value(node):
-    if isinstance(node, ast.Call):
-        if isinstance(node.func, ast.Name) and node.func.id == "frozenset":
-            if not node.args:
-                return []
-            return sorted(ast.literal_eval(node.args[0]))
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "frozenset"
+    ):
+        if not node.args:
+            return []
+        return sorted(ast.literal_eval(node.args[0]))
 
     if isinstance(node, ast.Attribute):
         return node.attr.lower()
 
     return ast.literal_eval(node)
+
 
 agents = []
 
@@ -93,9 +84,7 @@ for class_name in agent_classes:
     )
 
     classes = [
-        node for node in tree.body
-        if isinstance(node, ast.ClassDef)
-        and node.name == class_name
+        node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == class_name
     ]
 
     if len(classes) != 1:
@@ -136,9 +125,7 @@ for class_name in agent_classes:
 
     missing = required - spec.keys()
     if missing:
-        raise RuntimeError(
-            f"Missing fields for {class_name}: {sorted(missing)}"
-        )
+        raise RuntimeError(f"Missing fields for {class_name}: {sorted(missing)}")
 
     if not isinstance(spec["agent_id"], str):
         raise RuntimeError(f"Invalid agent ID: {class_name}")
@@ -146,18 +133,20 @@ for class_name in agent_classes:
     if not isinstance(spec["allowed_tools"], (list, tuple, set)):
         raise RuntimeError(f"Invalid allowed tools: {class_name}")
 
-    agents.append({
-        "agent_id": spec["agent_id"],
-        "class_name": class_name,
-        "name": spec["name"],
-        "description": spec["description"],
-        "responsibilities": spec["responsibilities"],
-        "implementation_status": spec["implementation_status"],
-        "allowed_tools": sorted(spec["allowed_tools"]),
-        "source_path": source_path.as_posix(),
-        "source_sha256": hashlib.sha256(contents).hexdigest(),
-        "verification": "static_source_declaration",
-    })
+    agents.append(
+        {
+            "agent_id": spec["agent_id"],
+            "class_name": class_name,
+            "name": spec["name"],
+            "description": spec["description"],
+            "responsibilities": spec["responsibilities"],
+            "implementation_status": spec["implementation_status"],
+            "allowed_tools": sorted(spec["allowed_tools"]),
+            "source_path": source_path.as_posix(),
+            "source_sha256": hashlib.sha256(contents).hexdigest(),
+            "verification": "static_source_declaration",
+        }
+    )
 
 ids = [agent["agent_id"] for agent in agents]
 
@@ -168,7 +157,7 @@ OUTPUT.write_text(
     json.dumps(
         {
             "project_key": "dubai-real-estate-ai",
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "agent_count": len(agents),
             "agents": agents,
         },
@@ -190,4 +179,3 @@ for agent in agents:
     )
 
 print("Saved:", OUTPUT)
-

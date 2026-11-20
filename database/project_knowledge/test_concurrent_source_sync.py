@@ -1,4 +1,4 @@
-﻿"""Test competing PostgreSQL source updates in the isolated database."""
+"""Test competing PostgreSQL source updates in the isolated database."""
 
 import hashlib
 import subprocess
@@ -11,28 +11,35 @@ TEST_DB = "dubai_ai_knowledge_sync_test"
 PROJECT = "dubai-real-estate-ai"
 SOURCE_PATH = "core/example.py"
 
-EXPECTED_HASH = (
-    "be37dd9a884e425f3bf02a40f7fa2e1961fc349870941cc358830ed2b695333a"
-)
+EXPECTED_HASH = "be37dd9a884e425f3bf02a40f7fa2e1961fc349870941cc358830ed2b695333a"
 
-NEW_HASH_A = hashlib.sha256(
-    b"STEP342_CONCURRENT_UPDATE_A\n"
-).hexdigest()
+NEW_HASH_A = hashlib.sha256(b"STEP342_CONCURRENT_UPDATE_A\n").hexdigest()
 
-NEW_HASH_B = hashlib.sha256(
-    b"STEP342_CONCURRENT_UPDATE_B\n"
-).hexdigest()
+NEW_HASH_B = hashlib.sha256(b"STEP342_CONCURRENT_UPDATE_B\n").hexdigest()
 
 
 def query(sql):
     command = [
-        "docker", "compose", "exec", "-T", "postgres",
-        "psql", "-U", "dubai_ai", "-d", TEST_DB,
-        "-X", "-t", "-A", "-v", "ON_ERROR_STOP=1",
-        "-c", sql,
+        "docker",
+        "compose",
+        "exec",
+        "-T",
+        "postgres",
+        "psql",
+        "-U",
+        "dubai_ai",
+        "-d",
+        TEST_DB,
+        "-X",
+        "-t",
+        "-A",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        sql,
     ]
 
-    return subprocess.run(
+    return subprocess.run(  # noqa: S603 -- Trusted local executable and argument list; no shell or request input.
         command,
         cwd=ROOT,
         capture_output=True,
@@ -46,9 +53,7 @@ def checked_query(sql):
     result = query(sql)
 
     if result.returncode != 0:
-        raise RuntimeError(
-            result.stdout + "\n" + result.stderr
-        )
+        raise RuntimeError(result.stdout + "\n" + result.stderr)
 
     return result.stdout.strip()
 
@@ -82,9 +87,7 @@ def main():
     )
 
     if current != EXPECTED_HASH:
-        raise RuntimeError(
-            "Unexpected test fingerprint. Stop before concurrency test."
-        )
+        raise RuntimeError("Unexpected test fingerprint. Stop before concurrency test.")
 
     counts = checked_query(
         "SELECT "
@@ -93,9 +96,7 @@ def main():
     )
 
     if counts != "4|2":
-        raise RuntimeError(
-            f"Unexpected test baseline counts: {counts}"
-        )
+        raise RuntimeError(f"Unexpected test baseline counts: {counts}")
 
     print("PASS: Isolated database baseline verified")
 
@@ -120,14 +121,10 @@ def main():
         elif "Source baseline mismatch" in combined:
             rejected.append(number)
         else:
-            raise RuntimeError(
-                f"Unexpected error from attempt {number}"
-            )
+            raise RuntimeError(f"Unexpected error from attempt {number}")
 
     if len(successful) != 1 or len(rejected) != 1:
-        raise RuntimeError(
-            "Expected exactly one accepted and one rejected update"
-        )
+        raise RuntimeError("Expected exactly one accepted and one rejected update")
 
     after = checked_query(
         "SELECT current_sha256 "
@@ -145,9 +142,7 @@ def main():
     )
 
     if final_counts != "5|2":
-        raise RuntimeError(
-            f"Unexpected final counts: {final_counts}"
-        )
+        raise RuntimeError(f"Unexpected final counts: {final_counts}")
 
     print("\nPASS: Exactly one concurrent update accepted")
     print("PASS: Competing stale update rejected")

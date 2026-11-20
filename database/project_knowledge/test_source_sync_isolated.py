@@ -1,4 +1,4 @@
-﻿"""Test source synchronization in an isolated temporary directory."""
+"""Test source synchronization in an isolated temporary directory."""
 
 import hashlib
 import json
@@ -17,7 +17,7 @@ def sha256(data):
 
 
 def run_script(path):
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S603 -- Trusted local executable and argument list; no shell or request input.
         [sys.executable, str(path)],
         capture_output=True,
         text=True,
@@ -26,9 +26,7 @@ def run_script(path):
     )
 
     if result.returncode != 0:
-        raise AssertionError(
-            f"{path.name} failed:\n{result.stdout}\n{result.stderr}"
-        )
+        raise AssertionError(f"{path.name} failed:\n{result.stdout}\n{result.stderr}")
 
     return result.stdout
 
@@ -77,11 +75,7 @@ def main():
 
         print(run_script(folder / "detect_source_changes.py"))
 
-        report = json.loads(
-            (folder / "source_change_report.json").read_text(
-                encoding="utf-8"
-            )
-        )
+        report = json.loads((folder / "source_change_report.json").read_text(encoding="utf-8"))
 
         expected = {
             "added": 1,
@@ -90,9 +84,7 @@ def main():
             "missing": 0,
         }
 
-        assert report["summary"] == expected, (
-            report["summary"]
-        )
+        assert report["summary"] == expected, report["summary"]
 
         print(run_script(folder / "prepare_source_sync.py"))
 
