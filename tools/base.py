@@ -14,12 +14,12 @@ ToolGateway, which:
 Agents may request human approval without having permission to
 execute the action themselves.
 
-Approved actions return cached results on sequential replays.
+Side effects sharing an idempotency store are serialized within one event loop.
+Successful actions return cached results on subsequent replays.
 """
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, ClassVar, Protocol
@@ -155,9 +155,6 @@ class ToolGateway:
 
         self.audit: AuditSink = audit or InMemoryAuditSink()
         self.tracer: Tracer = tracer or NoopTracer()
-
-        # Local locks for concurrent approved actions.
-        self._approved_execution_locks: dict[str, asyncio.Lock] = {}
 
     async def _audit(
         self,
@@ -313,7 +310,7 @@ class ToolGateway:
     ) -> ToolResult:
         """Execute or replay an approved action.
 
-        Local locking protects concurrent calls sharing this gateway.
+        Store-scoped locking protects gateways sharing one store instance.
         It does not provide distributed exactly-once guarantees.
         """
 
@@ -351,33 +348,41 @@ class ToolGateway:
 
         key = request.idempotency_key
 
-        # Tasks using this gateway share a lock for this key.
-        lock = self._approved_execution_locks.setdefault(
+        return await self._execute(
+            ctx,
+            tool,
+            request.payload,
             key,
-            asyncio.Lock(),
         )
 
-        async with lock:
-            # Recheck cache after obtaining the lock.
+    async def _execute(
+        self,
+        ctx: ToolCallContext,
+        tool: Tool,
+        payload: dict[str, Any],
+        key: str | None,
+    ) -> ToolResult:
+        # Every entry point checks authorization before waiting or replaying.
+        await self._authorize(ctx, tool.spec)
+        if key is None:
+            return await self._execute_once(ctx, tool, payload, None)
+
+        async with self.idempotency.execution_lock(key):
+            # Another gateway may have completed this action while we waited.
             cached = await self.idempotency.get(key)
 
             if cached is not None:
                 return ToolResult(
-                    tool=spec.name,
+                    tool=tool.spec.name,
                     status=ToolResultStatus.REPLAYED,
                     data=cached,
                     idempotency_key=key,
                 )
 
-            # Keep lock until execution and cache storage finish.
-            return await self._execute(
-                ctx,
-                tool,
-                request.payload,
-                key,
-            )
+            # Keep the shared lock until execution and cache storage finish.
+            return await self._execute_once(ctx, tool, payload, key)
 
-    async def _execute(
+    async def _execute_once(
         self,
         ctx: ToolCallContext,
         tool: Tool,
