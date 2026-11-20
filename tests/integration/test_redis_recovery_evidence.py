@@ -4,7 +4,7 @@ These tests use real Redis with isolated test keys.
 They do not access PostgreSQL or application job queues.
 
 Run with:
-    python -m pytest tests/integration/test_redis_recovery_evidence.py -v
+    RUN_INTEGRATION_TESTS=1 python -m pytest tests/integration/test_redis_recovery_evidence.py -v
 """
 
 from __future__ import annotations
@@ -20,7 +20,14 @@ from apps.worker.jobs.redis_recovery_evidence import (
     requeue_with_evidence,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = [
+    pytest.mark.asyncio,
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        os.getenv("RUN_INTEGRATION_TESTS") != "1",
+        reason="Redis integration tests are disabled",
+    ),
+]
 
 
 @pytest.fixture
