@@ -37,9 +37,13 @@ class RetrievalFilter(BaseModel):
 class VectorStore(Protocol):
     async def upsert(self, chunks: list[Chunk], vectors: list[list[float]]) -> None: ...
 
-    async def search(self, vector: list[float], *, k: int, filters: RetrievalFilter) -> list[ScoredChunk]: ...
+    async def search(
+        self, vector: list[float], *, k: int, filters: RetrievalFilter
+    ) -> list[ScoredChunk]: ...
 
-    async def mark_superseded(self, tenant_id: str, document_key: str, below_version: int) -> int: ...
+    async def mark_superseded(
+        self, tenant_id: str, document_key: str, below_version: int
+    ) -> int: ...
 
 
 class InMemoryVectorStore:
@@ -50,7 +54,9 @@ class InMemoryVectorStore:
         for chunk, vector in zip(chunks, vectors, strict=True):
             self._items[chunk.chunk_id] = (chunk, vector)
 
-    async def search(self, vector: list[float], *, k: int, filters: RetrievalFilter) -> list[ScoredChunk]:
+    async def search(
+        self, vector: list[float], *, k: int, filters: RetrievalFilter
+    ) -> list[ScoredChunk]:
         scored = [
             ScoredChunk(chunk=chunk, score=cosine(vector, vec))
             for chunk, vec in self._items.values()
@@ -68,6 +74,9 @@ class InMemoryVectorStore:
                 and chunk.version < below_version
                 and chunk.status == DocumentStatus.ACTIVE
             ):
-                self._items[chunk_id] = (chunk.model_copy(update={"status": DocumentStatus.SUPERSEDED}), vec)
+                self._items[chunk_id] = (
+                    chunk.model_copy(update={"status": DocumentStatus.SUPERSEDED}),
+                    vec,
+                )
                 count += 1
         return count

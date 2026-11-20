@@ -10,6 +10,9 @@ export default defineConfig({
     },
   },
   test: {
+    clearMocks: true,
+    // Password hashing tests contend for CPU and libuv workers at high parallelism.
+    maxWorkers: 2,
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],

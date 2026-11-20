@@ -1,4 +1,3 @@
-
 """Integration test for a lost Redis recovery response.
 
 Development-only. Uses real PostgreSQL and isolated Redis keys.
@@ -18,11 +17,9 @@ from unittest.mock import patch
 import pytest
 
 import apps.worker.jobs.guarded_recovery_transition as guarded_module
-
 from apps.worker.jobs.guarded_recovery_transition import (
     GuardedRecoveryError,
 )
-
 from apps.worker.jobs.redis_recovery_evidence import (
     requeue_with_evidence,
 )
@@ -31,10 +28,8 @@ from apps.worker.jobs.redis_recovery_evidence import (
 # The original eight-test file remains unchanged.
 from tests.integration.test_guarded_recovery_real_redis import (
     create_case,
-    environment,
     invoke,
 )
-
 
 pytestmark = [
     pytest.mark.asyncio,
@@ -90,9 +85,7 @@ async def test_lost_redis_response_replay_is_idempotent(
 
             response_lost = True
 
-            raise TimeoutError(
-                "Simulated lost Redis response after execution"
-            )
+            raise TimeoutError("Simulated lost Redis response after execution")
 
         return result
 
@@ -115,11 +108,14 @@ async def test_lost_redis_response_replay_is_idempotent(
         assert response_lost is True
 
         # Redis completed the transition despite the error.
-        assert await client.lrange(
-            case["processing_key"],
-            0,
-            -1,
-        ) == []
+        assert (
+            await client.lrange(
+                case["processing_key"],
+                0,
+                -1,
+            )
+            == []
+        )
 
         assert await client.lrange(
             case["pending_key"],
@@ -127,9 +123,7 @@ async def test_lost_redis_response_replay_is_idempotent(
             -1,
         ) == [case["raw"]]
 
-        assert await client.get(
-            case["evidence_key"]
-        ) == "moved"
+        assert await client.get(case["evidence_key"]) == "moved"
 
         # Attempt 2: Replay the same recovery operation.
         result = await invoke(
@@ -140,14 +134,8 @@ async def test_lost_redis_response_replay_is_idempotent(
         assert result == "already_moved"
 
         # Confirm that no duplicate reservation was created.
-        assert await client.llen(
-            case["pending_key"]
-        ) == 1
+        assert await client.llen(case["pending_key"]) == 1
 
-        assert await client.llen(
-            case["processing_key"]
-        ) == 0
+        assert await client.llen(case["processing_key"]) == 0
 
-        assert await client.get(
-            case["evidence_key"]
-        ) == "moved"
+        assert await client.get(case["evidence_key"]) == "moved"

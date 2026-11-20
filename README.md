@@ -34,7 +34,7 @@ CRM sync and knowledge-based support. Every action that reaches a live system is
 | Agents / workflows | In-house typed agent framework and deterministic workflow engine |
 | Data | PostgreSQL 16 + pgvector, SQLAlchemy 2.x (async), Alembic |
 | Cache / queue | Redis 7 |
-| Dashboard | Next.js 14 (App Router) + TypeScript |
+| Dashboard | Next.js 15 (App Router) + TypeScript |
 | Ops | Docker Compose, GitHub Actions |
 
 ## Quick start (Windows)
@@ -53,10 +53,10 @@ powershell -ExecutionPolicy Bypass -File scripts/setup/setup-windows.ps1
 powershell -File scripts/development/demo-lead.ps1
 
 # 5. Dashboard  ->  http://localhost:3000
-cd apps/dashboard; npm install; npm run dev
+cd apps/dashboard; npm ci; npm run dev
 ```
 
-You need Python 3.12+ and Node.js 20 LTS. Docker Desktop is optional and only needed for the full stack:
+You need Python 3.12+ and Node.js 22.12+ (CI and Docker use Node.js 22). Use `npm ci` to install the reviewed dependency lockfile; run `npm audit` to check for newly reported vulnerabilities. Docker Desktop is optional and only needed for the full stack:
 
 ```powershell
 Copy-Item .env.example .env

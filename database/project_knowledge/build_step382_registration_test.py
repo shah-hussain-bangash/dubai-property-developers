@@ -1,4 +1,4 @@
-﻿"""Generate and validate fourth-batch rollback-only SQL."""
+"""Generate and validate fourth-batch rollback-only SQL."""
 
 import csv
 import hashlib
@@ -14,12 +14,12 @@ OUTPUT = ROOT / "database/project_knowledge/028_test_registration_batch4.sql"
 DB = "dubai_ai_knowledge_verify_20261019_095633"
 
 
-def read_csv(path):
+def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as handle:
         return list(csv.DictReader(handle))
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 382 SQL already exists. Stop.")
 
@@ -28,7 +28,8 @@ def main():
 
     eligible = sorted(
         (
-            r for r in inventory
+            r
+            for r in inventory
             if r["priority"] == "P1"
             and r["inventory_status"] == "pending_test_registration"
             and r["validation_status"] == "preliminary_scan_clear"
@@ -42,20 +43,16 @@ def main():
     if len(eligible) != 33 or len(rows) != 10:
         raise RuntimeError("Unexpected P1 inventory or batch size.")
 
-    if [r["source_path"] for r in rows] != [
-        r["source_path"] for r in expected
-    ]:
+    if [r["source_path"] for r in rows] != [r["source_path"] for r in expected]:
         raise RuntimeError("Batch differs from selected P1 files.")
 
     values = []
 
-    for row, original in zip(rows, expected):
+    for row, original in zip(rows, expected, strict=False):
         path = row["source_path"]
         sha = row["sha256"]
 
-        if not re.fullmatch(
-            r"apps/dashboard/[A-Za-z0-9_./-]+\.css", path
-        ):
+        if not re.fullmatch(r"apps/dashboard/[A-Za-z0-9_./-]+\.css", path):
             raise RuntimeError(f"Unexpected dashboard CSS path: {path}")
 
         if any(p in ("", ".", "..") for p in path.split("/")):
@@ -109,17 +106,9 @@ def main():
     if match is None:
         raise RuntimeError("Template batch VALUES missing.")
 
-    sql = (
-        sql[:match.start(1)]
-        + ",\n".join(values)
-        + sql[match.end(1):]
-    )
+    sql = sql[: match.start(1)] + ",\n".join(values) + sql[match.end(1) :]
 
-    if (
-        sql.count("<> 335") != 4
-        or sql.count("<> 345") != 4
-        or sql.count(") <> 20") != 1
-    ):
+    if sql.count("<> 335") != 4 or sql.count("<> 345") != 4 or sql.count(") <> 20") != 1:
         raise RuntimeError("Unexpected template baseline checks.")
 
     # Replace in this order to avoid accidentally changing new values.
@@ -128,17 +117,11 @@ def main():
     sql = sql.replace(") <> 20", ") <> 40")
 
     sql = sql.replace("step373_batch", "step382_batch")
-    sql = sql.replace(
-        "Step 373 rollback-only test",
-        "Step 382 rollback-only test"
-    )
-    sql = sql.replace(
-        "Step 373 baseline",
-        "Step 382 baseline"
-    )
+    sql = sql.replace("Step 373 rollback-only test", "Step 382 rollback-only test")
+    sql = sql.replace("Step 373 baseline", "Step 382 baseline")
     sql = sql.replace(
         "All ten second-batch registrations validated",
-        "All ten fourth-batch registrations validated"
+        "All ten fourth-batch registrations validated",
     )
 
     if (

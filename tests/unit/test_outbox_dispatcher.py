@@ -1,4 +1,3 @@
-
 """Unit tests for PostgreSQL-to-Redis outbox dispatching.
 
 All external components are mocked.
@@ -56,9 +55,7 @@ def make_dispatcher(
     # IMPORTANT:
     # Encryption/decryption methods are synchronous.
     # Use Mock, not AsyncMock.
-    cipher = SimpleNamespace(
-        decrypt=Mock(return_value=job)
-    )
+    cipher = SimpleNamespace(decrypt=Mock(return_value=job))
 
     redis = SimpleNamespace()
 
@@ -151,9 +148,7 @@ async def test_redis_failure_schedules_retry():
 async def test_decryption_failure_does_not_publish():
     dispatcher, store, cipher, _ = make_dispatcher()
 
-    cipher.decrypt.side_effect = ValueError(
-        "Invalid encrypted envelope"
-    )
+    cipher.decrypt.side_effect = ValueError("Invalid encrypted envelope")
 
     with (
         patch.object(
@@ -194,12 +189,12 @@ async def test_acknowledgement_failure_is_reported():
             new_callable=AsyncMock,
             return_value=job.job_id,
         ),
-    ):
-        with pytest.raises(
+        pytest.raises(
             RuntimeError,
             match="duplicate delivery is possible",
-        ):
-            await dispatcher.dispatch_once()
+        ),
+    ):
+        await dispatcher.dispatch_once()
 
     store.mark_published.assert_awaited_once()
 
@@ -222,11 +217,11 @@ async def test_failure_recording_rejection_is_reported():
             new_callable=AsyncMock,
             side_effect=ConnectionError("Redis unavailable"),
         ),
-    ):
-        with pytest.raises(
+        pytest.raises(
             RuntimeError,
             match="failure could not be recorded",
-        ):
-            await dispatcher.dispatch_once()
+        ),
+    ):
+        await dispatcher.dispatch_once()
 
     store.mark_failed.assert_awaited_once()

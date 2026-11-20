@@ -19,20 +19,26 @@ class N8nConfig(IntegrationConfig):
 
 
 class N8nClient(Protocol):
-    async def trigger(self, webhook_path: str, payload: dict[str, Any], *, idempotency_key: str) -> Any: ...
+    async def trigger(
+        self, webhook_path: str, payload: dict[str, Any], *, idempotency_key: str
+    ) -> Any: ...
 
 
 class MockN8nClient:
     def __init__(self) -> None:
         self.triggered: list[dict[str, Any]] = []
 
-    async def trigger(self, webhook_path: str, payload: dict[str, Any], *, idempotency_key: str) -> Any:
+    async def trigger(
+        self, webhook_path: str, payload: dict[str, Any], *, idempotency_key: str
+    ) -> Any:
         self.triggered.append({"path": webhook_path, "payload": payload, "key": idempotency_key})
         return {"accepted": True, "is_mock": True}
 
 
 class HttpN8nClient:
-    def __init__(self, config: N8nConfig, *, transport: httpx.AsyncBaseTransport | None = None) -> None:
+    def __init__(
+        self, config: N8nConfig, *, transport: httpx.AsyncBaseTransport | None = None
+    ) -> None:
         assert config.webhook_base_url
         self._http = HttpIntegrationClient(
             integration="n8n",
@@ -43,9 +49,14 @@ class HttpN8nClient:
             transport=transport,
         )
 
-    async def trigger(self, webhook_path: str, payload: dict[str, Any], *, idempotency_key: str) -> Any:
+    async def trigger(
+        self, webhook_path: str, payload: dict[str, Any], *, idempotency_key: str
+    ) -> Any:
         return await self._http.request(
-            "POST", f"/webhook/{webhook_path.strip('/')}", json=payload, idempotency_key=idempotency_key
+            "POST",
+            f"/webhook/{webhook_path.strip('/')}",
+            json=payload,
+            idempotency_key=idempotency_key,
         )
 
 

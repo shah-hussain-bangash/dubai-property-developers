@@ -14,8 +14,45 @@ from typing import Protocol
 
 _TOKEN = re.compile(r"[a-z0-9؀-ۿ]+")
 _STOPWORDS = frozenset(
-    "a an and are as at be by for from has have in is it of on or the to was were what when "
-    "where which who will with do does can i you your we our".split()
+    [
+        "a",
+        "an",
+        "and",
+        "are",
+        "as",
+        "at",
+        "be",
+        "by",
+        "for",
+        "from",
+        "has",
+        "have",
+        "in",
+        "is",
+        "it",
+        "of",
+        "on",
+        "or",
+        "the",
+        "to",
+        "was",
+        "were",
+        "what",
+        "when",
+        "where",
+        "which",
+        "who",
+        "will",
+        "with",
+        "do",
+        "does",
+        "can",
+        "i",
+        "you",
+        "your",
+        "we",
+        "our",
+    ]
 )
 
 

@@ -1,4 +1,3 @@
-
 """Unit tests for guarded recovery transition input validation.
 
 Uses mocked dependencies. Does not connect to PostgreSQL or Redis.
@@ -120,7 +119,7 @@ async def test_invalid_lease_token_is_rejected(
 async def test_invalid_redis_timeout_is_rejected(
     guarded,
     job,
-    timeout,
+    timeout,  # noqa: ASYNC109 -- This is a Redis blocking timeout or a parametrized timeout fixture, not a task deadline.
 ):
     params = valid_params(job)
     params["redis_timeout_seconds"] = timeout

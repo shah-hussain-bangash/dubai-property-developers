@@ -1,4 +1,3 @@
-
 """Background worker using reliable Redis job reservations.
 
 Run:
@@ -22,27 +21,25 @@ Future work:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import signal
 from typing import Any
 
 from pydantic import ValidationError
 
 from apps.worker.jobs.envelope import (
-    JobEnvelope,
     QUEUE_KEY,
+    JobEnvelope,
     acknowledge_job,
     reserve_job,
     transition_job,
 )
 from apps.worker.tasks.handlers import get_handler
-
 from core.cache.redis import create_redis_client
 from core.config.settings import get_settings
 from core.observability.context import set_correlation_id
 from core.observability.logging import configure_logging, get_logger
-
 from workflows.runtime import PlatformRuntime, build_runtime
-
 
 logger = get_logger("worker")
 
@@ -84,9 +81,7 @@ async def process_one(
             )
 
             if not moved:
-                raise RuntimeError(
-                    "Malformed job reservation was not found"
-                )
+                raise RuntimeError("Malformed job reservation was not found") from None
 
         return None
 
@@ -119,9 +114,7 @@ async def process_one(
             )
 
             if not moved:
-                raise RuntimeError(
-                    "Failed job reservation was not found"
-                )
+                raise RuntimeError("Failed job reservation was not found") from None
 
             if exhausted:
                 logger.error(
@@ -145,9 +138,7 @@ async def process_one(
         acknowledged = await acknowledge_job(redis, raw)
 
         if not acknowledged:
-            raise RuntimeError(
-                "Successful job reservation was not found"
-            )
+            raise RuntimeError("Successful job reservation was not found")
 
     logger.info(
         "job done",
@@ -178,12 +169,9 @@ async def run_worker() -> None:
     loop = asyncio.get_running_loop()
 
     for sig in (signal.SIGINT, signal.SIGTERM):
-        try:
+        # Some Windows event loops do not support signal registration.
+        with contextlib.suppress(NotImplementedError, RuntimeError):
             loop.add_signal_handler(sig, stop.set)
-
-        except (NotImplementedError, RuntimeError):
-            # Some Windows event loops do not support this.
-            pass
 
     try:
         await runtime.initialize()
@@ -196,7 +184,6 @@ async def run_worker() -> None:
         )
 
         while not stop.is_set():
-
             raw = await reserve_job(
                 redis,
                 timeout=5,
@@ -223,8 +210,5 @@ async def run_worker() -> None:
 
 
 if __name__ == "__main__":
-    try:
+    with contextlib.suppress(KeyboardInterrupt):
         asyncio.run(run_worker())
-
-    except KeyboardInterrupt:
-        pass

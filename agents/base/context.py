@@ -22,7 +22,9 @@ class ExecutionContext:
     workflow_execution_id: str | None = None
 
     @classmethod
-    def system(cls, tenant_id: str | None = None, correlation_id: str | None = None) -> ExecutionContext:
+    def system(
+        cls, tenant_id: str | None = None, correlation_id: str | None = None
+    ) -> ExecutionContext:
         return cls(
             principal=SYSTEM_PRINCIPAL,
             tenant_id=tenant_id or SYSTEM_PRINCIPAL.tenant_id,

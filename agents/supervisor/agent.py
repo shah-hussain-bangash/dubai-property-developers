@@ -58,8 +58,10 @@ class SupervisorAgent(BaseAgent[SupervisorRequest, SupervisorPlan]):
         text = data.text or ""
         intent = detect_intent(text)
         injection = assess_injection(text)
-        channel_agent = "whatsapp" if data.channel == Channel.WHATSAPP else (
-            "email" if data.channel == Channel.EMAIL else None
+        channel_agent = (
+            "whatsapp"
+            if data.channel == Channel.WHATSAPP
+            else ("email" if data.channel == Channel.EMAIL else None)
         )
         agents = [a for a in (channel_agent, "sales_conversation") if a]
         reasons = [f"intent={intent.value}"]

@@ -1,4 +1,3 @@
-
 """Guarded PostgreSQL/Redis recovery transition.
 
 Development-only. Not connected to the Docker worker.
@@ -89,16 +88,12 @@ class GuardedRecoveryTransition:
         try:
             received_job = JobEnvelope.model_validate_json(raw)
         except (ValidationError, ValueError, TypeError) as exc:
-            raise ValueError(
-                "Raw Redis message is not a valid JobEnvelope"
-            ) from exc
+            raise ValueError("Raw Redis message is not a valid JobEnvelope") from exc
 
         # Step 4: Ensure both supplied representations agree.
         # This does not replace encrypted-outbox authentication.
         if received_job != job:
-            raise ValueError(
-                "Raw Redis message does not match authorized job"
-            )
+            raise ValueError("Raw Redis message does not match authorized job")
 
         # Step 5: Validate the recovery-operation identity.
         if not isinstance(operation_id, uuid.UUID):
@@ -116,113 +111,91 @@ class GuardedRecoveryTransition:
             or not isinstance(redis_timeout_seconds, (int, float))
             or not (0 < redis_timeout_seconds < float("inf"))
         ):
-            raise ValueError(
-                "redis_timeout_seconds must be positive"
-            )
+            raise ValueError("redis_timeout_seconds must be positive")
 
         evidence_key = recovery_evidence_key(operation_id)
 
         # Step 7: Open PostgreSQL transaction.
-        async with self.session_factory() as session:
-            async with session.begin():
-
-                organization_id = await session.scalar(
-                    select(Organization.id).where(
-                        Organization.slug == job.tenant_id,
-                        Organization.is_active.is_(True),
-                    )
+        async with self.session_factory() as session, session.begin():
+            organization_id = await session.scalar(
+                select(Organization.id).where(
+                    Organization.slug == job.tenant_id,
+                    Organization.is_active.is_(True),
                 )
+            )
 
-                if organization_id is None:
-                    raise GuardedRecoveryError(
-                        "Unknown or inactive organization"
-                    )
+            if organization_id is None:
+                raise GuardedRecoveryError("Unknown or inactive organization")
 
-                # Step 8: Lock the recovery operation row.
-                # Lease updates on this row must wait until this
-                # transaction releases the lock.
-                operation = await session.scalar(
-                    select(JobRecoveryOperation)
-                    .where(
-                        JobRecoveryOperation.id == operation_id,
-                        JobRecoveryOperation.organization_id
-                        == organization_id,
-                        JobRecoveryOperation.job_id == job.job_id,
-                    )
-                    .with_for_update(of=JobRecoveryOperation)
+            # Step 8: Lock the recovery operation row.
+            # Lease updates on this row must wait until this
+            # transaction releases the lock.
+            operation = await session.scalar(
+                select(JobRecoveryOperation)
+                .where(
+                    JobRecoveryOperation.id == operation_id,
+                    JobRecoveryOperation.organization_id == organization_id,
+                    JobRecoveryOperation.job_id == job.job_id,
                 )
+                .with_for_update(of=JobRecoveryOperation)
+            )
 
-                if operation is None:
-                    raise GuardedRecoveryError(
-                        "Recovery operation does not match job"
-                    )
+            if operation is None:
+                raise GuardedRecoveryError("Recovery operation does not match job")
 
-                now = datetime.now(UTC)
+            now = datetime.now(UTC)
 
-                # Step 9: Verify current recovery lease ownership.
-                if (
-                    operation.status != "processing"
-                    or operation.worker_id != worker_id
-                    or operation.lease_token != lease_token
-                    or operation.lease_expires_at is None
-                    or operation.lease_expires_at <= now
-                ):
-                    raise GuardedRecoveryError(
-                        "Recovery lease is not currently owned"
-                    )
+            # Step 9: Verify current recovery lease ownership.
+            if (
+                operation.status != "processing"
+                or operation.worker_id != worker_id
+                or operation.lease_token != lease_token
+                or operation.lease_expires_at is None
+                or operation.lease_expires_at <= now
+            ):
+                raise GuardedRecoveryError("Recovery lease is not currently owned")
 
-                # Step 10: Verify background-job eligibility.
-                record = await session.scalar(
-                    select(BackgroundJob).where(
-                        BackgroundJob.organization_id
-                        == organization_id,
-                        BackgroundJob.job_id == job.job_id,
-                    )
+            # Step 10: Verify background-job eligibility.
+            record = await session.scalar(
+                select(BackgroundJob).where(
+                    BackgroundJob.organization_id == organization_id,
+                    BackgroundJob.job_id == job.job_id,
                 )
+            )
 
-                if (
-                    record is None
-                    or record.job_type != job.job_type
-                    or record.max_attempts != job.max_attempts
-                    or record.attempts != operation.job_attempt
-                    or record.status != "retrying"
-                    or record.attempts >= record.max_attempts
-                ):
-                    raise GuardedRecoveryError(
-                        "Background job is not eligible for requeue"
-                    )
+            if (
+                record is None
+                or record.job_type != job.job_type
+                or record.max_attempts != job.max_attempts
+                or record.attempts != operation.job_attempt
+                or record.status != "retrying"
+                or record.attempts >= record.max_attempts
+            ):
+                raise GuardedRecoveryError("Background job is not eligible for requeue")
 
-                # Step 11: Require sufficient remaining lease time.
-                remaining_lease_seconds = (
-                    operation.lease_expires_at - now
-                ).total_seconds()
+            # Step 11: Require sufficient remaining lease time.
+            remaining_lease_seconds = (operation.lease_expires_at - now).total_seconds()
 
-                if remaining_lease_seconds <= redis_timeout_seconds:
-                    raise GuardedRecoveryError(
-                        "Insufficient recovery lease time"
-                    )
+            if remaining_lease_seconds <= redis_timeout_seconds:
+                raise GuardedRecoveryError("Insufficient recovery lease time")
 
-                # Step 12: Execute atomic Redis requeue with evidence.
-                try:
-                    result = await asyncio.wait_for(
-                        requeue_with_evidence(
-                            redis,
-                            raw,
-                            processing_key=processing_key,
-                            pending_key=pending_key,
-                            evidence_key=evidence_key,
-                        ),
-                        timeout=redis_timeout_seconds,
-                    )
-                except TimeoutError as exc:
-                    raise GuardedRecoveryError(
-                        "Redis recovery transition timed out"
-                    ) from exc
+            # Step 12: Execute atomic Redis requeue with evidence.
+            try:
+                result = await asyncio.wait_for(
+                    requeue_with_evidence(
+                        redis,
+                        raw,
+                        processing_key=processing_key,
+                        pending_key=pending_key,
+                        evidence_key=evidence_key,
+                    ),
+                    timeout=redis_timeout_seconds,
+                )
+            except TimeoutError as exc:
+                raise GuardedRecoveryError("Redis recovery transition timed out") from exc
 
-                # Step 13: Do not treat uncertain states as success.
-                if result in {"missing", "ambiguous"}:
-                    raise GuardedRecoveryError(
-                        f"Redis reconciliation uncertain: {result}"
-                    )
+            # Step 13: Do not treat uncertain states as success.
+            if result in {"missing", "ambiguous"}:
+                raise GuardedRecoveryError(f"Redis reconciliation uncertain: {result}")
 
-                return result
+            return result

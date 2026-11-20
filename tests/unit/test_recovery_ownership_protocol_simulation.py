@@ -1,4 +1,3 @@
-
 """Model-level tests for PostgreSQL/Redis recovery ownership.
 
 Development-only simulation.

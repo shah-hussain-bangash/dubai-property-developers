@@ -6,14 +6,18 @@ separate. Registration is closed by default, including new Google identities.
 """
 
 import hmac
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import NoReturn
 from urllib.parse import urlsplit
 from uuid import UUID
 
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.app.browser_application import install_browser_auth
-from core.security.google_oauth_flows import GoogleOAuthFlowStore
+from core.security.account_contracts import Dependency, PrincipalFactory, SessionFactory
+from core.security.google_oauth_flows import FlowRedisClient, GoogleOAuthFlowStore
 from core.security.google_oidc import GoogleOIDC
 from database.repositories.account_approval_service import TransactionalAccountService
 from database.repositories.account_authentication import AccountAuthentication
@@ -35,9 +39,9 @@ class BrowserServiceConfig:
     session_ttl_seconds: int = 3600
     flow_ttl_seconds: int = 600
 
-    def __post_init__(self):
-        for value in (self.organization_id, self.owner_id):
-            if not isinstance(value, UUID) or value.int == 0:
+    def __post_init__(self) -> None:
+        for identifier in (self.organization_id, self.owner_id):
+            if not isinstance(identifier, UUID) or identifier.int == 0:
                 raise ValueError("trusted non-nil organization and owner UUIDs required")
         if type(self.registration_enabled) is not bool or type(self.allow_local_http) is not bool:
             raise ValueError("explicit boolean browser settings required")
@@ -91,15 +95,22 @@ class BrowserServiceConfig:
             raise ValueError("OAuth and CSRF secrets must be distinct")
 
     @property
-    def callback_url(self):
+    def callback_url(self) -> str:
         return self.trusted_origin + "/api/v1/auth/google/callback"
 
 
 class _ExistingAccountsOnly(PendingAccountRegistration):
-    async def register_password(self, organization_id, **credentials):
+    async def register_password(self, organization_id: UUID, **credentials: str) -> NoReturn:
         raise HTTPException(403, "registration unavailable")
 
-    async def _create(self, session, organization_id, email, name, digest):
+    async def _create(
+        self,
+        session: AsyncSession,
+        organization_id: UUID,
+        email: str,
+        name: str,
+        digest: str | None,
+    ) -> NoReturn:
         # The inherited Google lookup can reuse an existing issuer/subject
         # mapping, but its absent-identity branch cannot insert a new account.
         raise HTTPException(403, "registration unavailable")
@@ -108,16 +119,16 @@ class _ExistingAccountsOnly(PendingAccountRegistration):
 @dataclass(frozen=True, slots=True, repr=False)
 class BrowserServiceBindings:
     config: BrowserServiceConfig
-    provider: object
-    authentication: object
-    sessions: object
-    flow_store: object
-    account_service: object
-    registration: object
-    organization_dependency: object
-    rate_guard: object
+    provider: GoogleOIDC
+    authentication: AccountAuthentication
+    sessions: AccountSessions
+    flow_store: GoogleOAuthFlowStore
+    account_service: TransactionalAccountService
+    registration: PendingAccountRegistration
+    organization_dependency: Dependency
+    rate_guard: Dependency
 
-    def install(self, app, *, enabled=False):
+    def install(self, app: FastAPI, *, enabled: bool = False) -> bool:
         return install_browser_auth(
             app,
             enabled=enabled,
@@ -136,16 +147,16 @@ class BrowserServiceBindings:
 
 
 def build_browser_service_bindings(
-    config,
+    config: BrowserServiceConfig,
     *,
-    session_factory,
-    redis_client,
-    principal_factory,
-    password_hasher,
-    password_verifier,
-    dummy_hash,
-    rate_guard,
-):
+    session_factory: SessionFactory,
+    redis_client: FlowRedisClient,
+    principal_factory: PrincipalFactory,
+    password_hasher: Callable[[str], str],
+    password_verifier: Callable[[str, str], bool],
+    dummy_hash: str,
+    rate_guard: Dependency,
+) -> BrowserServiceBindings:
     if not isinstance(config, BrowserServiceConfig):
         raise ValueError("validated browser service configuration required")
     # Validate every injected contract before creating any service instance.
@@ -191,7 +202,7 @@ def build_browser_service_bindings(
         session_factory, owners={config.organization_id: config.owner_id}
     )
 
-    async def organization_dependency():
+    async def organization_dependency() -> UUID:
         # Single-organization binding selected by trusted server configuration.
         # User headers and query parameters cannot select a different tenant.
         return config.organization_id

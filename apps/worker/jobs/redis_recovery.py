@@ -1,4 +1,3 @@
-
 """Atomic Redis reservation transitions for job recovery.
 
 This module provides queue operations only. PostgreSQL ownership,
@@ -11,7 +10,6 @@ Not connected to the running Docker worker.
 from __future__ import annotations
 
 from typing import Any
-
 
 RECOVER_SCRIPT = """
 local removed = redis.call('LREM', KEYS[1], 1, ARGV[1])

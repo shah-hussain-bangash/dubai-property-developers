@@ -55,10 +55,15 @@ class QualificationAgent(BaseAgent[QualificationInput, QualificationResult]):
             ctx, "analytics.score_lead", {"lead": data.lead.model_dump(mode="json")}
         )
         score = LeadScore.model_validate(result.data)
-        status = LeadStatus.QUALIFIED if score.category in {
-            QualificationCategory.HOT,
-            QualificationCategory.WARM,
-        } else LeadStatus.NURTURING
+        status = (
+            LeadStatus.QUALIFIED
+            if score.category
+            in {
+                QualificationCategory.HOT,
+                QualificationCategory.WARM,
+            }
+            else LeadStatus.NURTURING
+        )
         return QualificationResult(
             lead_id=data.lead.lead_id,
             score=score,

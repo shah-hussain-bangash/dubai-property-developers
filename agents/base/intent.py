@@ -11,13 +11,47 @@ import re
 from schemas.conversations.models import CustomerIntent
 
 _RULES: tuple[tuple[CustomerIntent, tuple[str, ...]], ...] = (
-    (CustomerIntent.UNSUBSCRIBE, ("unsubscribe", "stop messaging", "stop sending", "remove me", "opt out", "إلغاء الاشتراك")),
-    (CustomerIntent.COMPLAINT, ("complaint", "complain", "unhappy", "disappointed", "refund", "شكوى")),
-    (CustomerIntent.SCHEDULE_VIEWING, ("viewing", "visit", "see the unit", "show home", "appointment", "معاينة", "زيارة")),
+    (
+        CustomerIntent.UNSUBSCRIBE,
+        ("unsubscribe", "stop messaging", "stop sending", "remove me", "opt out", "إلغاء الاشتراك"),
+    ),
+    (
+        CustomerIntent.COMPLAINT,
+        ("complaint", "complain", "unhappy", "disappointed", "refund", "شكوى"),
+    ),
+    (
+        CustomerIntent.SCHEDULE_VIEWING,
+        ("viewing", "visit", "see the unit", "show home", "appointment", "معاينة", "زيارة"),
+    ),
     (CustomerIntent.CALLBACK_REQUEST, ("call me", "callback", "call back", "phone me", "اتصل")),
-    (CustomerIntent.PAYMENT_PLAN, ("payment plan", "installment", "instalment", "post handover", "down payment", "خطة الدفع", "أقساط")),
+    (
+        CustomerIntent.PAYMENT_PLAN,
+        (
+            "payment plan",
+            "installment",
+            "instalment",
+            "post handover",
+            "down payment",
+            "خطة الدفع",
+            "أقساط",
+        ),
+    ),
     (CustomerIntent.PRICING, ("price", "cost", "how much", "aed", "budget", "سعر", "كم")),
-    (CustomerIntent.PROPERTY_ENQUIRY, ("apartment", "villa", "townhouse", "penthouse", "bedroom", "project", "off-plan", "off plan", "شقة", "فيلا")),
+    (
+        CustomerIntent.PROPERTY_ENQUIRY,
+        (
+            "apartment",
+            "villa",
+            "townhouse",
+            "penthouse",
+            "bedroom",
+            "project",
+            "off-plan",
+            "off plan",
+            "شقة",
+            "فيلا",
+        ),
+    ),
 )
 
 _ARABIC = re.compile(r"[؀-ۿ]")

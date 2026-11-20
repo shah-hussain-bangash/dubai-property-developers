@@ -1,6 +1,6 @@
 """Unsent fictional web-chat drafts from the existing sales workflow."""
 
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -30,7 +30,7 @@ async def demo_draft(
     body: DemoConversationMessage,
     runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.WORKFLOWS_EXECUTE)),
-) -> dict:
+) -> dict[str, Any]:
     _require_isolated_demo(runtime)
     context = ExecutionContext(
         principal=principal,

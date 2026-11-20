@@ -10,8 +10,14 @@ from schemas.agents.models import AgentRunStatus, ImplementationStatus
 
 _CLASS_RULES: tuple[tuple[InboundClassification, tuple[str, ...]], ...] = (
     (InboundClassification.UNSUBSCRIBE, ("unsubscribe", "remove me", "stop emailing")),
-    (InboundClassification.OUT_OF_OFFICE, ("out of office", "on leave", "auto-reply", "automatic reply")),
-    (InboundClassification.NOT_INTERESTED, ("not interested", "no longer looking", "already bought")),
+    (
+        InboundClassification.OUT_OF_OFFICE,
+        ("out of office", "on leave", "auto-reply", "automatic reply"),
+    ),
+    (
+        InboundClassification.NOT_INTERESTED,
+        ("not interested", "no longer looking", "already bought"),
+    ),
     (InboundClassification.INTERESTED, ("interested", "yes please", "send me", "call me", "book")),
 )
 

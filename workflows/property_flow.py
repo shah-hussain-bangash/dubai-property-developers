@@ -20,7 +20,9 @@ class PropertyFlowState(BaseModel):
 
 
 async def recommend(state: PropertyFlowState, ctx: WorkflowContext) -> StepOutcome:
-    result = await ctx.run_agent("property_recommendation", RecommendationInput(criteria=state.criteria))
+    result = await ctx.run_agent(
+        "property_recommendation", RecommendationInput(criteria=state.criteria)
+    )
     state.output = RecommendationOutput.model_validate(result.output, from_attributes=True)
     return StepOutcome.CONTINUE
 
@@ -29,7 +31,9 @@ async def compliance_check(state: PropertyFlowState, ctx: WorkflowContext) -> St
     assert state.output is not None
     for rec in state.output.recommendations:
         if not any("guaranteed" in c for c in rec.caveats):
-            raise PolicyViolationError(f"recommendation {rec.listing.listing_id} lacks ROI disclaimer")
+            raise PolicyViolationError(
+                f"recommendation {rec.listing.listing_id} lacks ROI disclaimer"
+            )
         if rec.listing.is_demo and not any("DEMO DATA" in c for c in rec.caveats):
             raise PolicyViolationError("demo listing not labelled as demo")
     return StepOutcome.CONTINUE

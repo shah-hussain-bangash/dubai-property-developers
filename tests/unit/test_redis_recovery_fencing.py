@@ -1,4 +1,3 @@
-
 """Safety regression tests for Redis recovery lease fencing.
 
 Development-only. Uses a mocked Redis client.
@@ -20,7 +19,6 @@ import pytest
 from apps.worker.jobs.redis_recovery_evidence import (
     requeue_with_evidence,
 )
-
 
 RAW = '{"job_id":"fictional-fencing-test"}'
 PROCESSING = "test:fencing:processing"
@@ -78,10 +76,7 @@ async def test_ambiguous_reservation_does_not_report_success():
 @pytest.mark.asyncio
 @pytest.mark.xfail(
     strict=True,
-    reason=(
-        "Known gap: Redis transition does not enforce "
-        "PostgreSQL recovery lease fencing"
-    ),
+    reason=("Known gap: Redis transition does not enforce PostgreSQL recovery lease fencing"),
 )
 async def test_stale_coordinator_cannot_mutate_redis():
     """Document the missing stale-coordinator safeguard."""

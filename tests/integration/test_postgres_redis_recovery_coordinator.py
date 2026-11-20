@@ -1,4 +1,3 @@
-
 """Integration tests for read-only recovery coordinator authorization.
 
 Requires:
@@ -41,7 +40,6 @@ from database.sessions.engine import (
     create_session_factory,
 )
 
-
 pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.skipif(
@@ -76,22 +74,15 @@ async def coordinator_setup():
     finally:
         try:
             if created_ids:
-                async with factory() as session:
-                    async with session.begin():
-                        await session.execute(
-                            delete(JobRecoveryOperation).where(
-                                JobRecoveryOperation.job_id.in_(
-                                    created_ids
-                                )
-                            )
+                async with factory() as session, session.begin():
+                    await session.execute(
+                        delete(JobRecoveryOperation).where(
+                            JobRecoveryOperation.job_id.in_(created_ids)
                         )
-                        await session.execute(
-                            delete(BackgroundJob).where(
-                                BackgroundJob.job_id.in_(
-                                    created_ids
-                                )
-                            )
-                        )
+                    )
+                    await session.execute(
+                        delete(BackgroundJob).where(BackgroundJob.job_id.in_(created_ids))
+                    )
         finally:
             await engine.dispose()
 
@@ -101,7 +92,7 @@ async def create_recovery_case(
     *,
     max_attempts: int = 3,
 ):
-    jobs, recovery, leases, coordinator, factory, ids = setup
+    jobs, recovery, leases, _coordinator, factory, ids = setup
 
     job_id = "test-coordinator-" + uuid.uuid4().hex
     ids.append(job_id)
@@ -128,17 +119,12 @@ async def create_recovery_case(
     )
     assert original_token is not None
 
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(BackgroundJob)
-                .where(BackgroundJob.id == record.id)
-                .values(
-                    lease_expires_at=(
-                        datetime.now(UTC) - timedelta(minutes=5)
-                    )
-                )
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(BackgroundJob)
+            .where(BackgroundJob.id == record.id)
+            .values(lease_expires_at=(datetime.now(UTC) - timedelta(minutes=5)))
+        )
 
     operation_id = await recovery.begin_expired_recovery(
         TENANT,
@@ -235,17 +221,12 @@ async def test_expired_lease_is_rejected(coordinator_setup):
 
     job, operation_id, token = await create_recovery_case(setup)
 
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(JobRecoveryOperation)
-                .where(JobRecoveryOperation.id == operation_id)
-                .values(
-                    lease_expires_at=(
-                        datetime.now(UTC) - timedelta(minutes=5)
-                    )
-                )
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(JobRecoveryOperation)
+            .where(JobRecoveryOperation.id == operation_id)
+            .values(lease_expires_at=(datetime.now(UTC) - timedelta(minutes=5)))
+        )
 
     with pytest.raises(
         RecoveryAuthorizationError,
@@ -265,9 +246,7 @@ async def test_wrong_tenant_is_rejected(coordinator_setup):
 
     job, operation_id, token = await create_recovery_case(setup)
 
-    wrong_tenant_job = job.model_copy(
-        update={"tenant_id": "tenant-isolation-test"}
-    )
+    wrong_tenant_job = job.model_copy(update={"tenant_id": "tenant-isolation-test"})
 
     with pytest.raises(RecoveryAuthorizationError):
         await coordinator.authorize(
@@ -302,9 +281,7 @@ async def test_mismatched_job_type_is_rejected(coordinator_setup):
 
     job, operation_id, token = await create_recovery_case(setup)
 
-    modified_job = job.model_copy(
-        update={"job_type": "incorrect.job.type"}
-    )
+    modified_job = job.model_copy(update={"job_type": "incorrect.job.type"})
 
     with pytest.raises(
         RecoveryAuthorizationError,
@@ -326,9 +303,7 @@ async def test_mismatched_max_attempts_is_rejected(
 
     job, operation_id, token = await create_recovery_case(setup)
 
-    modified_job = job.model_copy(
-        update={"max_attempts": 99}
-    )
+    modified_job = job.model_copy(update={"max_attempts": 99})
 
     with pytest.raises(
         RecoveryAuthorizationError,
@@ -350,13 +325,12 @@ async def test_ineligible_job_status_is_rejected(
 
     job, operation_id, token = await create_recovery_case(setup)
 
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(BackgroundJob)
-                .where(BackgroundJob.job_id == job.job_id)
-                .values(status="processing")
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(BackgroundJob)
+            .where(BackgroundJob.job_id == job.job_id)
+            .values(status="processing")
+        )
 
     with pytest.raises(
         RecoveryAuthorizationError,

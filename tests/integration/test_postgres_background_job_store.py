@@ -1,4 +1,3 @@
-
 """Integration tests for PostgreSQL background-job persistence.
 
 Requires:
@@ -24,7 +23,6 @@ from database.repositories.postgres_background_job_store import (
     PostgresBackgroundJobStore,
 )
 from database.sessions.engine import create_engine, create_session_factory
-
 
 pytestmark = [
     pytest.mark.asyncio,
@@ -56,13 +54,10 @@ async def job_store():
     finally:
         try:
             if created_ids:
-                async with factory() as session:
-                    async with session.begin():
-                        await session.execute(
-                            delete(BackgroundJob).where(
-                                BackgroundJob.job_id.in_(created_ids)
-                            )
-                        )
+                async with factory() as session, session.begin():
+                    await session.execute(
+                        delete(BackgroundJob).where(BackgroundJob.job_id.in_(created_ids))
+                    )
         finally:
             await engine.dispose()
 
@@ -246,18 +241,12 @@ async def test_expired_lease_discovery(job_store):
 
     assert token is not None
 
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(BackgroundJob)
-                .where(BackgroundJob.id == record.id)
-                .values(
-                    lease_expires_at=(
-                        datetime.now(UTC)
-                        - timedelta(minutes=5)
-                    )
-                )
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(BackgroundJob)
+            .where(BackgroundJob.id == record.id)
+            .values(lease_expires_at=(datetime.now(UTC) - timedelta(minutes=5)))
+        )
 
     expired = await store.list_expired(limit=100)
 

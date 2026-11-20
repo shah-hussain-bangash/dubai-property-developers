@@ -1,4 +1,5 @@
 """Standalone HTTP tests using synthetic identities and a fake service."""
+
 import json
 import runpy
 import unittest
@@ -8,10 +9,9 @@ from uuid import UUID
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-namespace = runpy.run_path(str(
-    Path(__file__).resolve().parents[2]
-    / "apps/api/app/api/v1/routes/accounts.py"
-))
+namespace = runpy.run_path(
+    str(Path(__file__).resolve().parents[2] / "apps/api/app/api/v1/routes/accounts.py")
+)
 Actor = namespace["AccountActor"]
 create_router = namespace["create_accounts_router"]
 ORG, OWNER, USER, OTHER_ORG = [UUID(int=n) for n in (1, 2, 3, 4)]
@@ -80,9 +80,7 @@ class AccountRouteTests(unittest.TestCase):
 
     def test_non_owner_cannot_list_or_decide(self):
         with self.client(USER) as client:
-            self.assertEqual(
-                client.get("/api/v1/accounts/approvals/pending").status_code, 403
-            )
+            self.assertEqual(client.get("/api/v1/accounts/approvals/pending").status_code, 403)
             self.assertEqual(
                 client.post(self.decision_path(), json={"approve": True}).status_code,
                 403,
@@ -106,18 +104,14 @@ class AccountRouteTests(unittest.TestCase):
 
     def test_self_approval_denied(self):
         with self.client() as client:
-            response = client.post(
-                self.decision_path(OWNER), json={"approve": True}
-            )
+            response = client.post(self.decision_path(OWNER), json={"approve": True})
         self.assertEqual(response.status_code, 403)
         self.assertEqual(self.service.calls, [])
 
     def test_client_cannot_supply_owner_role_or_status(self):
         with self.client() as client:
             for field in ("owner_user_id", "actor_user_id", "role", "approval_status"):
-                response = client.post(
-                    self.decision_path(), json={"approve": True, field: "admin"}
-                )
+                response = client.post(self.decision_path(), json={"approve": True, field: "admin"})
                 self.assertEqual(response.status_code, 422)
         self.assertEqual(self.service.calls, [])
 
@@ -155,11 +149,15 @@ if __name__ == "__main__":
     result = unittest.TextTestRunner(verbosity=2).run(
         unittest.defaultTestLoader.loadTestsFromTestCase(AccountRouteTests)
     )
-    print(json.dumps({
-        "tests_run": result.testsRun,
-        "failures": len(result.failures),
-        "errors": len(result.errors),
-        "skipped": len(result.skipped),
-        "successful": result.wasSuccessful(),
-    }))
+    print(
+        json.dumps(
+            {
+                "tests_run": result.testsRun,
+                "failures": len(result.failures),
+                "errors": len(result.errors),
+                "skipped": len(result.skipped),
+                "successful": result.wasSuccessful(),
+            }
+        )
+    )
     raise SystemExit(0 if result.wasSuccessful() else 1)

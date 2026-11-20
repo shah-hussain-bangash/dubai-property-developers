@@ -1,4 +1,3 @@
-
 """Durable registration of expired-job recovery operations.
 
 Recovery of the background job and creation of its tracking
@@ -51,103 +50,82 @@ class PostgresJobRecoveryOperationStore:
         reconciliation. No Redis action occurs here.
         """
 
-        if (
-            not isinstance(tenant_id, str)
-            or not tenant_id.strip()
-        ):
+        if not isinstance(tenant_id, str) or not tenant_id.strip():
             raise ValueError("tenant_id is required")
 
-        if (
-            not isinstance(job_id, str)
-            or not job_id.strip()
-            or len(job_id) > 64
-        ):
+        if not isinstance(job_id, str) or not job_id.strip() or len(job_id) > 64:
             raise ValueError("Invalid job_id")
 
-        if (
-            type(retry_delay_seconds) is not int
-            or retry_delay_seconds < 0
-        ):
-            raise ValueError(
-                "retry_delay_seconds must be nonnegative"
+        if type(retry_delay_seconds) is not int or retry_delay_seconds < 0:
+            raise ValueError("retry_delay_seconds must be nonnegative")
+
+        async with self.session_factory() as session, session.begin():
+            job = await session.scalar(
+                select(BackgroundJob)
+                .join(
+                    Organization,
+                    Organization.id == BackgroundJob.organization_id,
+                )
+                .where(
+                    Organization.slug == tenant_id,
+                    Organization.is_active.is_(True),
+                    BackgroundJob.job_id == job_id,
+                )
+                .with_for_update(of=BackgroundJob)
             )
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                job = await session.scalar(
-                    select(BackgroundJob)
-                    .join(
-                        Organization,
-                        Organization.id
-                        == BackgroundJob.organization_id,
-                    )
-                    .where(
-                        Organization.slug == tenant_id,
-                        Organization.is_active.is_(True),
-                        BackgroundJob.job_id == job_id,
-                    )
-                    .with_for_update(of=BackgroundJob)
-                )
+            if job is None:
+                return None
 
-                if job is None:
-                    return None
+            # Evaluate expiry after acquiring the row lock.
+            # A heartbeat may have renewed the lease while
+            # this transaction waited.
+            now = datetime.now(UTC)
 
-                # Evaluate expiry after acquiring the row lock.
-                # A heartbeat may have renewed the lease while
-                # this transaction waited.
-                now = datetime.now(UTC)
+            if (
+                job.status != "processing"
+                or job.lease_expires_at is None
+                or job.lease_expires_at > now
+            ):
+                return None
 
-                if (
-                    job.status != "processing"
-                    or job.lease_expires_at is None
-                    or job.lease_expires_at > now
-                ):
-                    return None
+            if job.attempts < 1:
+                raise RuntimeError("Processing job has no recorded attempt")
 
-                if job.attempts < 1:
-                    raise RuntimeError(
-                        "Processing job has no recorded attempt"
-                    )
+            operation_id = uuid.uuid4()
 
-                operation_id = uuid.uuid4()
+            operation = JobRecoveryOperation(
+                id=operation_id,
+                organization_id=job.organization_id,
+                job_id=job.job_id,
+                job_attempt=job.attempts,
+                status="pending",
+                attempts=0,
+            )
 
-                operation = JobRecoveryOperation(
-                    id=operation_id,
-                    organization_id=job.organization_id,
-                    job_id=job.job_id,
-                    job_attempt=job.attempts,
-                    status="pending",
-                    attempts=0,
-                )
+            # Create the recovery record in the SAME
+            # transaction as the job state transition.
+            session.add(operation)
 
-                # Create the recovery record in the SAME
-                # transaction as the job state transition.
-                session.add(operation)
+            exhausted = job.attempts >= job.max_attempts
 
-                exhausted = job.attempts >= job.max_attempts
+            # Invalidate the original worker's ownership.
+            job.worker_id = None
+            job.lease_token = None
+            job.lease_expires_at = None
+            job.error_code = "timeout"
 
-                # Invalidate the original worker's ownership.
-                job.worker_id = None
-                job.lease_token = None
-                job.lease_expires_at = None
-                job.error_code = "timeout"
+            if exhausted:
+                job.status = "failed"
+                job.next_retry_at = None
+                job.finished_at = now
+            else:
+                job.status = "retrying"
+                job.next_retry_at = now + timedelta(seconds=retry_delay_seconds)
+                job.finished_at = None
 
-                if exhausted:
-                    job.status = "failed"
-                    job.next_retry_at = None
-                    job.finished_at = now
-                else:
-                    job.status = "retrying"
-                    job.next_retry_at = (
-                        now
-                        + timedelta(
-                            seconds=retry_delay_seconds
-                        )
-                    )
-                    job.finished_at = None
+            # Both changes commit together. A failure
+            # rolls back both the job and the operation.
+            await session.flush()
 
-                # Both changes commit together. A failure
-                # rolls back both the job and the operation.
-                await session.flush()
-
-                return operation_id
+            return operation_id

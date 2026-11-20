@@ -1,4 +1,3 @@
-
 """Transactional outbox model for reliable background-job publishing.
 
 Stores encrypted job-envelope data awaiting publication to Redis.

@@ -1,4 +1,3 @@
-
 """Unit tests for PostgreSQL lease heartbeat management.
 
 Uses mocked database operations. No real services are contacted.
@@ -19,9 +18,7 @@ from apps.worker.jobs.lease_heartbeat import (
 
 
 def make_store(*, renewed=True):
-    return SimpleNamespace(
-        heartbeat=AsyncMock(return_value=renewed)
-    )
+    return SimpleNamespace(heartbeat=AsyncMock(return_value=renewed))
 
 
 async def run_test_handler(store, coroutine, *, interval=0.01):
@@ -96,9 +93,7 @@ async def test_rejected_heartbeat_cancels_handler():
 @pytest.mark.asyncio
 async def test_database_heartbeat_error_stops_handler():
     store = make_store()
-    store.heartbeat.side_effect = ConnectionError(
-        "Fictional database outage"
-    )
+    store.heartbeat.side_effect = ConnectionError("Fictional database outage")
 
     handler_cancelled = asyncio.Event()
 
@@ -144,9 +139,7 @@ async def test_caller_cancellation_stops_handler():
         finally:
             handler_cancelled.set()
 
-    task = asyncio.create_task(
-        run_test_handler(store, handler())
-    )
+    task = asyncio.create_task(run_test_handler(store, handler()))
 
     await asyncio.wait_for(handler_started.wait(), timeout=2)
 

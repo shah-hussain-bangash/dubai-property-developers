@@ -14,14 +14,19 @@ from workflows.runtime import PlatformRuntime
 
 CASES = [
     EvalCase("Demo Creek Heights payment plan", frozenset({"demo-creek-heights-payment-plan"})),
-    EvalCase("how do I reserve a unit and sign the sales agreement", frozenset({"faq-buying-process"})),
+    EvalCase(
+        "how do I reserve a unit and sign the sales agreement", frozenset({"faq-buying-process"})
+    ),
     EvalCase("can I schedule viewings of the show homes", frozenset({"faq-buying-process"})),
 ]
 
 
 async def test_demo_corpus_retrieval_quality(runtime: PlatformRuntime) -> None:
     report = await evaluate_retrieval(
-        runtime.retriever, CASES, RetrievalFilter(tenant_id=TENANT, access_levels={AccessLevel.PUBLIC}), k=2
+        runtime.retriever,
+        CASES,
+        RetrievalFilter(tenant_id=TENANT, access_levels={AccessLevel.PUBLIC}),
+        k=2,
     )
     assert report.cases == 3
     assert report.recall_at_k == 1.0

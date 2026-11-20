@@ -44,7 +44,9 @@ class SalesConversationAgent(BaseAgent[SalesConversationInput, SalesConversation
     input_model = SalesConversationInput
     output_model = SalesConversationOutput
 
-    async def execute(self, data: SalesConversationInput, ctx: ExecutionContext) -> SalesConversationOutput:
+    async def execute(
+        self, data: SalesConversationInput, ctx: ExecutionContext
+    ) -> SalesConversationOutput:
         text = sanitize_text(data.message.text)
         intent = detect_intent(text)
         language = data.message.language or detect_language(text)
@@ -71,7 +73,10 @@ class SalesConversationAgent(BaseAgent[SalesConversationInput, SalesConversation
                 is_template=True,
             )
             return SalesConversationOutput(
-                intent=intent, language=language, draft=draft, injection_signals=list(injection.signals)
+                intent=intent,
+                language=language,
+                draft=draft,
+                injection_signals=list(injection.signals),
             )
 
         citations: list[Citation] = []
@@ -90,12 +95,16 @@ class SalesConversationAgent(BaseAgent[SalesConversationInput, SalesConversation
 
         escalate = intent == CustomerIntent.PAYMENT_PLAN and not citations
         draft = DraftReply(
-            text=render_reply(language, intent if not escalate else CustomerIntent.GENERAL, name, context),
+            text=render_reply(
+                language, intent if not escalate else CustomerIntent.GENERAL, name, context
+            ),
             channel=data.message.channel,
             language=language,
             requires_approval=True,
             escalate=escalate,
-            escalation_reason="no authorized, current document answers this question" if escalate else None,
+            escalation_reason="no authorized, current document answers this question"
+            if escalate
+            else None,
             citations=citations,
             is_template=True,
         )

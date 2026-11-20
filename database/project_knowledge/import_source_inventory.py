@@ -1,4 +1,4 @@
-﻿"""Prepare a validated PostgreSQL source-reference import."""
+"""Prepare a validated PostgreSQL source-reference import."""
 
 import json
 import re
@@ -13,15 +13,21 @@ DESTINATION = FOLDER / "003_import_source_inventory.sql"
 PROJECT_KEY = "dubai-real-estate-ai"
 
 ALLOWED_EXTENSIONS = {
-    ".py", ".ts", ".tsx", ".js", ".jsx",
-    ".sql", ".md", ".yaml", ".yml", ".toml",
+    ".py",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".sql",
+    ".md",
+    ".yaml",
+    ".yml",
+    ".toml",
     ".ini",
 }
 
 if DESTINATION.exists():
-    raise RuntimeError(
-        "SQL import already exists. Review it before regenerating."
-    )
+    raise RuntimeError("SQL import already exists. Review it before regenerating.")
 
 inventory = json.loads(SOURCE.read_text(encoding="utf-8"))
 
@@ -47,13 +53,7 @@ for record in records:
 
     parsed = PurePosixPath(path)
 
-    if (
-        not path
-        or parsed.is_absolute()
-        or "\\" in path
-        or ".." in parsed.parts
-        or path in seen
-    ):
+    if not path or parsed.is_absolute() or "\\" in path or ".." in parsed.parts or path in seen:
         raise ValueError(f"Unsafe or duplicate source path: {path}")
 
     if extension not in ALLOWED_EXTENSIONS:
@@ -65,21 +65,20 @@ for record in records:
     if not isinstance(size, int) or not 0 <= size <= 2000000:
         raise ValueError("Invalid file size")
 
-    if (
-        not isinstance(digest, str)
-        or not re.fullmatch(r"[a-f0-9]{64}", digest)
-    ):
+    if not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest):
         raise ValueError("Invalid SHA-256 digest")
 
     seen.add(path)
 
-    validated.append({
-        "reference_key": "source:" + path,
-        "reference_type": "source_file",
-        "source_path": path,
-        "description": f"{extension} source file; {size} bytes",
-        "content_sha256": digest,
-    })
+    validated.append(
+        {
+            "reference_key": "source:" + path,
+            "reference_type": "source_file",
+            "source_path": path,
+            "description": f"{extension} source file; {size} bytes",
+            "content_sha256": digest,
+        }
+    )
 
 # SQL string escaping, including any unusual path characters.
 payload = json.dumps(
@@ -137,7 +136,7 @@ WHERE p.project_key = '{PROJECT_KEY}'
 ON CONFLICT (project_id, reference_key) DO NOTHING;
 
 COMMIT;
-"""
+"""  # noqa: S608 -- Escaped JSON/fixed metadata in an offline SQL generator.
 
 DESTINATION.write_text(sql, encoding="utf-8")
 
