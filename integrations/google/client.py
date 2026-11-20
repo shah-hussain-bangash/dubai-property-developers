@@ -59,7 +59,13 @@ class MockCalendarClient:
             raise ValueError("event end must be after start")
         event_id = f"mock-event-{next(self._ids):05d}"
         self.events.append(
-            {"id": event_id, "summary": summary, "start": start, "end": end, "attendees": attendee_emails}
+            {
+                "id": event_id,
+                "summary": summary,
+                "start": start,
+                "end": end,
+                "attendees": attendee_emails,
+            }
         )
         self._seen[idempotency_key] = event_id
         return event_id

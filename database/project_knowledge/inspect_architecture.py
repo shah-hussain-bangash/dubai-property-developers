@@ -1,4 +1,4 @@
-﻿"""Read-only Python architecture inspection."""
+"""Read-only Python architecture inspection."""
 
 import ast
 import json
@@ -26,22 +26,18 @@ for entry in inventory["files"]:
         source = file_path.read_text(encoding="utf-8-sig")
         tree = ast.parse(source, filename=path)
     except (OSError, UnicodeError, SyntaxError) as error:
-        items.append({
-            "path": path,
-            "inspection_error": type(error).__name__,
-        })
+        items.append(
+            {
+                "path": path,
+                "inspection_error": type(error).__name__,
+            }
+        )
         continue
 
-    classes = [
-        node.name
-        for node in tree.body
-        if isinstance(node, ast.ClassDef)
-    ]
+    classes = [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
 
     functions = [
-        node.name
-        for node in tree.body
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        node.name for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     ]
 
     if (
@@ -50,11 +46,13 @@ for entry in inventory["files"]:
         or "orchestrat" in path.lower()
         or "registry" in path.lower()
     ):
-        items.append({
-            "path": path,
-            "classes": classes,
-            "functions": functions,
-        })
+        items.append(
+            {
+                "path": path,
+                "classes": classes,
+                "functions": functions,
+            }
+        )
 
 print("PROJECT ARCHITECTURE INSPECTION")
 print("Relevant Python modules:", len(items))

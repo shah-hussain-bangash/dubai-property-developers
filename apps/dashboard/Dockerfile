@@ -1,16 +1,14 @@
 # syntax=docker/dockerfile:1
 
 # ---- deps: install node_modules from the lockfile ----
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
-COPY package.json package-lock.json* ./
-# `npm ci` requires package-lock.json. Generate it once with `npm install`
-# and commit it; the fallback keeps first builds working without one.
-RUN if [ -f package-lock.json ]; then npm ci; else echo "package-lock.json missing - falling back to npm install" && npm install; fi
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
 
 # ---- builder: compile the Next.js standalone output ----
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
@@ -22,7 +20,7 @@ COPY . .
 RUN npm run build
 
 # ---- runner: minimal runtime image, non-root ----
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

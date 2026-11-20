@@ -9,7 +9,6 @@ because its owner disappears or a timeout has elapsed.
 from __future__ import annotations
 
 import uuid
-
 from datetime import datetime
 from typing import Any
 

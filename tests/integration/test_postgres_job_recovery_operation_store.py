@@ -1,4 +1,3 @@
-
 """Integration tests for transactional job recovery registration.
 
 Requires RUN_INTEGRATION_TESTS=1 and PostgreSQL migration 0006.
@@ -32,7 +31,6 @@ from database.sessions.engine import (
     create_session_factory,
 )
 
-
 pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.skipif(
@@ -62,22 +60,15 @@ async def recovery_setup():
     finally:
         try:
             if created_ids:
-                async with factory() as session:
-                    async with session.begin():
-                        await session.execute(
-                            delete(JobRecoveryOperation).where(
-                                JobRecoveryOperation.job_id.in_(
-                                    created_ids
-                                )
-                            )
+                async with factory() as session, session.begin():
+                    await session.execute(
+                        delete(JobRecoveryOperation).where(
+                            JobRecoveryOperation.job_id.in_(created_ids)
                         )
-                        await session.execute(
-                            delete(BackgroundJob).where(
-                                BackgroundJob.job_id.in_(
-                                    created_ids
-                                )
-                            )
-                        )
+                    )
+                    await session.execute(
+                        delete(BackgroundJob).where(BackgroundJob.job_id.in_(created_ids))
+                    )
         finally:
             await engine.dispose()
 
@@ -110,26 +101,18 @@ async def create_job(
 
 
 async def expire_job(factory, record_id):
-    async with factory() as session:
-        async with session.begin():
-            await session.execute(
-                update(BackgroundJob)
-                .where(BackgroundJob.id == record_id)
-                .values(
-                    lease_expires_at=(
-                        datetime.now(UTC)
-                        - timedelta(minutes=5)
-                    )
-                )
-            )
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(BackgroundJob)
+            .where(BackgroundJob.id == record_id)
+            .values(lease_expires_at=(datetime.now(UTC) - timedelta(minutes=5)))
+        )
 
 
 async def find_operations(factory, job_id):
     async with factory() as session:
         result = await session.scalars(
-            select(JobRecoveryOperation).where(
-                JobRecoveryOperation.job_id == job_id
-            )
+            select(JobRecoveryOperation).where(JobRecoveryOperation.job_id == job_id)
         )
         return list(result.all())
 
@@ -167,12 +150,15 @@ async def test_expired_job_and_operation_commit_together(
     assert operations[0].attempts == 0
 
     # The previous owner cannot complete its expired attempt.
-    assert await jobs.complete(
-        "demo-org",
-        job_id,
-        "fictional-worker-A",
-        token,
-    ) is False
+    assert (
+        await jobs.complete(
+            "demo-org",
+            job_id,
+            "fictional-worker-A",
+            token,
+        )
+        is False
+    )
 
 
 async def test_active_lease_is_not_recovered(recovery_setup):
@@ -281,18 +267,17 @@ async def test_constraint_error_rolls_back_job_transition(
     # Deliberately create an operation for this attempt.
     # The next recovery will violate the unique constraint.
     # Its background-job update must be rolled back too.
-    async with factory() as session:
-        async with session.begin():
-            session.add(
-                JobRecoveryOperation(
-                    id=uuid.uuid4(),
-                    organization_id=record.organization_id,
-                    job_id=job_id,
-                    job_attempt=1,
-                    status="pending",
-                    attempts=0,
-                )
+    async with factory() as session, session.begin():
+        session.add(
+            JobRecoveryOperation(
+                id=uuid.uuid4(),
+                organization_id=record.organization_id,
+                job_id=job_id,
+                job_attempt=1,
+                status="pending",
+                attempts=0,
             )
+        )
 
     with pytest.raises(IntegrityError):
         await recovery.begin_expired_recovery(

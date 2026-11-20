@@ -1,0 +1,1 @@
+These immutable source snapshots support the browser-readiness migration comparison. They contain no database records and are never executed by that check. Keep them byte-identical to the corresponding active migration when publishing this reviewed baseline.

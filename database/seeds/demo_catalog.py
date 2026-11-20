@@ -43,7 +43,7 @@ def _listing(listing_id: str, **values: object) -> PropertyListing:
         source=DEMO_SOURCE,
         is_demo=True,
         data_as_of=DEMO_AS_OF,
-        **values,  # type: ignore[arg-type]
+        **values,
     )
 
 

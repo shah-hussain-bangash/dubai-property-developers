@@ -13,28 +13,124 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 REQUIRED = [
-    "apps/api/app/main.py", "apps/api/Dockerfile", "apps/dashboard/package.json", "apps/dashboard/Dockerfile",
-    "apps/worker/main.py", "apps/worker/Dockerfile", "workflows/lead_flow.py", "workflows/qualification_flow.py",
-    "workflows/property_flow.py", "workflows/sales_flow.py", "workflows/followup_flow.py",
-    "workflows/customer_support_flow.py", ".env.example", ".gitignore", ".dockerignore", "pyproject.toml",
-    "docker-compose.yml", "Makefile", "README.md", "ARCHITECTURE.md", "CLAUDE.md", "alembic.ini",
+    "apps/api/app/main.py",
+    "apps/api/Dockerfile",
+    "apps/dashboard/package.json",
+    "apps/dashboard/Dockerfile",
+    "apps/worker/main.py",
+    "apps/worker/Dockerfile",
+    "workflows/lead_flow.py",
+    "workflows/qualification_flow.py",
+    "workflows/property_flow.py",
+    "workflows/sales_flow.py",
+    "workflows/followup_flow.py",
+    "workflows/customer_support_flow.py",
+    ".env.example",
+    ".gitignore",
+    ".dockerignore",
+    "pyproject.toml",
+    "docker-compose.yml",
+    "Makefile",
+    "README.md",
+    "ARCHITECTURE.md",
+    "CLAUDE.md",
+    "alembic.ini",
 ]
 REQUIRED_DIRS = [
-    *(f"agents/{a}" for a in (
-        "supervisor", "lead_intake", "qualification", "property_recommendation", "sales_conversation",
-        "followup", "crm", "email", "whatsapp", "voice", "marketing", "documents", "analytics")),
-    *(f"core/{c}" for c in ("config", "llm", "memory", "policies", "security", "observability", "exceptions", "events")),
-    *(f"tools/{t}" for t in ("crm", "whatsapp", "email", "calendar", "property", "documents", "search", "analytics")),
-    *(f"integrations/{i}" for i in ("espocrm", "meta", "google", "propertyfinder", "bayut", "telephony", "n8n", "slack")),
-    *(f"schemas/{s}" for s in ("leads", "properties", "conversations", "agents", "integrations", "events")),
+    *(
+        f"agents/{a}"
+        for a in (
+            "supervisor",
+            "lead_intake",
+            "qualification",
+            "property_recommendation",
+            "sales_conversation",
+            "followup",
+            "crm",
+            "email",
+            "whatsapp",
+            "voice",
+            "marketing",
+            "documents",
+            "analytics",
+        )
+    ),
+    *(
+        f"core/{c}"
+        for c in (
+            "config",
+            "llm",
+            "memory",
+            "policies",
+            "security",
+            "observability",
+            "exceptions",
+            "events",
+        )
+    ),
+    *(
+        f"tools/{t}"
+        for t in (
+            "crm",
+            "whatsapp",
+            "email",
+            "calendar",
+            "property",
+            "documents",
+            "search",
+            "analytics",
+        )
+    ),
+    *(
+        f"integrations/{i}"
+        for i in (
+            "espocrm",
+            "meta",
+            "google",
+            "propertyfinder",
+            "bayut",
+            "telephony",
+            "n8n",
+            "slack",
+        )
+    ),
+    *(
+        f"schemas/{s}"
+        for s in ("leads", "properties", "conversations", "agents", "integrations", "events")
+    ),
     *(f"database/{d}" for d in ("models", "migrations", "repositories", "seeds", "sessions")),
-    *(f"knowledge/{k}" for k in ("ingestion", "retrieval", "embeddings", "vectorstores", "documents", "evaluation")),
-    *(f"tests/{t}" for t in ("unit", "integration", "agents", "workflows", "security", "evaluations")),
-    "scripts/setup", "scripts/maintenance", "scripts/development",
-    *(f"docs/{d}" for d in ("architecture", "api", "agents", "deployment", "security", "development")),
-    "docker/postgres", "docker/redis", "docker/monitoring", ".github/workflows", ".vscode",
+    *(
+        f"knowledge/{k}"
+        for k in ("ingestion", "retrieval", "embeddings", "vectorstores", "documents", "evaluation")
+    ),
+    *(
+        f"tests/{t}"
+        for t in ("unit", "integration", "agents", "workflows", "security", "evaluations")
+    ),
+    "scripts/setup",
+    "scripts/maintenance",
+    "scripts/development",
+    *(
+        f"docs/{d}"
+        for d in ("architecture", "api", "agents", "deployment", "security", "development")
+    ),
+    "docker/postgres",
+    "docker/redis",
+    "docker/monitoring",
+    ".github/workflows",
+    ".vscode",
 ]
-PACKAGES = ["apps", "agents", "core", "tools", "integrations", "schemas", "database", "knowledge", "workflows"]
+PACKAGES = [
+    "apps",
+    "agents",
+    "core",
+    "tools",
+    "integrations",
+    "schemas",
+    "database",
+    "knowledge",
+    "workflows",
+]
 
 
 def main() -> int:
@@ -50,7 +146,7 @@ def main() -> int:
             try:
                 importlib.import_module(info.name)
                 imported += 1
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 errors.append(f"import failed: {info.name}: {type(exc).__name__}: {exc}")
     for error in errors:
         print(error)

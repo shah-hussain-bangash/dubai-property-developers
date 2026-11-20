@@ -1,4 +1,4 @@
-﻿"""Generate third-batch rollback test from validated second-batch SQL."""
+"""Generate third-batch rollback test from validated second-batch SQL."""
 
 import csv
 import hashlib
@@ -12,7 +12,7 @@ OUTPUT = ROOT / "database/project_knowledge/026_test_registration_batch3.sql"
 DB = "dubai_ai_knowledge_verify_20261019_095633"
 
 
-def main():
+def main() -> None:
     if OUTPUT.exists():
         raise RuntimeError("Step 378 SQL already exists. Stop.")
 
@@ -95,11 +95,7 @@ def main():
     if old_values is None:
         raise RuntimeError("Source VALUES section missing")
 
-    sql = (
-        sql[:old_values.start(1)]
-        + ",\n".join(values)
-        + sql[old_values.end(1):]
-    )
+    sql = sql[: old_values.start(1)] + ",\n".join(values) + sql[old_values.end(1) :]
 
     # Update verified baseline and temporary test totals.
     if sql.count("<> 335") != 4:

@@ -6,7 +6,13 @@ from agents.base.context import ExecutionContext
 from core.security.rbac import Principal, Role
 from schemas.events.models import ExternalRecordEvent, SyncOperation
 from tests.factories import TENANT, submission
-from workflows.crm_sync_flow import CRM_SYNC, CRMSyncState, LocalRecordSnapshot, SyncDecision, resolve
+from workflows.crm_sync_flow import (
+    CRM_SYNC,
+    CRMSyncState,
+    LocalRecordSnapshot,
+    SyncDecision,
+    resolve,
+)
 from workflows.customer_support_flow import KNOWLEDGE_SUPPORT, SupportFlowState
 from workflows.engine.core import WorkflowStatus
 from workflows.followup_flow import FOLLOWUP_AUTOMATION, FollowUpFlowState
@@ -19,18 +25,28 @@ from workflows.sales_flow import SALES_CONVERSATION, SalesFlowState
 
 def test_all_six_primary_workflows_registered() -> None:
     required = {
-        "lead_processing", "property_recommendation", "sales_conversation",
-        "followup_automation", "crm_sync", "knowledge_support",
+        "lead_processing",
+        "property_recommendation",
+        "sales_conversation",
+        "followup_automation",
+        "crm_sync",
+        "knowledge_support",
     }
     assert required <= set(WORKFLOWS)
     assert all(d.steps for d in workflow_descriptors())
 
 
 async def test_lead_processing_end_to_end(runtime: PlatformRuntime, ctx: ExecutionContext) -> None:
-    run, state = await runtime.runner.run(LEAD_PROCESSING, LeadFlowState(submission=submission()), ctx)
+    run, state = await runtime.runner.run(
+        LEAD_PROCESSING, LeadFlowState(submission=submission()), ctx
+    )
     assert run.status == WorkflowStatus.SUCCEEDED, run.error
     assert [s.name for s in run.steps] == [
-        "validate_normalize_deduplicate", "duplicate_gate", "qualify", "route", "store_in_crm",
+        "validate_normalize_deduplicate",
+        "duplicate_gate",
+        "qualify",
+        "route",
+        "store_in_crm",
     ]
     assert state.lead and state.lead.phone_e164 == "+971500000001"
     assert state.qualification and state.routing and state.routing.queue == "sales-priority"
@@ -39,7 +55,9 @@ async def test_lead_processing_end_to_end(runtime: PlatformRuntime, ctx: Executi
     assert crm_record["source"] == "Web Site"
 
     # Same person again -> stops at the duplicate gate, no second CRM record.
-    run2, state2 = await runtime.runner.run(LEAD_PROCESSING, LeadFlowState(submission=submission()), ctx)
+    run2, state2 = await runtime.runner.run(
+        LEAD_PROCESSING, LeadFlowState(submission=submission()), ctx
+    )
     assert run2.status == WorkflowStatus.SUCCEEDED and state2.is_duplicate
     assert run2.steps[-1].name == "duplicate_gate" and state2.crm is None
     assert len(runtime.integrations.crm.leads) == 1  # type: ignore[attr-defined]
@@ -55,9 +73,13 @@ async def test_lead_processing_fails_cleanly_on_bad_lead(
     assert run.error and run.error["code"] == "workflow_error"
 
 
-async def test_property_recommendation_flow(runtime: PlatformRuntime, ctx: ExecutionContext) -> None:
+async def test_property_recommendation_flow(
+    runtime: PlatformRuntime, ctx: ExecutionContext
+) -> None:
     run, state = await runtime.runner.run(
-        PROPERTY_RECOMMENDATION, PropertyFlowState(criteria={"budget_max_aed": "7000000"}), ctx  # type: ignore[arg-type]
+        PROPERTY_RECOMMENDATION,
+        PropertyFlowState(criteria={"budget_max_aed": "7000000"}),
+        ctx,  # type: ignore[arg-type]
     )
     assert run.status == WorkflowStatus.SUCCEEDED
     assert state.output and state.output.recommendations
@@ -86,7 +108,9 @@ async def test_sales_flow_whatsapp_reply_awaits_approval(
     assert runtime.integrations.whatsapp.outbox == []  # type: ignore[attr-defined]
 
 
-async def test_sales_flow_escalates_complaint(runtime: PlatformRuntime, ctx: ExecutionContext) -> None:
+async def test_sales_flow_escalates_complaint(
+    runtime: PlatformRuntime, ctx: ExecutionContext
+) -> None:
     state = SalesFlowState.model_validate(
         {
             "message": {
@@ -119,7 +143,9 @@ async def test_followup_flow_then_human_approval_sends(
         ]
     }
     run, state = await runtime.runner.run(
-        FOLLOWUP_AUTOMATION, FollowUpFlowState(request=request), system_ctx  # type: ignore[arg-type]
+        FOLLOWUP_AUTOMATION,
+        FollowUpFlowState(request=request),
+        system_ctx,  # type: ignore[arg-type]
     )
     assert run.status == WorkflowStatus.PENDING_APPROVAL
     assert state.plan
@@ -136,26 +162,42 @@ async def test_followup_flow_then_human_approval_sends(
 def test_crm_conflict_resolution_rules() -> None:
     t0 = datetime(2026, 1, 1, tzinfo=UTC)
     event = ExternalRecordEvent(
-        source_system="espocrm", entity_type="lead", external_id="e1",
-        operation=SyncOperation.UPDATE, occurred_at=t0 + timedelta(hours=2), data={"status": "In Process"},
+        source_system="espocrm",
+        entity_type="lead",
+        external_id="e1",
+        operation=SyncOperation.UPDATE,
+        occurred_at=t0 + timedelta(hours=2),
+        data={"status": "In Process"},
     )
     clean = LocalRecordSnapshot(local_id="l1", updated_at=t0, last_synced_at=t0)
-    dirty_newer = LocalRecordSnapshot(local_id="l1", updated_at=t0 + timedelta(hours=3), last_synced_at=t0)
+    dirty_newer = LocalRecordSnapshot(
+        local_id="l1", updated_at=t0 + timedelta(hours=3), last_synced_at=t0
+    )
     assert resolve(event, None) == SyncDecision.CREATE_LOCAL
     assert resolve(event, clean) == SyncDecision.APPLY_EXTERNAL
     assert resolve(event, dirty_newer) == SyncDecision.CONFLICT
-    assert resolve(event.model_copy(update={"operation": SyncOperation.DELETE}), clean) == SyncDecision.CONFLICT
+    assert (
+        resolve(event.model_copy(update={"operation": SyncOperation.DELETE}), clean)
+        == SyncDecision.CONFLICT
+    )
 
 
-async def test_crm_sync_flow_applies_and_audits(runtime: PlatformRuntime, system_ctx: ExecutionContext) -> None:
+async def test_crm_sync_flow_applies_and_audits(
+    runtime: PlatformRuntime, system_ctx: ExecutionContext
+) -> None:
     t0 = datetime(2026, 1, 1, tzinfo=UTC)
     state = CRMSyncState(
         event=ExternalRecordEvent(
-            source_system="espocrm", entity_type="lead", external_id="e1",
-            operation=SyncOperation.UPDATE, occurred_at=t0 + timedelta(hours=1),
+            source_system="espocrm",
+            entity_type="lead",
+            external_id="e1",
+            operation=SyncOperation.UPDATE,
+            occurred_at=t0 + timedelta(hours=1),
             data={"status": "In Process", "firstName": "Demo"},
         ),
-        local=LocalRecordSnapshot(local_id="l1", updated_at=t0, last_synced_at=t0, data={"firstName": "Demo"}),
+        local=LocalRecordSnapshot(
+            local_id="l1", updated_at=t0, last_synced_at=t0, data={"firstName": "Demo"}
+        ),
     )
     run, final = await runtime.runner.run(CRM_SYNC, state, system_ctx)
     assert run.status == WorkflowStatus.SUCCEEDED
@@ -164,7 +206,9 @@ async def test_crm_sync_flow_applies_and_audits(runtime: PlatformRuntime, system
     assert events[-1].event_type == "crm.sync.processed"
 
 
-async def test_knowledge_support_answer_and_handoff(runtime: PlatformRuntime, ctx: ExecutionContext) -> None:
+async def test_knowledge_support_answer_and_handoff(
+    runtime: PlatformRuntime, ctx: ExecutionContext
+) -> None:
     run, state = await runtime.runner.run(
         KNOWLEDGE_SUPPORT, SupportFlowState(question="Demo Creek Heights payment plan"), ctx
     )

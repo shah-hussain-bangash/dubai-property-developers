@@ -1,6 +1,6 @@
 """Cited, public-only knowledge demo using the existing support workflow."""
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, StringConstraints
@@ -31,7 +31,7 @@ async def demo_answer(
     body: DemoKnowledgeQuestion,
     runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.WORKFLOWS_EXECUTE)),
-) -> dict:
+) -> dict[str, Any]:
     _require_isolated_demo(runtime)
     context = ExecutionContext(
         principal=principal,

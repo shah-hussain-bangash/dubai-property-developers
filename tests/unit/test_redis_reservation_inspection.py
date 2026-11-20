@@ -1,4 +1,3 @@
-
 """Unit tests for the read-only Redis reservation inspector.
 
 Development-only.
@@ -14,7 +13,6 @@ import pytest
 from apps.worker.jobs.redis_reservation_inspector import (
     inspect_reservation,
 )
-
 
 PROCESSING = "test:inspection:processing"
 PENDING = "test:inspection:pending"
@@ -47,12 +45,8 @@ async def test_single_processing_reservation():
 
     assert result == "processing"
     assert redis.lpos.await_count == 2
-    redis.lpos.assert_any_await(
-        PROCESSING, RAW, count=0
-    )
-    redis.lpos.assert_any_await(
-        PENDING, RAW, count=0
-    )
+    redis.lpos.assert_any_await(PROCESSING, RAW, count=0)
+    redis.lpos.assert_any_await(PENDING, RAW, count=0)
 
 
 @pytest.mark.asyncio
@@ -93,9 +87,7 @@ async def test_processing_and_pending_is_ambiguous():
 @pytest.mark.asyncio
 async def test_redis_connection_error_propagates():
     redis = AsyncMock()
-    redis.lpos.side_effect = ConnectionError(
-        "Redis unavailable"
-    )
+    redis.lpos.side_effect = ConnectionError("Redis unavailable")
 
     with pytest.raises(ConnectionError):
         await invoke(redis)

@@ -1,13 +1,14 @@
 """Standalone policy tests; do not load application or pytest fixtures."""
+
 import json
 import runpy
 import unittest
 from dataclasses import replace
 from pathlib import Path
 
-namespace = runpy.run_path(str(
-    Path(__file__).resolve().parents[2] / "core/security/account_approval.py"
-))
+namespace = runpy.run_path(
+    str(Path(__file__).resolve().parents[2] / "core/security/account_approval.py")
+)
 AccountAccess = namespace["AccountAccess"]
 AccountStatus = namespace["AccountStatus"]
 decide_account = namespace["decide_account"]
@@ -16,9 +17,7 @@ can_access_dashboard = namespace["can_access_dashboard"]
 
 class AccountApprovalTests(unittest.TestCase):
     def setUp(self):
-        self.owner = AccountAccess(
-            "synthetic-owner", "synthetic-org", AccountStatus.APPROVED
-        )
+        self.owner = AccountAccess("synthetic-owner", "synthetic-org", AccountStatus.APPROVED)
         self.user = AccountAccess("synthetic-user", "synthetic-org")
 
     def decide(self, target=None, actor=None, **changes):
@@ -29,9 +28,7 @@ class AccountApprovalTests(unittest.TestCase):
             "approve": True,
         }
         arguments.update(changes)
-        return decide_account(
-            self.user if target is None else target, **arguments
-        )
+        return decide_account(self.user if target is None else target, **arguments)
 
     def access(self, account, **changes):
         arguments = {
@@ -59,9 +56,7 @@ class AccountApprovalTests(unittest.TestCase):
         self.assertFalse(self.access(rejected))
 
     def test_non_owner_cannot_decide(self):
-        other = AccountAccess(
-            "synthetic-admin", "synthetic-org", AccountStatus.APPROVED
-        )
+        other = AccountAccess("synthetic-admin", "synthetic-org", AccountStatus.APPROVED)
         with self.assertRaises(PermissionError):
             self.decide(actor=other)
 
@@ -70,9 +65,8 @@ class AccountApprovalTests(unittest.TestCase):
             replace(self.owner, status=AccountStatus.PENDING),
             replace(self.owner, is_active=False),
         ):
-            with self.subTest(actor=actor):
-                with self.assertRaises(PermissionError):
-                    self.decide(actor=actor)
+            with self.subTest(actor=actor), self.assertRaises(PermissionError):
+                self.decide(actor=actor)
 
     def test_cross_organization_decision_denied(self):
         with self.assertRaises(PermissionError):
@@ -84,9 +78,8 @@ class AccountApprovalTests(unittest.TestCase):
 
     def test_completed_decision_cannot_be_overwritten(self):
         for status in (AccountStatus.APPROVED, AccountStatus.REJECTED):
-            with self.subTest(status=status):
-                with self.assertRaises(ValueError):
-                    self.decide(target=replace(self.user, status=status))
+            with self.subTest(status=status), self.assertRaises(ValueError):
+                self.decide(target=replace(self.user, status=status))
 
     def test_inactive_account_or_organization_denied(self):
         with self.assertRaises(PermissionError):
@@ -99,14 +92,10 @@ class AccountApprovalTests(unittest.TestCase):
 
     def test_another_users_dashboard_denied(self):
         approved = self.decide()
-        self.assertFalse(self.access(
-            approved, authenticated_subject="different-user"
-        ))
+        self.assertFalse(self.access(approved, authenticated_subject="different-user"))
 
     def test_another_organizations_dashboard_denied(self):
-        self.assertFalse(self.access(
-            self.decide(), authenticated_organization_id="different-org"
-        ))
+        self.assertFalse(self.access(self.decide(), authenticated_organization_id="different-org"))
 
     def test_invalid_status_or_decision_rejected(self):
         with self.assertRaises(ValueError):
@@ -119,11 +108,15 @@ if __name__ == "__main__":
     result = unittest.TextTestRunner(verbosity=2).run(
         unittest.defaultTestLoader.loadTestsFromTestCase(AccountApprovalTests)
     )
-    print(json.dumps({
-        "tests_run": result.testsRun,
-        "failures": len(result.failures),
-        "errors": len(result.errors),
-        "skipped": len(result.skipped),
-        "successful": result.wasSuccessful(),
-    }))
+    print(
+        json.dumps(
+            {
+                "tests_run": result.testsRun,
+                "failures": len(result.failures),
+                "errors": len(result.errors),
+                "skipped": len(result.skipped),
+                "successful": result.wasSuccessful(),
+            }
+        )
+    )
     raise SystemExit(0 if result.wasSuccessful() else 1)

@@ -77,7 +77,9 @@ class MockEspoCRMClient:
 
     async def add_note(self, *, parent_type: str, parent_id: str, text: str) -> str:
         note_id = f"mock-note-{next(self._ids):05d}"
-        self.notes.append({"id": note_id, "parentType": parent_type, "parentId": parent_id, "post": text})
+        self.notes.append(
+            {"id": note_id, "parentType": parent_type, "parentId": parent_id, "post": text}
+        )
         return note_id
 
 

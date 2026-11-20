@@ -1,4 +1,5 @@
 """Synthetic adapter tests. Real Google signatures and callbacks are not tested."""
+
 import runpy
 import time
 import unittest
@@ -13,6 +14,7 @@ GoogleSignInError = namespace["GoogleSignInError"]
 CLIENT = "synthetic-client.apps.googleusercontent.com"
 CALLBACK = "https://app.example.com/api/auth/google/callback"
 
+
 def adapter(**overrides):
     config = {
         "client_id": CLIENT,
@@ -21,6 +23,7 @@ def adapter(**overrides):
     }
     config.update(overrides)
     return GoogleOIDC(**config)
+
 
 def claims(**overrides):
     values = {
@@ -35,8 +38,10 @@ def claims(**overrides):
     values.update(overrides)
     return values
 
+
 def request():
     return SimpleNamespace(scope={"session": {}})
+
 
 class Tests(unittest.IsolatedAsyncioTestCase):
     async def test_real_authlib_client_constructs_without_network(self):
@@ -52,9 +57,7 @@ class Tests(unittest.IsolatedAsyncioTestCase):
         calls = remote.authorize_redirect.await_args_list
         self.assertEqual(calls[0].args[1], CALLBACK)
         self.assertGreaterEqual(len(calls[0].kwargs["nonce"]), 32)
-        self.assertNotEqual(
-            calls[0].kwargs["nonce"], calls[1].kwargs["nonce"]
-        )
+        self.assertNotEqual(calls[0].kwargs["nonce"], calls[1].kwargs["nonce"])
 
     async def test_session_required(self):
         instance = adapter()
@@ -73,9 +76,15 @@ class Tests(unittest.IsolatedAsyncioTestCase):
         instance._client = remote
         result = await instance.complete(request())
         remote.authorize_access_token.assert_awaited_once()
-        self.assertEqual(set(result), {
-            "issuer", "subject", "email", "full_name",
-        })
+        self.assertEqual(
+            set(result),
+            {
+                "issuer",
+                "subject",
+                "email",
+                "full_name",
+            },
+        )
         self.assertEqual(result["subject"], "synthetic-google-subject")
         self.assertNotIn("private-token", str(result))
         self.assertNotIn("approval_status", result)
@@ -99,9 +108,7 @@ class Tests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(values=values):
                 instance = adapter()
                 instance._client = SimpleNamespace(
-                    authorize_access_token=AsyncMock(
-                        return_value={"userinfo": claims(**values)}
-                    )
+                    authorize_access_token=AsyncMock(return_value={"userinfo": claims(**values)})
                 )
                 with self.assertRaises(GoogleSignInError):
                     await instance.complete(request())
@@ -109,9 +116,7 @@ class Tests(unittest.IsolatedAsyncioTestCase):
     async def test_provider_failure_is_sanitized(self):
         instance = adapter()
         instance._client = SimpleNamespace(
-            authorize_access_token=AsyncMock(
-                side_effect=ValueError("private token diagnostic")
-            )
+            authorize_access_token=AsyncMock(side_effect=ValueError("private token diagnostic"))
         )
         with self.assertRaises(GoogleSignInError) as caught:
             await instance.complete(request())
@@ -132,9 +137,8 @@ class Tests(unittest.IsolatedAsyncioTestCase):
             "https://app.example.com/callback?next=elsewhere",
             "https://app.example.com/callback#fragment",
         ):
-            with self.subTest(uri=uri):
-                with self.assertRaises(ValueError):
-                    adapter(redirect_uri=uri)
+            with self.subTest(uri=uri), self.assertRaises(ValueError):
+                adapter(redirect_uri=uri)
         adapter(
             redirect_uri="http://localhost:8000/api/auth/google/callback",
             allow_local_http=True,
@@ -144,6 +148,7 @@ class Tests(unittest.IsolatedAsyncioTestCase):
                 redirect_uri="http://attacker.example/callback",
                 allow_local_http=True,
             )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

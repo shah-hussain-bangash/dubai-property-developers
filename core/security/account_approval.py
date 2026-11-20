@@ -4,6 +4,7 @@ Integration must supply identities from verified server-side authentication,
 the configured owner identity, and current persisted account state.
 Never take these authorization inputs directly from registration/request fields.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
@@ -29,10 +30,7 @@ class AccountAccess:
     def __post_init__(self) -> None:
         if not isinstance(self.subject, str) or not self.subject.strip():
             raise ValueError("subject required")
-        if (
-            not isinstance(self.organization_id, str)
-            or not self.organization_id.strip()
-        ):
+        if not isinstance(self.organization_id, str) or not self.organization_id.strip():
             raise ValueError("organization required")
         if not isinstance(self.status, AccountStatus):
             raise ValueError("invalid account status")

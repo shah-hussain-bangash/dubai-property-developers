@@ -1,4 +1,3 @@
-
 """Tests for PostgreSQL heartbeat cancellation cleanup.
 
 Uses mocked PostgreSQL operations.
@@ -24,9 +23,7 @@ from apps.worker.jobs.lease_heartbeat import (
 
 @pytest.mark.asyncio
 async def test_lease_loss_waits_for_handler_cleanup():
-    store = SimpleNamespace(
-        heartbeat=AsyncMock(return_value=False)
-    )
+    store = SimpleNamespace(heartbeat=AsyncMock(return_value=False))
 
     handler_started = asyncio.Event()
     cleanup_started = asyncio.Event()

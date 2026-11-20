@@ -1,4 +1,3 @@
-
 """Authenticated encryption for background-job envelopes.
 
 AES-256-GCM protects confidentiality and detects ciphertext changes.
@@ -18,7 +17,6 @@ from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from apps.worker.jobs.envelope import JobEnvelope
-
 
 FORMAT_VERSION = b"JBE1"
 NONCE_SIZE = 12
@@ -46,17 +44,11 @@ class JobEnvelopeCipher:
         validated: dict[str, bytes] = {}
 
         for key_id, key in keys.items():
-            if (
-                not isinstance(key_id, str)
-                or not key_id
-                or len(key_id) > 64
-            ):
+            if not isinstance(key_id, str) or not key_id or len(key_id) > 64:
                 raise ValueError("Invalid encryption key identifier")
 
             if not isinstance(key, bytes) or len(key) != 32:
-                raise ValueError(
-                    "Each AES-256 encryption key must contain 32 bytes"
-                )
+                raise ValueError("Each AES-256 encryption key must contain 32 bytes")
 
             validated[key_id] = key
 
@@ -70,9 +62,7 @@ class JobEnvelopeCipher:
         key_id: str,
     ) -> bytes:
         if not tenant_id or not job_id or not key_id:
-            raise ValueError(
-                "Tenant, job, and key identifiers are required"
-            )
+            raise ValueError("Tenant, job, and key identifiers are required")
 
         context = {
             "version": 1,
@@ -139,11 +129,7 @@ class JobEnvelopeCipher:
         if (
             len(ciphertext) < minimum_length
             or not ciphertext.startswith(FORMAT_VERSION)
-            or len(ciphertext)
-            > len(FORMAT_VERSION)
-            + NONCE_SIZE
-            + MAX_PLAINTEXT_BYTES
-            + 16
+            or len(ciphertext) > len(FORMAT_VERSION) + NONCE_SIZE + MAX_PLAINTEXT_BYTES + 16
         ):
             raise JobEncryptionError("Invalid encrypted message format")
 
@@ -169,13 +155,9 @@ class JobEnvelopeCipher:
             job = JobEnvelope.model_validate_json(plaintext)
 
         except (InvalidTag, ValueError) as exc:
-            raise JobEncryptionError(
-                "Job envelope authentication or validation failed"
-            ) from exc
+            raise JobEncryptionError("Job envelope authentication or validation failed") from exc
 
         if job.tenant_id != tenant_id or job.job_id != job_id:
-            raise JobEncryptionError(
-                "Decrypted job identity does not match"
-            )
+            raise JobEncryptionError("Decrypted job identity does not match")
 
         return job

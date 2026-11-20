@@ -1,4 +1,3 @@
-
 """Durable metadata for background-job recovery operations.
 
 Each record represents recovery of a specific execution attempt.

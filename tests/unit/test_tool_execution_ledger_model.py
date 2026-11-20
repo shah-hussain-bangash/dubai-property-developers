@@ -1,10 +1,7 @@
-﻿from __future__ import annotations
-
-import uuid
+from __future__ import annotations
 
 from sqlalchemy import UniqueConstraint, Uuid
 
-import database.models
 from database.models.tool_execution import ToolExecutionLedger
 
 
@@ -42,16 +39,11 @@ def test_execution_ledger_has_unique_tenant_key() -> None:
     table = ToolExecutionLedger.__table__
 
     constraints = [
-        constraint
-        for constraint in table.constraints
-        if isinstance(constraint, UniqueConstraint)
+        constraint for constraint in table.constraints if isinstance(constraint, UniqueConstraint)
     ]
 
     assert any(
-        {
-            column.name
-            for column in constraint.columns
-        } == {"organization_id", "idempotency_key"}
+        {column.name for column in constraint.columns} == {"organization_id", "idempotency_key"}
         for constraint in constraints
     )
 

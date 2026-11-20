@@ -1,4 +1,3 @@
-
 """Unit tests for guarded recovery raw-message validation.
 
 These tests use mocked dependencies and do not access
@@ -74,9 +73,7 @@ async def test_malformed_envelope_is_rejected(
 
 @pytest.mark.asyncio
 async def test_different_job_id_is_rejected(guarded, job):
-    modified = job.model_copy(
-        update={"job_id": "different-job-id"}
-    )
+    modified = job.model_copy(update={"job_id": "different-job-id"})
 
     with pytest.raises(
         ValueError,
@@ -93,9 +90,7 @@ async def test_different_job_id_is_rejected(guarded, job):
 
 @pytest.mark.asyncio
 async def test_different_payload_is_rejected(guarded, job):
-    modified = job.model_copy(
-        update={"payload": {"test": "tampered"}}
-    )
+    modified = job.model_copy(update={"payload": {"test": "tampered"}})
 
     with pytest.raises(
         ValueError,
@@ -112,9 +107,7 @@ async def test_different_payload_is_rejected(guarded, job):
 
 @pytest.mark.asyncio
 async def test_different_tenant_is_rejected(guarded, job):
-    modified = job.model_copy(
-        update={"tenant_id": "other-tenant"}
-    )
+    modified = job.model_copy(update={"tenant_id": "other-tenant"})
 
     with pytest.raises(
         ValueError,
@@ -131,9 +124,7 @@ async def test_different_tenant_is_rejected(guarded, job):
 
 @pytest.mark.asyncio
 async def test_different_max_attempts_is_rejected(guarded, job):
-    modified = job.model_copy(
-        update={"max_attempts": 99}
-    )
+    modified = job.model_copy(update={"max_attempts": 99})
 
     with pytest.raises(
         ValueError,
@@ -150,9 +141,7 @@ async def test_different_max_attempts_is_rejected(guarded, job):
 
 @pytest.mark.asyncio
 async def test_different_attempts_is_rejected(guarded, job):
-    modified = job.model_copy(
-        update={"attempts": 2}
-    )
+    modified = job.model_copy(update={"attempts": 2})
 
     with pytest.raises(
         ValueError,

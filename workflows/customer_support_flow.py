@@ -22,7 +22,9 @@ class SupportFlowState(BaseModel):
 async def retrieve_and_answer(state: SupportFlowState, ctx: WorkflowContext) -> StepOutcome:
     result = await ctx.run_agent(
         "documents",
-        DocumentAgentInput(action=DocumentAction.ANSWER, query=state.question, audience=state.audience),
+        DocumentAgentInput(
+            action=DocumentAction.ANSWER, query=state.question, audience=state.audience
+        ),
     )
     state.answer = DocumentAgentOutput.model_validate(result.output, from_attributes=True)
     return StepOutcome.CONTINUE

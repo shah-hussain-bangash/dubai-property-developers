@@ -1,4 +1,3 @@
-
 """Read-only PostgreSQL recovery coordinator authorization.
 
 Development-only. Not connected to the Docker worker.
@@ -61,24 +60,16 @@ class PostgresRedisRecoveryCoordinator:
         """
 
         if not isinstance(job, JobEnvelope):
-            raise RecoveryAuthorizationError(
-                "Authenticated JobEnvelope is required"
-            )
+            raise RecoveryAuthorizationError("Authenticated JobEnvelope is required")
 
         if not isinstance(operation_id, uuid.UUID):
-            raise RecoveryAuthorizationError(
-                "Valid operation UUID is required"
-            )
+            raise RecoveryAuthorizationError("Valid operation UUID is required")
 
         if not isinstance(worker_id, str) or not worker_id.strip():
-            raise RecoveryAuthorizationError(
-                "worker_id is required"
-            )
+            raise RecoveryAuthorizationError("worker_id is required")
 
         if not isinstance(lease_token, str) or not lease_token.strip():
-            raise RecoveryAuthorizationError(
-                "lease_token is required"
-            )
+            raise RecoveryAuthorizationError("lease_token is required")
 
         now = datetime.now(UTC)
 
@@ -91,23 +82,18 @@ class PostgresRedisRecoveryCoordinator:
             )
 
             if organization_id is None:
-                raise RecoveryAuthorizationError(
-                    "Unknown or inactive organization"
-                )
+                raise RecoveryAuthorizationError("Unknown or inactive organization")
 
             operation = await session.scalar(
                 select(JobRecoveryOperation).where(
                     JobRecoveryOperation.id == operation_id,
-                    JobRecoveryOperation.organization_id
-                    == organization_id,
+                    JobRecoveryOperation.organization_id == organization_id,
                     JobRecoveryOperation.job_id == job.job_id,
                 )
             )
 
             if operation is None:
-                raise RecoveryAuthorizationError(
-                    "Recovery operation does not match job"
-                )
+                raise RecoveryAuthorizationError("Recovery operation does not match job")
 
             if (
                 operation.status != "processing"
@@ -116,9 +102,7 @@ class PostgresRedisRecoveryCoordinator:
                 or operation.lease_expires_at is None
                 or operation.lease_expires_at <= now
             ):
-                raise RecoveryAuthorizationError(
-                    "Recovery lease is not currently owned"
-                )
+                raise RecoveryAuthorizationError("Recovery lease is not currently owned")
 
             record = await session.scalar(
                 select(BackgroundJob).where(
@@ -128,31 +112,19 @@ class PostgresRedisRecoveryCoordinator:
             )
 
             if record is None:
-                raise RecoveryAuthorizationError(
-                    "Background job registration missing"
-                )
+                raise RecoveryAuthorizationError("Background job registration missing")
 
             if (
                 record.job_type != job.job_type
                 or record.max_attempts != job.max_attempts
                 or record.attempts != operation.job_attempt
             ):
-                raise RecoveryAuthorizationError(
-                    "Recovery metadata does not match job"
-                )
+                raise RecoveryAuthorizationError("Recovery metadata does not match job")
 
-            if (
-                record.status == "retrying"
-                and record.attempts < record.max_attempts
-            ):
+            if record.status == "retrying" and record.attempts < record.max_attempts:
                 return "requeue"
 
-            if (
-                record.status == "failed"
-                and record.attempts >= record.max_attempts
-            ):
+            if record.status == "failed" and record.attempts >= record.max_attempts:
                 return "acknowledge"
 
-            raise RecoveryAuthorizationError(
-                "Background job is not eligible for recovery"
-            )
+            raise RecoveryAuthorizationError("Background job is not eligible for recovery")

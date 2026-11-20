@@ -1,4 +1,3 @@
-
 """Atomic Redis recovery transition with durable-operation evidence.
 
 Development-only; not connected to the deployed Docker worker.
@@ -18,7 +17,6 @@ from __future__ import annotations
 
 import uuid
 from typing import Any, Literal
-
 
 RecoveryTransitionResult = Literal[
     "moved",
@@ -124,10 +122,7 @@ async def requeue_with_evidence(
 
     keys = [processing_key, pending_key, evidence_key]
 
-    if any(
-        not isinstance(key, str) or not key.strip()
-        for key in keys
-    ):
+    if any(not isinstance(key, str) or not key.strip() for key in keys):
         raise ValueError("All Redis keys are required")
 
     if len(set(keys)) != 3:
@@ -142,7 +137,7 @@ async def requeue_with_evidence(
         raw,
     )
 
-    outcomes = {
+    outcomes: dict[int, RecoveryTransitionResult] = {
         0: "missing",
         1: "moved",
         2: "already_moved",
@@ -152,6 +147,4 @@ async def requeue_with_evidence(
     try:
         return outcomes[int(result)]
     except (KeyError, TypeError, ValueError) as exc:
-        raise RuntimeError(
-            "Unexpected Redis recovery transition result"
-        ) from exc
+        raise RuntimeError("Unexpected Redis recovery transition result") from exc

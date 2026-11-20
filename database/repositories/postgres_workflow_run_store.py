@@ -1,4 +1,3 @@
-
 """PostgreSQL persistence for workflow execution history.
 
 Uses the existing workflow_executions table.
@@ -11,6 +10,7 @@ are deliberately excluded from this history store.
 from __future__ import annotations
 
 import uuid
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -45,14 +45,12 @@ class PostgresWorkflowRunStore:
         )
 
         if organization_id is None:
-            raise ValueError(
-                f"Unknown or inactive organization: {tenant_id}"
-            )
+            raise ValueError(f"Unknown or inactive organization: {tenant_id}")
 
         return organization_id
 
     @staticmethod
-    def _safe_step_history(run: WorkflowRun) -> dict:
+    def _safe_step_history(run: WorkflowRun) -> dict[str, Any]:
         """Persist only non-sensitive execution metadata."""
 
         return {
@@ -79,60 +77,49 @@ class PostgresWorkflowRunStore:
 
         safe_history = self._safe_step_history(run)
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                organization_id = await self._organization_id(
-                    session,
-                    run.tenant_id,
+        async with self.session_factory() as session, session.begin():
+            organization_id = await self._organization_id(
+                session,
+                run.tenant_id,
+            )
+
+            existing = await session.scalar(
+                select(WorkflowExecution)
+                .where(WorkflowExecution.id == execution_id)
+                .with_for_update()
+            )
+
+            if existing is not None:
+                if existing.organization_id != organization_id:
+                    raise ValueError("Workflow execution belongs to another organization")
+
+                if existing.workflow_key != run.workflow_id:
+                    raise ValueError("Workflow identity cannot be changed")
+
+                record = existing
+
+            else:
+                record = WorkflowExecution(
+                    id=execution_id,
+                    organization_id=organization_id,
+                    workflow_key=run.workflow_id,
                 )
+                session.add(record)
 
-                existing = await session.scalar(
-                    select(WorkflowExecution)
-                    .where(WorkflowExecution.id == execution_id)
-                    .with_for_update()
-                )
+            record.status = run.status.value
+            record.correlation_id = run.correlation_id
+            record.current_step = run.current_step
+            record.state = safe_history
 
-                if existing is not None:
-                    if existing.organization_id != organization_id:
-                        raise ValueError(
-                            "Workflow execution belongs to another organization"
-                        )
+            record.error_code = (
+                str(run.error.get("code", "workflow_error"))[:64] if run.error else None
+            )
 
-                    if existing.workflow_key != run.workflow_id:
-                        raise ValueError(
-                            "Workflow identity cannot be changed"
-                        )
+            # Never persist raw exception text or customer details.
+            record.error_message = "Workflow execution failed" if run.error else None
 
-                    record = existing
-
-                else:
-                    record = WorkflowExecution(
-                        id=execution_id,
-                        organization_id=organization_id,
-                        workflow_key=run.workflow_id,
-                    )
-                    session.add(record)
-
-                record.status = run.status.value
-                record.correlation_id = run.correlation_id
-                record.current_step = run.current_step
-                record.state = safe_history
-
-                record.error_code = (
-                    str(run.error.get("code", "workflow_error"))[:64]
-                    if run.error
-                    else None
-                )
-
-                # Never persist raw exception text or customer details.
-                record.error_message = (
-                    "Workflow execution failed"
-                    if run.error
-                    else None
-                )
-
-                record.started_at = run.started_at
-                record.finished_at = run.finished_at
+            record.started_at = run.started_at
+            record.finished_at = run.finished_at
 
     async def get(
         self,
@@ -149,9 +136,12 @@ class PostgresWorkflowRunStore:
                 tenant_id,
             )
 
-            return await session.scalar(
-                select(WorkflowExecution).where(
-                    WorkflowExecution.id == parsed_id,
-                    WorkflowExecution.organization_id == organization_id,
-                )
+            return cast(
+                WorkflowExecution | None,
+                await session.scalar(
+                    select(WorkflowExecution).where(
+                        WorkflowExecution.id == parsed_id,
+                        WorkflowExecution.organization_id == organization_id,
+                    )
+                ),
             )

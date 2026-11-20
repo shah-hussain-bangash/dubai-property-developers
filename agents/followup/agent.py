@@ -56,16 +56,22 @@ class FollowUpAgent(BaseAgent[FollowUpInput, FollowUpPlan]):
         if task.channel == Channel.EMAIL and not task.email:
             return SkippedTask(task_id=task.task_id, reason="no email address")
         if task.channel not in {Channel.WHATSAPP, Channel.EMAIL}:
-            return SkippedTask(task_id=task.task_id, reason=f"channel {task.channel.value} not automated")
+            return SkippedTask(
+                task_id=task.task_id, reason=f"channel {task.channel.value} not automated"
+            )
         return None
 
-    def _send_request(self, task: FollowUpTask, subject: str, body: str) -> tuple[str, dict[str, Any]]:
+    def _send_request(
+        self, task: FollowUpTask, subject: str, body: str
+    ) -> tuple[str, dict[str, Any]]:
         key = f"followup:{task.task_id}:{task.attempts}"
         if task.channel == Channel.WHATSAPP:
             return "whatsapp.send_message", {
                 "to_e164": task.to_e164,
                 "consent_whatsapp": task.consent_whatsapp,
-                "last_inbound_at": task.last_inbound_at.isoformat() if task.last_inbound_at else None,
+                "last_inbound_at": task.last_inbound_at.isoformat()
+                if task.last_inbound_at
+                else None,
                 "template_name": WHATSAPP_FOLLOWUP_TEMPLATE,
                 "language_code": "en",
                 "idempotency_key": key,
@@ -92,13 +98,18 @@ class FollowUpAgent(BaseAgent[FollowUpInput, FollowUpPlan]):
                 )
                 continue
             if now - task.due_at > OVERDUE_ESCALATION:
-                plan.escalations.append(SkippedTask(task_id=task.task_id, reason="overdue by more than 48h"))
+                plan.escalations.append(
+                    SkippedTask(task_id=task.task_id, reason="overdue by more than 48h")
+                )
             rendered = await self.use_tool(
                 ctx,
                 "email.render_template",
                 {
                     "template": "follow_up_generic",
-                    "values": {"first_name": task.contact_first_name, "advisor_name": "Your advisor"},
+                    "values": {
+                        "first_name": task.contact_first_name,
+                        "advisor_name": "Your advisor",
+                    },
                 },
             )
             action = FollowUpAction(
@@ -109,9 +120,13 @@ class FollowUpAgent(BaseAgent[FollowUpInput, FollowUpPlan]):
                 draft_text=rendered.data["body"],
             )
             if data.dispatch:
-                tool, payload = self._send_request(task, rendered.data["subject"], rendered.data["body"])
+                tool, payload = self._send_request(
+                    task, rendered.data["subject"], rendered.data["body"]
+                )
                 try:
-                    sent = await self.use_tool(ctx, tool, payload, reason=f"Follow-up for task {task.task_id}")
+                    sent = await self.use_tool(
+                        ctx, tool, payload, reason=f"Follow-up for task {task.task_id}"
+                    )
                     action.send_status = sent.status.value
                     action.approval_id = sent.approval_id
                 except PlatformError as exc:  # one failing task must not block the batch

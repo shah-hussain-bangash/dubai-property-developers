@@ -1,4 +1,3 @@
-
 """Composition root for the Dubai Real Estate AI Platform.
 
 Wires:
@@ -32,7 +31,6 @@ from agents.base.context import (
     InMemoryExecutionRecorder,
 )
 from agents.registry import AgentRegistry
-
 from core.config.settings import (
     LeadStoreBackend,
     Settings,
@@ -47,7 +45,6 @@ from core.observability.tracing import build_tracer
 from core.policies.actions import ApprovalPolicy
 from core.policies.approvals import InMemoryApprovalStore
 from core.resilience.idempotency import InMemoryIdempotencyStore
-
 from database.repositories.postgres_lead_store import (
     PostgresLeadStore,
 )
@@ -58,18 +55,15 @@ from database.sessions.engine import (
     create_engine,
     create_session_factory,
 )
-
 from integrations.factory import (
     IntegrationSet,
     build_integrations,
 )
-
 from knowledge.documents.demo_corpus import demo_documents
 from knowledge.embeddings.base import HashingEmbeddingProvider
 from knowledge.ingestion.pipeline import IngestionPipeline
 from knowledge.retrieval.retriever import Retriever
 from knowledge.vectorstores.base import InMemoryVectorStore
-
 from tools.analytics.tools import (
     LeadScoringTool,
     SalesAnalyticsTool,
@@ -102,12 +96,10 @@ from tools.search.tools import (
     LeadSaveTool,
 )
 from tools.whatsapp.tools import WhatsAppSendTool
-
 from workflows.engine.core import (
     InMemoryWorkflowRunStore,
     WorkflowRunner,
 )
-
 
 logger = get_logger(__name__)
 
@@ -152,14 +144,10 @@ class PlatformRuntime:
             return
 
         if self.settings.is_dev_like:
-            for doc in demo_documents(
-                self.settings.default_tenant_id
-            ):
+            for doc in demo_documents(self.settings.default_tenant_id):
                 await self.ingestion.ingest(doc)
 
-            logger.info(
-                "demo knowledge corpus ingested (fictional)"
-            )
+            logger.info("demo knowledge corpus ingested (fictional)")
 
         self._initialized = True
 
@@ -200,33 +188,23 @@ def build_runtime(settings: Settings) -> PlatformRuntime:
         db_engine = create_engine(settings)
         db_session_factory = create_session_factory(db_engine)
 
-        logger.info(
-            "Shared PostgreSQL database engine initialized"
-        )
+        logger.info("Shared PostgreSQL database engine initialized")
 
     # ---------------------------------------------------------------
     # 3. Lead storage backend
     # ---------------------------------------------------------------
 
     if settings.lead_store_backend == LeadStoreBackend.POSTGRES:
-
         assert db_session_factory is not None
 
-        lead_store: LeadStore = PostgresLeadStore(
-            db_session_factory
-        )
+        lead_store: LeadStore = PostgresLeadStore(db_session_factory)
 
-        logger.info(
-            "PostgreSQL LeadStore backend selected"
-        )
+        logger.info("PostgreSQL LeadStore backend selected")
 
     else:
-
         lead_store = InMemoryLeadStore()
 
-        logger.info(
-            "In-memory LeadStore backend selected"
-        )
+        logger.info("In-memory LeadStore backend selected")
 
     # ---------------------------------------------------------------
     # 4. Email sender and knowledge components
@@ -234,9 +212,7 @@ def build_runtime(settings: Settings) -> PlatformRuntime:
 
     email_sender = MockEmailSender()
 
-    embedder = HashingEmbeddingProvider(
-        settings.embedding_dimension
-    )
+    embedder = HashingEmbeddingProvider(settings.embedding_dimension)
 
     vector_store = InMemoryVectorStore()
 
@@ -295,9 +271,7 @@ def build_runtime(settings: Settings) -> PlatformRuntime:
 
     gateway = ToolGateway(
         tools,
-        approval_policy=ApprovalPolicy.from_settings(
-            settings
-        ),
+        approval_policy=ApprovalPolicy.from_settings(settings),
         approvals=approvals,
         idempotency=InMemoryIdempotencyStore(),
         audit=audit,
@@ -331,24 +305,18 @@ def build_runtime(settings: Settings) -> PlatformRuntime:
     # ---------------------------------------------------------------
 
     if settings.workflow_store_backend == WorkflowStoreBackend.POSTGRES:
-
         assert db_session_factory is not None
 
-        workflow_store = PostgresWorkflowRunStore(
-            db_session_factory
+        workflow_store: PostgresWorkflowRunStore | InMemoryWorkflowRunStore = (
+            PostgresWorkflowRunStore(db_session_factory)
         )
 
-        logger.info(
-            "PostgreSQL WorkflowRunStore backend selected"
-        )
+        logger.info("PostgreSQL WorkflowRunStore backend selected")
 
     else:
-
         workflow_store = InMemoryWorkflowRunStore()
 
-        logger.info(
-            "In-memory WorkflowRunStore backend selected"
-        )
+        logger.info("In-memory WorkflowRunStore backend selected")
 
     # ---------------------------------------------------------------
     # 11. Workflow runner

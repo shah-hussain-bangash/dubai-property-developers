@@ -1,4 +1,3 @@
-
 """Tool contracts and the ToolGateway.
 
 Agents never call integrations directly. Every tool call goes through
@@ -15,11 +14,12 @@ ToolGateway, which:
 Agents may request human approval without having permission to
 execute the action themselves.
 
-Approved actions return cached results on sequential replays.
+Side effects sharing an idempotency store are serialized within one event loop.
+Successful actions return cached results on subsequent replays.
 """
 
 from __future__ import annotations
-import asyncio
+
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, ClassVar, Protocol
@@ -52,7 +52,6 @@ from core.resilience.idempotency import (
     make_idempotency_key,
 )
 from core.security.rbac import Permission, Principal
-
 
 logger = get_logger(__name__)
 
@@ -90,8 +89,7 @@ class Tool(Protocol):
     async def execute(
         self,
         payload: dict[str, Any],
-    ) -> dict[str, Any]:
-        ...
+    ) -> dict[str, Any]: ...
 
 
 class BaseTool:
@@ -128,18 +126,13 @@ class ToolRegistry:
         try:
             return self._tools[name]
         except KeyError as exc:
-            raise NotFoundError(
-                f"tool {name} not registered"
-            ) from exc
+            raise NotFoundError(f"tool {name} not registered") from exc
 
     def names(self) -> list[str]:
         return sorted(self._tools)
 
     def specs(self) -> list[ToolSpec]:
-        return [
-            self._tools[name].spec
-            for name in self.names()
-        ]
+        return [self._tools[name].spec for name in self.names()]
 
 
 class ToolGateway:
@@ -156,19 +149,12 @@ class ToolGateway:
         self.registry = registry
         self.approval_policy = approval_policy or ApprovalPolicy()
 
-        self.approvals: ApprovalStore = (
-            approvals or InMemoryApprovalStore()
-        )
+        self.approvals: ApprovalStore = approvals or InMemoryApprovalStore()
 
-        self.idempotency: IdempotencyStore = (
-            idempotency or InMemoryIdempotencyStore()
-        )
+        self.idempotency: IdempotencyStore = idempotency or InMemoryIdempotencyStore()
 
         self.audit: AuditSink = audit or InMemoryAuditSink()
         self.tracer: Tracer = tracer or NoopTracer()
-
-        # Local locks for concurrent approved actions.
-        self._approved_execution_locks: dict[str, asyncio.Lock] = {}
 
     async def _audit(
         self,
@@ -181,12 +167,7 @@ class ToolGateway:
             AuditEvent(
                 tenant_id=ctx.tenant_id,
                 actor=(
-                    f"{ctx.principal.subject}"
-                    + (
-                        f"/agent:{ctx.agent_id}"
-                        if ctx.agent_id
-                        else ""
-                    )
+                    f"{ctx.principal.subject}" + (f"/agent:{ctx.agent_id}" if ctx.agent_id else "")
                 ),
                 action=f"tool:{tool}",
                 resource_type="tool",
@@ -208,10 +189,7 @@ class ToolGateway:
         or returning a cached execution result.
         """
 
-        if (
-            spec.permission is not None
-            and not ctx.principal.has(spec.permission)
-        ):
+        if spec.permission is not None and not ctx.principal.has(spec.permission):
             await self._audit(
                 ctx,
                 spec.name,
@@ -221,10 +199,7 @@ class ToolGateway:
                 },
             )
 
-            raise AuthorizationError(
-                f"principal lacks permission "
-                f"{spec.permission.value}"
-            )
+            raise AuthorizationError(f"principal lacks permission {spec.permission.value}")
 
     async def invoke(
         self,
@@ -238,10 +213,7 @@ class ToolGateway:
         spec = tool.spec
 
         # 1. Enforce the agent tool allowlist.
-        if (
-            ctx.agent_id is not None
-            and tool_name not in ctx.allowed_tools
-        ):
+        if ctx.agent_id is not None and tool_name not in ctx.allowed_tools:
             await self._audit(
                 ctx,
                 tool_name,
@@ -249,10 +221,7 @@ class ToolGateway:
                 {"why": "not in agent allowlist"},
             )
 
-            raise ToolPermissionError(
-                f"agent '{ctx.agent_id}' "
-                f"may not use tool '{tool_name}'"
-            )
+            raise ToolPermissionError(f"agent '{ctx.agent_id}' may not use tool '{tool_name}'")
 
         # 2. Validate tool-specific business rules.
         tool.validate(payload)
@@ -286,23 +255,13 @@ class ToolGateway:
                 )
 
         # 5. Handle human approval requirements.
-        if self.approval_policy.requires_approval(
-            spec.category
-        ):
-            existing = (
-                await self.approvals.find_by_idempotency_key(
-                    key
-                )
-            )
+        if self.approval_policy.requires_approval(spec.category):
+            existing = await self.approvals.find_by_idempotency_key(key)
 
-            if (
-                existing is None
-                or existing.status
-                in {
-                    ApprovalStatus.REJECTED,
-                    ApprovalStatus.EXPIRED,
-                }
-            ):
+            if existing is None or existing.status in {
+                ApprovalStatus.REJECTED,
+                ApprovalStatus.EXPIRED,
+            }:
                 existing = await self.approvals.create(
                     ApprovalRequest(
                         tenant_id=ctx.tenant_id,
@@ -351,22 +310,17 @@ class ToolGateway:
     ) -> ToolResult:
         """Execute or replay an approved action.
 
-        Local locking protects concurrent calls sharing this gateway.
+        Store-scoped locking protects gateways sharing one store instance.
         It does not provide distributed exactly-once guarantees.
         """
 
         request = await self.approvals.get(approval_id)
 
         if request.status != ApprovalStatus.APPROVED:
-            raise ConflictError(
-                f"approval {approval_id} is "
-                f"{request.status}, not approved"
-            )
+            raise ConflictError(f"approval {approval_id} is {request.status}, not approved")
 
         if request.tenant_id != approver.tenant_id:
-            raise AuthorizationError(
-                "approver belongs to a different organization"
-            )
+            raise AuthorizationError("approver belongs to a different organization")
 
         tool = self.registry.get(request.tool_name)
         spec = tool.spec
@@ -394,33 +348,41 @@ class ToolGateway:
 
         key = request.idempotency_key
 
-        # Tasks using this gateway share a lock for this key.
-        lock = self._approved_execution_locks.setdefault(
+        return await self._execute(
+            ctx,
+            tool,
+            request.payload,
             key,
-            asyncio.Lock(),
         )
 
-        async with lock:
-            # Recheck cache after obtaining the lock.
+    async def _execute(
+        self,
+        ctx: ToolCallContext,
+        tool: Tool,
+        payload: dict[str, Any],
+        key: str | None,
+    ) -> ToolResult:
+        # Every entry point checks authorization before waiting or replaying.
+        await self._authorize(ctx, tool.spec)
+        if key is None:
+            return await self._execute_once(ctx, tool, payload, None)
+
+        async with self.idempotency.execution_lock(key):
+            # Another gateway may have completed this action while we waited.
             cached = await self.idempotency.get(key)
 
             if cached is not None:
                 return ToolResult(
-                    tool=spec.name,
+                    tool=tool.spec.name,
                     status=ToolResultStatus.REPLAYED,
                     data=cached,
                     idempotency_key=key,
                 )
 
-            # Keep lock until execution and cache storage finish.
-            return await self._execute(
-                ctx,
-                tool,
-                request.payload,
-                key,
-            )
+            # Keep the shared lock until execution and cache storage finish.
+            return await self._execute_once(ctx, tool, payload, key)
 
-    async def _execute(
+    async def _execute_once(
         self,
         ctx: ToolCallContext,
         tool: Tool,

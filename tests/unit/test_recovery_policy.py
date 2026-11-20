@@ -1,4 +1,3 @@
-
 """Read-only recovery policy tests.
 
 No actual Redis, PostgreSQL, or external services are used.
@@ -13,7 +12,6 @@ import pytest
 
 from apps.worker.jobs.envelope import JobEnvelope
 from apps.worker.jobs.recovery_policy import classify_reservation
-
 
 NOW = datetime(2026, 10, 12, 12, 0, tzinfo=UTC)
 

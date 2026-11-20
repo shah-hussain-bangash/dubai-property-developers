@@ -34,8 +34,13 @@ def test_hot_lead_scoring_is_explainable() -> None:
 
 def test_sparse_lead_is_cold_and_rent_goes_to_nurture() -> None:
     sparse = normalized_lead(
-        phone_e164=None, budget_max_aed=None, preferred_locations=[], property_types=[],
-        bedrooms=None, purpose="unknown", timeline_months=None,
+        phone_e164=None,
+        budget_max_aed=None,
+        preferred_locations=[],
+        property_types=[],
+        bedrooms=None,
+        purpose="unknown",
+        timeline_months=None,
     )
     assert score_lead(sparse).category == QualificationCategory.COLD
     assert score_lead(normalized_lead(purpose="rent")).category == QualificationCategory.NURTURE
@@ -43,7 +48,9 @@ def test_sparse_lead_is_cold_and_rent_goes_to_nurture() -> None:
 
 def test_matching_respects_hard_filters_and_flags_demo() -> None:
     criteria = PropertySearchCriteria(
-        budget_max_aed=Decimal(1_500_000), locations=["Business Bay"], property_types=[PropertyType.APARTMENT]
+        budget_max_aed=Decimal(1_500_000),
+        locations=["Business Bay"],
+        property_types=[PropertyType.APARTMENT],
     )
     recs = match_properties(list(DEMO_LISTINGS), criteria)
     assert [r.listing.listing_id for r in recs] == ["DEMO-003"]
@@ -54,7 +61,9 @@ def test_matching_respects_hard_filters_and_flags_demo() -> None:
 
 def test_matching_excludes_sold_and_reserved_by_default() -> None:
     recs = match_properties(list(DEMO_LISTINGS), PropertySearchCriteria(limit=50))
-    assert all(r.listing.availability not in {Availability.SOLD, Availability.RESERVED} for r in recs)
+    assert all(
+        r.listing.availability not in {Availability.SOLD, Availability.RESERVED} for r in recs
+    )
 
 
 def test_unconfirmed_price_is_caveated_not_invented() -> None:

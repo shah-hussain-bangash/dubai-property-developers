@@ -1,4 +1,3 @@
-
 """PostgreSQL outbox dispatcher state management.
 
 Supports exclusive publication claims, expired claim recovery,
@@ -46,17 +45,11 @@ class PostgresOutboxDispatchStore:
         worker_id: str,
         lease_token: str | None = None,
     ) -> None:
-        if (
-            not isinstance(worker_id, str)
-            or not worker_id.strip()
-            or len(worker_id) > 128
-        ):
+        if not isinstance(worker_id, str) or not worker_id.strip() or len(worker_id) > 128:
             raise ValueError("Invalid dispatcher worker_id")
 
         if lease_token is not None and (
-            not isinstance(lease_token, str)
-            or not lease_token
-            or len(lease_token) > 64
+            not isinstance(lease_token, str) or not lease_token or len(lease_token) > 64
         ):
             raise ValueError("Invalid dispatcher lease_token")
 
@@ -85,61 +78,54 @@ class PostgresOutboxDispatchStore:
         now = datetime.now(UTC)
         lease_token = uuid.uuid4().hex
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                record = await session.scalar(
-                    select(JobOutbox)
-                    .where(
-                        or_(
-                            (
-                                JobOutbox.status.in_(
-                                    ["pending", "retrying"]
-                                )
-                                & or_(
-                                    JobOutbox.next_attempt_at.is_(None),
-                                    JobOutbox.next_attempt_at <= now,
-                                )
-                            ),
-                            (
-                                (JobOutbox.status == "publishing")
-                                & JobOutbox.lease_expires_at.is_not(None)
-                                & (JobOutbox.lease_expires_at <= now)
-                            ),
-                        )
+        async with self.session_factory() as session, session.begin():
+            record = await session.scalar(
+                select(JobOutbox)
+                .where(
+                    or_(
+                        (
+                            JobOutbox.status.in_(["pending", "retrying"])
+                            & or_(
+                                JobOutbox.next_attempt_at.is_(None),
+                                JobOutbox.next_attempt_at <= now,
+                            )
+                        ),
+                        (
+                            (JobOutbox.status == "publishing")
+                            & JobOutbox.lease_expires_at.is_not(None)
+                            & (JobOutbox.lease_expires_at <= now)
+                        ),
                     )
-                    .order_by(
-                        JobOutbox.created_at,
-                        JobOutbox.id,
-                    )
-                    .with_for_update(skip_locked=True)
-                    .limit(1)
                 )
-
-                if record is None:
-                    return None
-
-                record.status = "publishing"
-                record.worker_id = worker_id
-                record.lease_token = lease_token
-                record.lease_expires_at = (
-                    now + timedelta(seconds=lease_seconds)
+                .order_by(
+                    JobOutbox.created_at,
+                    JobOutbox.id,
                 )
-                record.next_attempt_at = None
-                record.publish_attempts += 1
-                record.error_code = None
+                .with_for_update(skip_locked=True)
+                .limit(1)
+            )
 
-                await session.flush()
+            if record is None:
+                return None
 
-                return ClaimedOutboxMessage(
-                    organization_id=record.organization_id,
-                    job_id=record.job_id,
-                    payload_ciphertext=bytes(
-                        record.payload_ciphertext
-                    ),
-                    encryption_key_id=record.encryption_key_id,
-                    lease_token=lease_token,
-                    publish_attempts=record.publish_attempts,
-                )
+            record.status = "publishing"
+            record.worker_id = worker_id
+            record.lease_token = lease_token
+            record.lease_expires_at = now + timedelta(seconds=lease_seconds)
+            record.next_attempt_at = None
+            record.publish_attempts += 1
+            record.error_code = None
+
+            await session.flush()
+
+            return ClaimedOutboxMessage(
+                organization_id=record.organization_id,
+                job_id=record.job_id,
+                payload_ciphertext=bytes(record.payload_ciphertext),
+                encryption_key_id=record.encryption_key_id,
+                lease_token=lease_token,
+                publish_attempts=record.publish_attempts,
+            )
 
     async def renew_lease(
         self,
@@ -159,26 +145,22 @@ class PostgresOutboxDispatchStore:
 
         now = datetime.now(UTC)
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                result = await session.scalar(
-                    update(JobOutbox)
-                    .where(
-                        JobOutbox.organization_id == organization_id,
-                        JobOutbox.job_id == job_id,
-                        JobOutbox.status == "publishing",
-                        JobOutbox.worker_id == worker_id,
-                        JobOutbox.lease_token == lease_token,
-                        JobOutbox.lease_expires_at > now,
-                    )
-                    .values(
-                        lease_expires_at=now
-                        + timedelta(seconds=lease_seconds)
-                    )
-                    .returning(JobOutbox.id)
+        async with self.session_factory() as session, session.begin():
+            result = await session.scalar(
+                update(JobOutbox)
+                .where(
+                    JobOutbox.organization_id == organization_id,
+                    JobOutbox.job_id == job_id,
+                    JobOutbox.status == "publishing",
+                    JobOutbox.worker_id == worker_id,
+                    JobOutbox.lease_token == lease_token,
+                    JobOutbox.lease_expires_at > now,
                 )
+                .values(lease_expires_at=now + timedelta(seconds=lease_seconds))
+                .returning(JobOutbox.id)
+            )
 
-                return result is not None
+            return result is not None
 
     async def mark_published(
         self,
@@ -193,31 +175,30 @@ class PostgresOutboxDispatchStore:
 
         now = datetime.now(UTC)
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                result = await session.scalar(
-                    update(JobOutbox)
-                    .where(
-                        JobOutbox.organization_id == organization_id,
-                        JobOutbox.job_id == job_id,
-                        JobOutbox.status == "publishing",
-                        JobOutbox.worker_id == worker_id,
-                        JobOutbox.lease_token == lease_token,
-                        JobOutbox.lease_expires_at > now,
-                    )
-                    .values(
-                        status="published",
-                        worker_id=None,
-                        lease_token=None,
-                        lease_expires_at=None,
-                        next_attempt_at=None,
-                        published_at=now,
-                        error_code=None,
-                    )
-                    .returning(JobOutbox.id)
+        async with self.session_factory() as session, session.begin():
+            result = await session.scalar(
+                update(JobOutbox)
+                .where(
+                    JobOutbox.organization_id == organization_id,
+                    JobOutbox.job_id == job_id,
+                    JobOutbox.status == "publishing",
+                    JobOutbox.worker_id == worker_id,
+                    JobOutbox.lease_token == lease_token,
+                    JobOutbox.lease_expires_at > now,
                 )
+                .values(
+                    status="published",
+                    worker_id=None,
+                    lease_token=None,
+                    lease_expires_at=None,
+                    next_attempt_at=None,
+                    published_at=now,
+                    error_code=None,
+                )
+                .returning(JobOutbox.id)
+            )
 
-                return result is not None
+            return result is not None
 
     async def mark_failed(
         self,
@@ -233,10 +214,7 @@ class PostgresOutboxDispatchStore:
 
         self._validate_owner(worker_id, lease_token)
 
-        if (
-            not isinstance(retry_delay_seconds, int)
-            or retry_delay_seconds < 0
-        ):
+        if not isinstance(retry_delay_seconds, int) or retry_delay_seconds < 0:
             raise ValueError("retry_delay_seconds must be >= 0")
 
         allowed_error_codes = {
@@ -251,28 +229,26 @@ class PostgresOutboxDispatchStore:
 
         now = datetime.now(UTC)
 
-        async with self.session_factory() as session:
-            async with session.begin():
-                result = await session.scalar(
-                    update(JobOutbox)
-                    .where(
-                        JobOutbox.organization_id == organization_id,
-                        JobOutbox.job_id == job_id,
-                        JobOutbox.status == "publishing",
-                        JobOutbox.worker_id == worker_id,
-                        JobOutbox.lease_token == lease_token,
-                        JobOutbox.lease_expires_at > now,
-                    )
-                    .values(
-                        status="retrying",
-                        worker_id=None,
-                        lease_token=None,
-                        lease_expires_at=None,
-                        next_attempt_at=now
-                        + timedelta(seconds=retry_delay_seconds),
-                        error_code=error_code,
-                    )
-                    .returning(JobOutbox.id)
+        async with self.session_factory() as session, session.begin():
+            result = await session.scalar(
+                update(JobOutbox)
+                .where(
+                    JobOutbox.organization_id == organization_id,
+                    JobOutbox.job_id == job_id,
+                    JobOutbox.status == "publishing",
+                    JobOutbox.worker_id == worker_id,
+                    JobOutbox.lease_token == lease_token,
+                    JobOutbox.lease_expires_at > now,
                 )
+                .values(
+                    status="retrying",
+                    worker_id=None,
+                    lease_token=None,
+                    lease_expires_at=None,
+                    next_attempt_at=now + timedelta(seconds=retry_delay_seconds),
+                    error_code=error_code,
+                )
+                .returning(JobOutbox.id)
+            )
 
-                return result is not None
+            return result is not None

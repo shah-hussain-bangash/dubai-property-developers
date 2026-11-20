@@ -1,4 +1,4 @@
-﻿"""Canonical request fingerprints for durable execution claims.
+"""Canonical request fingerprints for durable execution claims.
 
 Experimental utility. No production ToolGateway integration.
 """
@@ -39,10 +39,6 @@ def make_request_fingerprint(
             allow_nan=False,
         )
     except (TypeError, ValueError, OverflowError) as exc:
-        raise ValueError(
-            "Request payload must contain only valid JSON values"
-        ) from exc
+        raise ValueError("Request payload must contain only valid JSON values") from exc
 
-    return hashlib.sha256(
-        canonical.encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

@@ -56,7 +56,9 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload, default=str)
 
 
-def configure_logging(level: str = "INFO", *, json_output: bool = True, mask_pii: bool = True) -> None:
+def configure_logging(
+    level: str = "INFO", *, json_output: bool = True, mask_pii: bool = True
+) -> None:
     handler = logging.StreamHandler(sys.stdout)
     handler.addFilter(CorrelationFilter())
     handler.addFilter(RedactionFilter(mask_pii=mask_pii))
@@ -64,7 +66,9 @@ def configure_logging(level: str = "INFO", *, json_output: bool = True, mask_pii
         handler.setFormatter(JsonFormatter())
     else:
         handler.setFormatter(
-            logging.Formatter("%(asctime)s %(levelname)s [%(correlation_id)s] %(name)s: %(message)s")
+            logging.Formatter(
+                "%(asctime)s %(levelname)s [%(correlation_id)s] %(name)s: %(message)s"
+            )
         )
     root = logging.getLogger()
     root.handlers = [handler]

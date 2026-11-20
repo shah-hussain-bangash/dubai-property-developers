@@ -26,10 +26,15 @@ router = APIRouter(prefix="/leads", tags=["development-only"])
 
 def _require_isolated_demo(runtime: PlatformRuntime) -> None:
     settings = runtime.settings
-    if not (settings.is_dev_like and settings.auth_mode == "dev"
-            and settings.enable_dev_routes and settings.integrations_mode == "mock"
-            and settings.llm_provider == "mock" and settings.lead_store_backend == "memory"
-            and settings.workflow_store_backend == "memory"):
+    if not (
+        settings.is_dev_like
+        and settings.auth_mode == "dev"
+        and settings.enable_dev_routes
+        and settings.integrations_mode == "mock"
+        and settings.llm_provider == "mock"
+        and settings.lead_store_backend == "memory"
+        and settings.workflow_store_backend == "memory"
+    ):
         raise HTTPException(status_code=404, detail="Isolated demo processing is unavailable")
 
 
@@ -69,7 +74,9 @@ async def demo_process(
         tenant_id=principal.tenant_id,
         correlation_id=get_correlation_id() or new_correlation_id(),
     )
-    run, state = await runtime.runner.run(LEAD_PROCESSING, LeadFlowState(submission=submission), ctx)
+    run, state = await runtime.runner.run(
+        LEAD_PROCESSING, LeadFlowState(submission=submission), ctx
+    )
     return LeadDemoResponse(
         execution_id=run.execution_id,
         status=run.status,

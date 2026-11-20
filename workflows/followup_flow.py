@@ -10,7 +10,13 @@ from pydantic import BaseModel
 
 from agents.followup.schemas import FollowUpInput, FollowUpPlan
 from schemas.agents.models import ImplementationStatus
-from workflows.engine.core import Step, StepOutcome, WorkflowContext, WorkflowDefinition, outcome_for
+from workflows.engine.core import (
+    Step,
+    StepOutcome,
+    WorkflowContext,
+    WorkflowDefinition,
+    outcome_for,
+)
 
 
 class FollowUpFlowState(BaseModel):

@@ -1,7 +1,7 @@
 """Compose existing isolated demos into a fictional lead-to-draft scenario."""
 
 from decimal import Decimal
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -32,7 +32,7 @@ async def demo_scenario(
     body: DemoScenario,
     runtime: PlatformRuntime = Depends(get_runtime),
     principal: Principal = Depends(require_permission(Permission.WORKFLOWS_EXECUTE)),
-) -> dict:
+) -> dict[str, Any]:
     _require_isolated_demo(runtime)
     if body.scenario_id.int == 0:
         raise HTTPException(status_code=422, detail="A demo scenario identity is required")

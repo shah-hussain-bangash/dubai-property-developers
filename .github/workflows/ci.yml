@@ -15,11 +15,15 @@ concurrency:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.15"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python }}
           cache: pip
       - name: Install
         run: python -m pip install -e ".[dev,documents]"
@@ -38,6 +42,10 @@ jobs:
 
   backend-integration:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.15"]
     needs: backend
     services:
       postgres:
@@ -59,10 +67,10 @@ jobs:
       REDIS_URL: redis://localhost:6379/0
       RUN_INTEGRATION_TESTS: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python }}
           cache: pip
       - run: python -m pip install -e ".[dev,documents]"
       - name: Migrate (fresh CI database)
@@ -80,12 +88,15 @@ jobs:
       run:
         working-directory: apps/dashboard
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: "20"
-      # Switch to `npm ci` + cache once package-lock.json is committed.
-      - run: npm install --no-audit --no-fund
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/dashboard/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Frontend dependency audit
+        run: npm audit --audit-level=moderate
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
@@ -94,6 +105,39 @@ jobs:
   compose-config:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Validate docker compose file
         run: cp .env.example .env && docker compose config --quiet
+
+  api-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build API image
+        run: docker build --tag dubai-api-ci --file apps/api/Dockerfile .
+      - name: Verify runtime, non-root user and dependencies
+        run: |
+          docker run --rm --network none --entrypoint python dubai-api-ci -c "import os, sys; assert sys.version_info[:2] == (3, 15); assert os.getuid() != 0"
+          docker run --rm --network none --entrypoint python dubai-api-ci -m pip check
+      - name: Verify container startup and health
+        run: |
+          docker run --detach --name api-smoke --network none --env ENVIRONMENT=test dubai-api-ci
+          for attempt in $(seq 1 45); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' api-smoke)
+            if [ "$status" = healthy ]; then
+              docker exec api-smoke python -c "import json, urllib.request; response = json.load(urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)); assert response['status'] == 'ok'; assert response['environment'] == 'test'"
+              exit 0
+            fi
+            if [ "$(docker inspect --format '{{.State.Running}}' api-smoke)" != true ]; then
+              exit 1
+            fi
+            sleep 2
+          done
+          exit 1
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs api-smoke || true
+      - name: Remove smoke-test container
+        if: always()
+        run: docker rm --force api-smoke || true

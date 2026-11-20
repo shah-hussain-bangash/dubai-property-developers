@@ -33,7 +33,9 @@ class MockSlackNotifier:
 
 
 class WebhookSlackNotifier:
-    def __init__(self, config: SlackConfig, *, transport: httpx.AsyncBaseTransport | None = None) -> None:
+    def __init__(
+        self, config: SlackConfig, *, transport: httpx.AsyncBaseTransport | None = None
+    ) -> None:
         assert config.webhook_url is not None
         parts = urlsplit(config.webhook_url.get_secret_value())
         self._path = parts.path

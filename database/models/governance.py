@@ -41,7 +41,9 @@ class AuditLog(UUIDPrimaryKeyMixin, TenantMixin, Base):
         Index("ix_audit_logs_resource", "resource_type", "resource_id"),
     )
 
-    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     actor: Mapped[str] = mapped_column(String(128))
     action: Mapped[str] = mapped_column(String(64))
     resource_type: Mapped[str] = mapped_column(String(64))

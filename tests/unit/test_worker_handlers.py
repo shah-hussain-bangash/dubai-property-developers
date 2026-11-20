@@ -1,4 +1,3 @@
-
 """Unit tests for background-job handler behavior.
 
 Uses mocked workflows and does not access PostgreSQL,
@@ -32,9 +31,7 @@ async def test_failed_followup_workflow_raises_error():
         status=SimpleNamespace(value="failed"),
     )
 
-    runner = SimpleNamespace(
-        run=AsyncMock(return_value=(run, None))
-    )
+    runner = SimpleNamespace(run=AsyncMock(return_value=(run, None)))
 
     runtime = SimpleNamespace(runner=runner)
 
@@ -63,9 +60,7 @@ async def test_successful_followup_workflow_returns_result():
         status=SimpleNamespace(value="succeeded"),
     )
 
-    runner = SimpleNamespace(
-        run=AsyncMock(return_value=(run, None))
-    )
+    runner = SimpleNamespace(run=AsyncMock(return_value=(run, None)))
 
     runtime = SimpleNamespace(runner=runner)
 

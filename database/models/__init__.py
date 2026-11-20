@@ -1,4 +1,3 @@
-
 """Importing this package registers every model on Base.metadata."""
 
 from database.models.agent import (
@@ -22,13 +21,13 @@ from database.models.knowledge import (
     KnowledgeChunk,
     KnowledgeDocument,
 )
-from database.models.tool_execution import ToolExecutionLedger
 from database.models.property import (
     PaymentPlan,
     Project,
     Property,
     PropertyUnit,
 )
+from database.models.tool_execution import ToolExecutionLedger
 
 __all__ = [
     "AIAgent",
@@ -55,8 +54,8 @@ __all__ = [
     "PropertyUnit",
     "Role",
     "Task",
+    "ToolExecutionLedger",
     "User",
     "UserRole",
-    "ToolExecutionLedger",
     "WorkflowExecution",
 ]

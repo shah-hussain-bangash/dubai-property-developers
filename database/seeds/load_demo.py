@@ -1,4 +1,3 @@
-
 """Insert fictional demo data into a *development* database.
 
 Usage: python -m database.seeds.load_demo
@@ -39,9 +38,7 @@ async def load() -> None:
     settings = get_settings()
 
     if not settings.is_dev_like:
-        raise SystemExit(
-            "Refusing to seed demo data outside development/test."
-        )
+        raise SystemExit("Refusing to seed demo data outside development/test.")
 
     engine = create_engine(settings)
 
@@ -53,11 +50,8 @@ async def load() -> None:
 
 async def _seed(factory: async_sessionmaker[AsyncSession]) -> None:
     async with factory() as session, session.begin():
-
         existing = await session.scalar(
-            select(Organization).where(
-                Organization.slug == DEMO_ORG_SLUG
-            )
+            select(Organization).where(Organization.slug == DEMO_ORG_SLUG)
         )
 
         if existing is not None:
@@ -76,9 +70,7 @@ async def _seed(factory: async_sessionmaker[AsyncSession]) -> None:
 
         # STAGE 2: Create roles.
         for role in RoleName:
-            existing_role = await session.scalar(
-                select(Role).where(Role.name == role.value)
-            )
+            existing_role = await session.scalar(select(Role).where(Role.name == role.value))
 
             if existing_role is None:
                 session.add(
@@ -99,9 +91,7 @@ async def _seed(factory: async_sessionmaker[AsyncSession]) -> None:
                     agent_key=descriptor.agent_id,
                     name=descriptor.name,
                     version=descriptor.version,
-                    implementation_status=(
-                        descriptor.implementation_status.value
-                    ),
+                    implementation_status=(descriptor.implementation_status.value),
                 )
             )
 
@@ -124,9 +114,7 @@ async def _seed(factory: async_sessionmaker[AsyncSession]) -> None:
                     name=listing.project_name,
                     developer_name=listing.developer,
                     community=listing.community,
-                    completion_status=(
-                        listing.completion_status.value
-                    ),
+                    completion_status=(listing.completion_status.value),
                     handover_quarter=listing.handover_quarter,
                     is_demo=True,
                     data_source=listing.source,
@@ -152,10 +140,7 @@ async def _seed(factory: async_sessionmaker[AsyncSession]) -> None:
                     id=uuid.uuid4(),
                     organization_id=org.id,
                     project_id=project.id,
-                    name=(
-                        f"{listing.project_name} - "
-                        f"{listing.property_type.value}"
-                    ),
+                    name=(f"{listing.project_name} - {listing.property_type.value}"),
                     property_type=listing.property_type.value,
                 )
 
@@ -185,14 +170,10 @@ async def _seed(factory: async_sessionmaker[AsyncSession]) -> None:
                     project_id=project.id,
                     name=pp.name,
                     down_payment_pct=pp.down_payment_pct,
-                    during_construction_pct=(
-                        pp.during_construction_pct
-                    ),
+                    during_construction_pct=(pp.during_construction_pct),
                     on_handover_pct=pp.on_handover_pct,
                     post_handover_pct=pp.post_handover_pct,
-                    post_handover_months=(
-                        pp.post_handover_months
-                    ),
+                    post_handover_months=(pp.post_handover_months),
                 )
 
                 session.add(plans[plan_key])
@@ -234,10 +215,7 @@ async def _seed(factory: async_sessionmaker[AsyncSession]) -> None:
 
         await session.flush()
 
-    print(
-        f"Seeded demo organization '{DEMO_ORG_SLUG}' "
-        f"with {len(DEMO_LISTINGS)} fictional units!"
-    )
+    print(f"Seeded demo organization '{DEMO_ORG_SLUG}' with {len(DEMO_LISTINGS)} fictional units!")
 
 
 if __name__ == "__main__":
