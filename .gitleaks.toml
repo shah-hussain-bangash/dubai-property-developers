@@ -1,0 +1,20 @@
+title = "Dubai Property Developers credential scanning"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Exact fictional password values in the security-view regression test"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^apps/dashboard/src/__tests__/PortalSecurityViews\.test\.tsx$''']
+regexTarget = "secret"
+regexes = ['''^Fictional(Current|Replacement)-647$''']
+
+[[allowlists]]
+description = "Two reviewed source-file SHA-256 checksums in historical SQL catalogues"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^database/project_knowledge/(044_test_registration_batch12|045_commit_registration_batch12|046_test_registration_batch13|047_commit_registration_batch13)\.sql$''']
+regexTarget = "secret"
+regexes = ['''^(b14200e767b2c0c5c41184f5e1df541d4d22245ac69b2184810552e04430d135|52d7806dd5275a56a6ca29fa4087af61cac36f2d521cfa5471fe4c73b40502e3)$''']
