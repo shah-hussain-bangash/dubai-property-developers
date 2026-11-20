@@ -18,7 +18,9 @@ docker compose up --build
 | `dashboard` | `apps/dashboard/Dockerfile` | 3000 | Next.js standalone. `NEXT_PUBLIC_API_BASE_URL` is a build arg |
 
 The dashboard image needs a committed `apps/dashboard/package-lock.json` for reproducible `npm ci`.
-Generate it once with `npm install`.
+The reviewed lockfile is committed. Use `npm ci` for routine installs; use `npm install` only when intentionally changing dependencies.
+
+The API image uses Python 3.15. The worker image remains on Python 3.12; both Python versions are covered by backend and integration CI. GitHub builds the API image and verifies its non-root runtime, installed dependencies and health endpoint without deploying it.
 
 ## Moving beyond local
 
