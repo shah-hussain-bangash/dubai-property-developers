@@ -21,7 +21,9 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         incoming = request.headers.get(HEADER) or request.headers.get("X-Request-ID")
         # Only accept well-formed client IDs; never log arbitrary header content.
-        correlation_id = incoming if incoming and _VALID.match(incoming) else new_correlation_id()
+        correlation_id = (
+            incoming if incoming and _VALID.fullmatch(incoming) else new_correlation_id()
+        )
         set_correlation_id(correlation_id)
         request.state.correlation_id = correlation_id
         started = time.perf_counter()
