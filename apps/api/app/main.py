@@ -132,9 +132,12 @@ def create_app(
     # ---------------------------------------------------------------
 
     # Starlette executes the last-added middleware first:
-    # correlation -> rate limit -> CORS -> security headers.
+    # correlation -> security headers -> CORS -> rate limit.
 
-    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(
+        RateLimitMiddleware,
+        limiter=InMemoryFixedWindowRateLimiter(settings.rate_limit_per_minute),
+    )
 
     app.add_middleware(
         CORSMiddleware,
@@ -157,10 +160,7 @@ def create_app(
         ],
     )
 
-    app.add_middleware(
-        RateLimitMiddleware,
-        limiter=InMemoryFixedWindowRateLimiter(settings.rate_limit_per_minute),
-    )
+    app.add_middleware(SecurityHeadersMiddleware)
 
     app.add_middleware(CorrelationIdMiddleware)
 
