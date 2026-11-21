@@ -31,11 +31,11 @@ SENSITIVE_KEYS = frozenset(
 )
 
 _SECRET_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"(?i)\bbearer\s+[a-z0-9._\-]{8,}"),
+    re.compile(r"(?i)\bbearer\s+[a-z0-9._~+/\-]+=*"),
     re.compile(r"\bsk-[A-Za-z0-9_\-]{16,}"),
     re.compile(r"\bEAA[A-Za-z0-9]{20,}"),  # Meta-style access tokens
     re.compile(r"\bxox[abpr]-[A-Za-z0-9\-]{10,}"),  # Slack tokens
-    re.compile(r"(?i)(postgres(?:ql)?(?:\+\w+)?|redis)://[^\s:@/]+:[^\s@/]+@"),
+    re.compile(r"(?i)(postgres(?:ql)?(?:\+\w+)?|rediss?)://[^\s:@/]*:[^\s@/]+@"),
 )
 _EMAIL = re.compile(r"\b([A-Za-z0-9._%+\-])[A-Za-z0-9._%+\-]*@([A-Za-z0-9.\-]+\.[A-Za-z]{2,})\b")
 # International (+ / 00 prefix) numbers and UAE local mobiles (05X XXX XXXX). Deliberately
