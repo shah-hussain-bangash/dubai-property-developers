@@ -11,7 +11,7 @@ case-insensitive. Lists are comma-separated.
 | `DEFAULT_TENANT_ID` | `demo-org` | Tenant used by the dev principal and demo data |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated. No wildcard outside dev |
 | `ENABLE_DEV_ROUTES` | `true` | Mounts `/api/v1/leads/demo-process` (dev/test only) |
-| `RATE_LIMIT_PER_MINUTE` | `120` | Per client IP |
+| `RATE_LIMIT_PER_MINUTE` | `120` | Positive requests per client IP; zero and negative values are rejected |
 | `AUTH_MODE` | `dev` | `dev` (dev/test only) or `token` |
 | `SECRET_KEY` | placeholder | **Must be changed** outside dev (startup refuses the placeholder) |
 | `WEBHOOK_SIGNING_SECRET`, `WEBHOOK_TOLERANCE_SECONDS` | unset, `300` | HMAC webhook verification and replay window |
