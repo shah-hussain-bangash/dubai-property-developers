@@ -26,6 +26,7 @@ from apps.api.app.exception_handlers.handlers import (
 from apps.api.app.middleware.correlation import (
     CorrelationIdMiddleware,
 )
+from apps.api.app.middleware.error_response import ErrorResponseMiddleware
 from apps.api.app.middleware.rate_limit import (
     InMemoryFixedWindowRateLimiter,
     RateLimitMiddleware,
@@ -132,12 +133,14 @@ def create_app(
     # ---------------------------------------------------------------
 
     # Starlette executes the last-added middleware first:
-    # correlation -> security headers -> CORS -> rate limit.
+    # correlation -> security headers -> CORS -> error response -> rate limit.
 
     app.add_middleware(
         RateLimitMiddleware,
         limiter=InMemoryFixedWindowRateLimiter(settings.rate_limit_per_minute),
     )
+
+    app.add_middleware(ErrorResponseMiddleware)
 
     app.add_middleware(
         CORSMiddleware,
