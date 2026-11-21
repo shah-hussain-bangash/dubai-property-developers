@@ -37,6 +37,9 @@ jobs:
         run: python -m mypy agents core tools integrations schemas database knowledge workflows apps/api apps/worker
       - name: Tests with coverage
         run: python -m pytest --cov --cov-report=xml --cov-report=term --junitxml=backend-results.xml
+      - name: Summarize test results
+        if: always()
+        run: python scripts/maintenance/summarize_test_report.py backend-results.xml --label "Backend (Python ${{ matrix.python }})" --coverage coverage.xml
       - name: Upload backend reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -105,6 +108,9 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://dubai_ai:dubai_ai_ci@localhost:5432/dubai_ai_test
       - name: Integration tests
         run: python -m pytest tests/integration --junitxml=integration-results.xml
+      - name: Summarize test results
+        if: always()
+        run: python scripts/maintenance/summarize_test_report.py integration-results.xml --label "Database integration (Python ${{ matrix.python }})"
       - name: Upload database integration report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -142,6 +148,9 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test -- --reporter=default --reporter=github-actions --reporter=junit --outputFile.junit=frontend-results.xml
+      - name: Summarize test results
+        if: always()
+        run: python3 ../../scripts/maintenance/summarize_test_report.py frontend-results.xml --label Frontend
       - name: Upload frontend report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
