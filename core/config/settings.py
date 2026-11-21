@@ -120,6 +120,7 @@ class Settings(BaseSettings):
     redis_url: SecretStr = SecretStr("redis://localhost:6379/0")
 
     readiness_checks_required: bool = False
+    readiness_probe_timeout_seconds: float = Field(default=3.0, gt=0, le=30)
 
     # --- lead storage backend ---------------------------------------------
     #
