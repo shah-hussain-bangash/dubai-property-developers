@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Awaitable
 from typing import Literal
 
 from fastapi import APIRouter, Depends
@@ -33,6 +35,14 @@ class ReadinessResponse(BaseModel):
     status: Literal["ready", "not_ready", "degraded"]
     checks: list[DependencyCheck]
     agents_registered: int
+
+
+async def _probe_with_timeout(probe: Awaitable[bool], timeout_seconds: float) -> bool:
+    try:
+        async with asyncio.timeout(timeout_seconds):
+            return await probe
+    except TimeoutError:
+        return False
 
 
 async def _check_database(settings: Settings) -> bool:
@@ -70,8 +80,9 @@ async def ready(
 ) -> JSONResponse:
     checks: list[DependencyCheck] = []
     if settings.readiness_checks_required:
-        db_ok = await _check_database(settings)
-        redis_ok = await ping_redis(settings)
+        timeout = settings.readiness_probe_timeout_seconds
+        db_ok = await _probe_with_timeout(_check_database(settings), timeout)
+        redis_ok = await _probe_with_timeout(ping_redis(settings), timeout)
         checks.append(DependencyCheck(name="postgres", status="ok" if db_ok else "unavailable"))
         checks.append(DependencyCheck(name="redis", status="ok" if redis_ok else "unavailable"))
     else:

@@ -19,6 +19,7 @@ case-insensitive. Lists are comma-separated.
 | `DATABASE_URL` | local Docker URL | `postgresql+asyncpg://...` |
 | `REDIS_URL` | `redis://localhost:6379/0` | |
 | `READINESS_CHECKS_REQUIRED` | `false` | When `true`, `/ready` pings Postgres and Redis and returns 503 on failure |
+| `READINESS_PROBE_TIMEOUT_SECONDS` | `3` | Per-dependency timeout in seconds; greater than 0 and at most 30 |
 | `LLM_PROVIDER`, `LLM_PRIMARY_MODEL`, `LLM_FALLBACK_MODELS` | `mock` | Only `mock` has an adapter today |
 | `LLM_TIMEOUT_SECONDS`, `LLM_MAX_RETRIES` | `30`, `2` | |
 | `EMBEDDING_PROVIDER`, `EMBEDDING_DIMENSION` | `hashing`, `1536` | The dimension must match the migration |
@@ -35,6 +36,15 @@ case-insensitive. Lists are comma-separated.
 | `GOOGLE_CREDENTIALS_FILE`, `TELEPHONY_PROVIDER` | unset | Mock only for now |
 | `N8N_WEBHOOK_BASE_URL`, `SLACK_WEBHOOK_URL` | unset | |
 | `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:8000` | Dashboard. Fixed at build time |
+
+## Readiness probe timing
+
+Each required dependency probe has its own timeout. A timed-out probe reports `unavailable`,
+and `/ready` returns 503 while still reporting the other dependency. Checks run sequentially,
+so allow for both budgets when setting an external readiness-check timeout. Cancellation is
+cooperative: probe cleanup is attempted, and cleanup that delays cancellation can extend the
+elapsed request time. Caller cancellation continues to propagate. Disabled checks perform no
+probe work and retain the existing `degraded` response.
 
 ## Production safety checks
 
