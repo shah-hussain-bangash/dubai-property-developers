@@ -50,9 +50,10 @@ async def validation_error_handler(request: Request, exc: Exception) -> JSONResp
 
 async def http_error_handler(request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, StarletteHTTPException)
+    message = "An unexpected error occurred" if exc.status_code >= 500 else str(exc.detail)
     return JSONResponse(
         status_code=exc.status_code,
-        content=_body(f"http_{exc.status_code}", str(exc.detail)),
+        content=_body(f"http_{exc.status_code}", message),
         headers=getattr(exc, "headers", None),
     )
 
