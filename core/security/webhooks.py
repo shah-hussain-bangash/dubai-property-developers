@@ -62,7 +62,8 @@ async def verify_hmac_sha256(
     if abs(current - ts) > tolerance_seconds:
         raise WebhookVerificationError("timestamp outside tolerance window")
     expected = compute_hmac_sha256(secret, timestamp, body)
-    if not hmac.compare_digest(expected, signature.removeprefix("sha256=")):
+    candidate = signature.removeprefix("sha256=")
+    if not candidate.isascii() or not hmac.compare_digest(expected, candidate):
         raise WebhookVerificationError("signature mismatch")
     if await nonce_store.seen_before(nonce, ttl_seconds=tolerance_seconds * 2):
         raise WebhookVerificationError("replayed request")
@@ -72,5 +73,6 @@ def verify_meta_signature(*, app_secret: str, body: bytes, header_value: str | N
     if not header_value or not header_value.startswith("sha256="):
         raise WebhookVerificationError("missing or malformed X-Hub-Signature-256 header")
     expected = hmac.new(app_secret.encode(), body, hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(expected, header_value.removeprefix("sha256=")):
+    candidate = header_value.removeprefix("sha256=")
+    if not candidate.isascii() or not hmac.compare_digest(expected, candidate):
         raise WebhookVerificationError("signature mismatch")
