@@ -49,9 +49,11 @@ class WebhookReplayExpiryTests(unittest.IsolatedAsyncioTestCase):
         with patch("core.security.webhooks.time.time", return_value=1700000000.0) as clock:
             await verify_hmac_sha256(**request)
             for nonce in ("fixture-nonce", "replacement-nonce"):
-                with self.subTest(nonce=nonce):
-                    with self.assertRaisesRegex(WebhookVerificationError, "replayed request"):
-                        await verify_hmac_sha256(**{**request, "nonce": nonce})
+                with (
+                    self.subTest(nonce=nonce),
+                    self.assertRaisesRegex(WebhookVerificationError, "replayed request"),
+                ):
+                    await verify_hmac_sha256(**{**request, "nonce": nonce})
             clock.return_value = 1700000000.001
             with self.assertRaisesRegex(WebhookVerificationError, "outside tolerance"):
                 await verify_hmac_sha256(**request)
