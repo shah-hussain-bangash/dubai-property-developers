@@ -21,8 +21,10 @@ Interactive docs are at `http://localhost:8000/docs` (disabled when `ENVIRONMENT
   - `AUTH_MODE=token` requires `Authorization: Bearer` plus a registered `TokenVerifier`. No verifier
     ships yet, so every request returns 401 (fails closed).
 - **Rate limiting:** a fixed window per client IP (`RATE_LIMIT_PER_MINUTE`). The limiter is in-memory, so
-  use the Redis limiter for multiple replicas.
+  use the Redis limiter for multiple replicas. Throttled responses return 429 with the request’s
+  correlation ID in the error body and a `Retry-After` header.
 - **CORS:** `CORS_ALLOWED_ORIGINS` (comma-separated). Wildcards are refused outside development.
+  Allowed browser origins can read the exposed `X-Correlation-ID` and `Retry-After` headers.
 
 ## Endpoints
 

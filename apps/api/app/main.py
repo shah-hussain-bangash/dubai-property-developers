@@ -160,6 +160,7 @@ def create_app(
         ],
         expose_headers=[
             "X-Correlation-ID",
+            "Retry-After",
         ],
     )
 
