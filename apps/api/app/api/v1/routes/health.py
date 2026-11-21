@@ -35,6 +35,24 @@ class ReadinessResponse(BaseModel):
     agents_registered: int
 
 
+async def _check_database(settings: Settings) -> bool:
+    """Keep database probe failures from hiding the other readiness checks."""
+    engine = None
+    healthy = False
+    try:
+        engine = create_engine(settings)
+        healthy = bool(await ping_database(engine))
+    except Exception:
+        healthy = False
+    finally:
+        if engine is not None:
+            try:
+                await engine.dispose()
+            except Exception:
+                healthy = False
+    return healthy
+
+
 @router.get("/health", response_model=HealthResponse)
 async def health(settings: Settings = Depends(get_app_settings)) -> HealthResponse:
     return HealthResponse(
@@ -52,11 +70,7 @@ async def ready(
 ) -> JSONResponse:
     checks: list[DependencyCheck] = []
     if settings.readiness_checks_required:
-        engine = create_engine(settings)
-        try:
-            db_ok = await ping_database(engine)
-        finally:
-            await engine.dispose()
+        db_ok = await _check_database(settings)
         redis_ok = await ping_redis(settings)
         checks.append(DependencyCheck(name="postgres", status="ok" if db_ok else "unavailable"))
         checks.append(DependencyCheck(name="redis", status="ok" if redis_ok else "unavailable"))
