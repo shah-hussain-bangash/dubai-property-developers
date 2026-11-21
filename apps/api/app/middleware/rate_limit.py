@@ -44,10 +44,13 @@ class InMemoryFixedWindowRateLimiter:
         self.limit = limit
         self.window = window_seconds
         self._counts: dict[tuple[str, int], int] = {}
+        self._last_cleanup_bucket: int | None = None
 
     async def hit(self, key: str) -> bool:
         bucket = int(time.time() // self.window)
-        self._counts = {k: v for k, v in self._counts.items() if k[1] >= bucket}
+        if bucket != self._last_cleanup_bucket:
+            self._counts = {k: v for k, v in self._counts.items() if k[1] >= bucket}
+            self._last_cleanup_bucket = bucket
         count = self._counts.get((key, bucket), 0) + 1
         self._counts[(key, bucket)] = count
         return count <= self.limit
