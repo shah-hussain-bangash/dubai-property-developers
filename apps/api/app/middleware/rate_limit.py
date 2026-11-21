@@ -13,6 +13,8 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from core.observability.context import get_correlation_id
+
 EXEMPT_PATHS = frozenset({"/health", "/ready"})
 
 
@@ -87,7 +89,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return JSONResponse(
                 status_code=429,
                 content={
-                    "error": {"code": "rate_limited", "message": "Too many requests", "details": {}}
+                    "error": {
+                        "code": "rate_limited",
+                        "message": "Too many requests",
+                        "details": {},
+                        "correlation_id": get_correlation_id(),
+                    }
                 },
                 headers={"Retry-After": "60"},
             )
