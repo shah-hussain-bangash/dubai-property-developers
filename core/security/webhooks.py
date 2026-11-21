@@ -59,7 +59,8 @@ async def verify_hmac_sha256(
     except ValueError as exc:
         raise WebhookVerificationError("invalid timestamp") from exc
     current = now if now is not None else time.time()
-    if abs(current - ts) > tolerance_seconds:
+    # Compare bounds directly without converting an untrusted integer to float.
+    if not current - tolerance_seconds <= ts <= current + tolerance_seconds:
         raise WebhookVerificationError("timestamp outside tolerance window")
     expected = compute_hmac_sha256(secret, timestamp, body)
     candidate = signature.removeprefix("sha256=")
