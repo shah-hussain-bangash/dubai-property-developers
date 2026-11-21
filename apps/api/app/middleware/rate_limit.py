@@ -22,8 +22,23 @@ class RateLimiter(Protocol):
         ...
 
 
+_MAX_WINDOW_SECONDS = 2**31 - 1
+
+
+def _validate_rate_limit_parameters(limit: int, window_seconds: int) -> None:
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+        raise ValueError("limit must be a positive integer")
+    if (
+        isinstance(window_seconds, bool)
+        or not isinstance(window_seconds, int)
+        or not 1 <= window_seconds <= _MAX_WINDOW_SECONDS
+    ):
+        raise ValueError(f"window_seconds must be an integer between 1 and {_MAX_WINDOW_SECONDS}")
+
+
 class InMemoryFixedWindowRateLimiter:
     def __init__(self, limit: int, window_seconds: int = 60) -> None:
+        _validate_rate_limit_parameters(limit, window_seconds)
         self.limit = limit
         self.window = window_seconds
         self._counts: dict[tuple[str, int], int] = {}
@@ -47,6 +62,7 @@ return count
 
 class RedisFixedWindowRateLimiter:
     def __init__(self, client: Any, limit: int, window_seconds: int = 60) -> None:
+        _validate_rate_limit_parameters(limit, window_seconds)
         self._client = client
         self.limit = limit
         self.window = window_seconds

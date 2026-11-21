@@ -93,7 +93,7 @@ class Settings(BaseSettings):
     )
 
     enable_dev_routes: bool = True
-    rate_limit_per_minute: int = 120
+    rate_limit_per_minute: int = Field(default=120, gt=0)
 
     # --- security ----------------------------------------------------------
     auth_mode: AuthMode = AuthMode.DEV
