@@ -139,6 +139,7 @@ ESLint 9 is a compatibility step for the current Next.js lint configuration and 
 - [docs/agents/README.md](docs/agents/README.md): the 13 agents
 - [docs/api/README.md](docs/api/README.md): API overview
 - [docs/development/environment.md](docs/development/environment.md): environment variables
+- [docs/development/workflow-validation.md](docs/development/workflow-validation.md): validate GitHub configuration before pushing
 - [docs/development/windows-setup.md](docs/development/windows-setup.md): Windows local development
 - [docs/deployment/docker.md](docs/deployment/docker.md): Docker deployment
 - [docs/security/README.md](docs/security/README.md): security controls and UAE compliance notes

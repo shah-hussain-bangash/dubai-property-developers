@@ -177,7 +177,7 @@ jobs:
       - name: Verify container startup and health
         run: |
           docker run --detach --name api-smoke --network none --env ENVIRONMENT=test dubai-api-ci
-          for attempt in $(seq 1 45); do
+          for _ in $(seq 1 45); do
             status=$(docker inspect --format '{{.State.Health.Status}}' api-smoke)
             if [ "$status" = healthy ]; then
               docker exec api-smoke python -c "import json, urllib.request; response = json.load(urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)); assert response['status'] == 'ok'; assert response['environment'] == 'test'"
@@ -254,3 +254,21 @@ jobs:
           path: secret-scan-results.json
           retention-days: 7
           if-no-files-found: ignore
+
+  workflow-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install verified workflow validator
+        run: |
+          mkdir -p "$RUNNER_TEMP/actionlint"
+          curl --fail --show-error --silent --location --retry 3 https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz --output "$RUNNER_TEMP/actionlint/download.tar.gz"
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint/download.tar.gz" | sha256sum --check --strict
+          tar --extract --gzip --file "$RUNNER_TEMP/actionlint/download.tar.gz" --directory "$RUNNER_TEMP/actionlint" actionlint
+      - name: Validate all GitHub workflows and shell steps
+        run: |
+          command -v shellcheck
+          "$RUNNER_TEMP/actionlint/actionlint" -color
