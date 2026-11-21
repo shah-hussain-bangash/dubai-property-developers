@@ -23,6 +23,25 @@
 | Retention policy configuration | `core/policies/retention.py` (enforcement job planned) |
 | Dependency review, pip-audit, Dependabot | `.github/` |
 
+## Generic webhook replay semantics
+
+The generic verifier authenticates the exact `timestamp + "." + raw body` bytes. Its
+nonce is a separate header and is not covered by that signature. After authentication,
+the replay store therefore records both the authenticated message digest and the nonce
+under separate key prefixes. Replacing a nonce or adding/removing the optional `sha256=`
+signature prefix cannot make an accepted message eligible again.
+
+Identical signed content within the replay retention period is treated as the same request,
+even with a different nonce. For intentionally distinct events with otherwise identical
+content, include a unique event identifier in the signed body. The signature format is
+unchanged. Both replay keys expire after twice the configured timestamp tolerance.
+
+`InMemoryNonceStore` is a process-local development helper. Multiple workers or restarts
+require a shared replay store with atomic record-if-absent and expiry semantics. The two
+records are checked sequentially: a valid signature rejected for nonce reuse remains
+reserved until expiry. Meta signature verification is separate and does not use this
+generic replay store.
+
 ## Known gaps (must be closed before production)
 
 - No real identity provider or token verification (OIDC/JWT).
