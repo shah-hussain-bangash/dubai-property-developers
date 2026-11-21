@@ -1,5 +1,7 @@
 # Dubai Property Developers
 
+**Featured case study:** [Dubai Property Developers · From website enquiry to an owned client brief](docs/case-study/DUBAI_PROPERTY_DEVELOPERS_CASE_STUDY.md). A fictional property enquiry illustrates consent, assignment, and client conversion in the operations portal.
+
 A full-stack real estate website and operations portal with a Python API, a Next.js frontend, database migrations, agent workflows and automated tests.
 
 **Live demo:** https://dubai-property-test.duckdns.org/
