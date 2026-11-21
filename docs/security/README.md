@@ -34,7 +34,9 @@ signature prefix cannot make an accepted message eligible again.
 Identical signed content within the replay retention period is treated as the same request,
 even with a different nonce. For intentionally distinct events with otherwise identical
 content, include a unique event identifier in the signed body. The signature format is
-unchanged. Both replay keys expire after twice the configured timestamp tolerance.
+unchanged. Both replay keys expire after twice the configured timestamp tolerance plus
+one second. This covers the inclusive final valid instant for future-dated requests and
+keeps replay protection active when the tolerance is zero.
 
 `InMemoryNonceStore` is a process-local development helper. Multiple workers or restarts
 require a shared replay store with atomic record-if-absent and expiry semantics. The two

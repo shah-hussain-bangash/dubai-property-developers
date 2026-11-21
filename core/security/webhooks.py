@@ -68,7 +68,8 @@ async def verify_hmac_sha256(
         raise WebhookVerificationError("signature mismatch")
     # The nonce is not signed. Deduplicate the authenticated message first so changing
     # the nonce cannot replay it, and a replay cannot consume a fresh nonce.
-    ttl_seconds = tolerance_seconds * 2
+    # Timestamp bounds are inclusive; retain replay keys beyond the final valid instant.
+    ttl_seconds = tolerance_seconds * 2 + 1
     if await nonce_store.seen_before(f"hmac-sha256:signature:{expected}", ttl_seconds):
         raise WebhookVerificationError("replayed request")
     if await nonce_store.seen_before(f"hmac-sha256:nonce:{nonce}", ttl_seconds):
