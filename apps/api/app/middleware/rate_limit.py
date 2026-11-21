@@ -36,6 +36,15 @@ class InMemoryFixedWindowRateLimiter:
         return count <= self.limit
 
 
+_REDIS_HIT_SCRIPT = """
+local count = redis.call('INCR', KEYS[1])
+if count == 1 or redis.call('TTL', KEYS[1]) == -1 then
+    redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+return count
+"""
+
+
 class RedisFixedWindowRateLimiter:
     def __init__(self, client: Any, limit: int, window_seconds: int = 60) -> None:
         self._client = client
@@ -44,9 +53,7 @@ class RedisFixedWindowRateLimiter:
 
     async def hit(self, key: str) -> bool:
         redis_key = f"ratelimit:{key}:{int(time.time() // self.window)}"
-        count = await self._client.incr(redis_key)
-        if count == 1:
-            await self._client.expire(redis_key, self.window)
+        count = await self._client.eval(_REDIS_HIT_SCRIPT, 1, redis_key, self.window)
         return int(count) <= self.limit
 
 
