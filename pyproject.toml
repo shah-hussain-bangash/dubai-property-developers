@@ -74,6 +74,8 @@ omit = ["database/migrations/*", "apps/dashboard/*"]
 [tool.coverage.report]
 show_missing = true
 skip_empty = true
+fail_under = 80
+precision = 2
 
 # ---------------------------------------------------------------- ruff
 [tool.ruff]

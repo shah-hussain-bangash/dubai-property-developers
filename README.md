@@ -35,6 +35,8 @@ As of 20 November 2026, GitHub checks include:
 
 Workflows use pinned action commits and read-only repository permissions; checkout credentials are not retained. Passing checks apply to this repository revision, not automatically to the separately deployed demo.
 
+Backend coverage reporting enforces a minimum of **80% line coverage**, with two decimal places of precision. The same configured application-source scope is used on Python 3.12 and 3.15.
+
 Each CI test job writes a summary table showing passes, skipped tests, expected failures, failures and errors. Backend summaries also show measured line coverage. Missing reports are identified explicitly; expected failures remain unresolved scenarios.
 
 To download test evidence, open a [CI run](https://github.com/zenithdevelopers7-source/dubai-property-developers/actions/workflows/ci.yml) and use its **Artifacts** section. Backend JUnit/coverage reports and database integration reports are labelled by Python version; frontend results are in `frontend-tests`. Reports are retained for seven days and uploaded when available even if a test step fails. GitHub may require you to sign in to download them.
