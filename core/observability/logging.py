@@ -40,6 +40,17 @@ class CorrelationFilter(logging.Filter):
         return True
 
 
+class RedactingTextFormatter(logging.Formatter):
+    """Sanitize final text, including cached tracebacks and stack diagnostics."""
+
+    def __init__(self, fmt: str, *, mask_pii: bool = True) -> None:
+        super().__init__(fmt)
+        self.mask_pii = mask_pii
+
+    def format(self, record: logging.LogRecord) -> str:
+        return redact_text(super().format(record), mask_pii=self.mask_pii)
+
+
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload: dict[str, Any] = {
@@ -66,8 +77,9 @@ def configure_logging(
         handler.setFormatter(JsonFormatter())
     else:
         handler.setFormatter(
-            logging.Formatter(
-                "%(asctime)s %(levelname)s [%(correlation_id)s] %(name)s: %(message)s"
+            RedactingTextFormatter(
+                "%(asctime)s %(levelname)s [%(correlation_id)s] %(name)s: %(message)s",
+                mask_pii=mask_pii,
             )
         )
     root = logging.getLogger()
