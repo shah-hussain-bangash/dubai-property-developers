@@ -29,11 +29,11 @@ def _body(code: str, message: str, details: Any = None) -> dict[str, Any]:
 
 async def platform_error_handler(request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, PlatformError)
+    message, details = exc.message, exc.details
     if exc.status_code >= 500:
         logger.warning("platform error", extra={"error_code": exc.code})
-    return JSONResponse(
-        status_code=exc.status_code, content=_body(exc.code, exc.message, exc.details)
-    )
+        message, details = "An unexpected error occurred", {}
+    return JSONResponse(status_code=exc.status_code, content=_body(exc.code, message, details))
 
 
 async def validation_error_handler(request: Request, exc: Exception) -> JSONResponse:
