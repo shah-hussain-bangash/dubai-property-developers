@@ -19,10 +19,17 @@ def create_redis_client(settings: Settings) -> Any:
 
 
 async def ping_redis(settings: Settings) -> bool:
-    client = create_redis_client(settings)
+    client = None
+    healthy = False
     try:
-        return bool(await client.ping())
+        client = create_redis_client(settings)
+        healthy = bool(await client.ping())
     except Exception:
-        return False
+        healthy = False
     finally:
-        await client.aclose()
+        if client is not None:
+            try:
+                await client.aclose()
+            except Exception:
+                healthy = False
+    return healthy
