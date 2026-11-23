@@ -37,6 +37,11 @@ class ModelPrice:
     input_per_million: Decimal
     output_per_million: Decimal
 
+    def __post_init__(self) -> None:
+        for price in (self.input_per_million, self.output_per_million):
+            if not isinstance(price, Decimal) or not price.is_finite() or price < 0:
+                raise ValueError("model prices must be finite non-negative Decimal values")
+
 
 class UsageSink(Protocol):
     def record(
