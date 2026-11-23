@@ -42,6 +42,8 @@ class ModelRouter:
         return self._chain[0]
 
     async def complete(self, request: LLMRequest, *, agent_id: str = "unknown") -> LLMResponse:
+        # Keep caller and provider mutations out of retries and fallback attempts.
+        request = request.model_copy(deep=True)
         targets = self._chain
         if request.model:
             targets = [t for t in self._chain if t.model == request.model] or self._chain
@@ -55,7 +57,7 @@ class ModelRouter:
                 async def complete_target(
                     p: LLMProvider = provider, model: str = target.model
                 ) -> LLMResponse:
-                    return await p.complete(request, model=model)
+                    return await p.complete(request.model_copy(deep=True), model=model)
 
                 response = await retry_async(complete_target, self._retry)
             except Exception as exc:
