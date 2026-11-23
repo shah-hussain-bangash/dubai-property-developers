@@ -7,7 +7,7 @@ from datetime import date
 
 from knowledge.documents.models import ScoredChunk
 from knowledge.embeddings.base import EmbeddingProvider
-from knowledge.vectorstores.base import RetrievalFilter, VectorStore
+from knowledge.vectorstores.base import RetrievalFilter, VectorStore, validate_search_limit
 from schemas.conversations.models import Citation
 
 
@@ -46,6 +46,9 @@ class Retriever:
     async def retrieve(
         self, query: str, filters: RetrievalFilter, *, k: int = 4, today: date | None = None
     ) -> RetrievalResult:
+        validate_search_limit(k)
+        if k == 0:
+            return RetrievalResult(query=query, hits=[])
         [vector] = await self._embedder.embed([query])
         hits = await self._store.search(vector, k=k, filters=filters)
         current = today or date.today()
