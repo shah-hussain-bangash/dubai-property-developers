@@ -29,10 +29,14 @@ class WebhookReplayExpiryTests(unittest.IsolatedAsyncioTestCase):
                     store=InMemoryNonceStore(),
                     timestamp="1700000300",
                 )
-                with patch("core.security.webhooks.time.time", return_value=1700000000.0) as clock:
+                with (
+                    patch("core.security.webhooks.time.time", return_value=1700000000.0) as clock,
+                    patch("core.security.webhooks.time.monotonic", return_value=100.0) as timer,
+                ):
                     await verify_hmac_sha256(**request)
                     for elapsed in (599.5, 600.0):
                         clock.return_value = 1700000000.0 + elapsed
+                        timer.return_value = 100.0 + elapsed
                         with self.assertRaisesRegex(WebhookVerificationError, "replayed request"):
                             await verify_hmac_sha256(**{**request, "nonce": nonce})
                     clock.return_value = 1700000600.001
@@ -46,7 +50,10 @@ class WebhookReplayExpiryTests(unittest.IsolatedAsyncioTestCase):
             timestamp="1700000000",
             tolerance=0,
         )
-        with patch("core.security.webhooks.time.time", return_value=1700000000.0) as clock:
+        with (
+            patch("core.security.webhooks.time.time", return_value=1700000000.0) as clock,
+            patch("core.security.webhooks.time.monotonic", return_value=100.0) as timer,
+        ):
             await verify_hmac_sha256(**request)
             for nonce in ("fixture-nonce", "replacement-nonce"):
                 with (
@@ -55,16 +62,21 @@ class WebhookReplayExpiryTests(unittest.IsolatedAsyncioTestCase):
                 ):
                     await verify_hmac_sha256(**{**request, "nonce": nonce})
             clock.return_value = 1700000000.001
+            timer.return_value = 100.001
             with self.assertRaisesRegex(WebhookVerificationError, "outside tolerance"):
                 await verify_hmac_sha256(**request)
 
     async def test_expired_nonce_can_be_used_by_a_fresh_signed_request(self):
         secret, store = secrets.token_hex(32), InMemoryNonceStore()
-        with patch("core.security.webhooks.time.time", return_value=1700000000.0) as clock:
+        with (
+            patch("core.security.webhooks.time.time", return_value=1700000000.0) as clock,
+            patch("core.security.webhooks.time.monotonic", return_value=100.0) as timer,
+        ):
             await verify_hmac_sha256(
                 **self.request(secret=secret, store=store, timestamp="1700000000")
             )
             clock.return_value = 1700000601.0
+            timer.return_value = 701.0
             await verify_hmac_sha256(
                 **self.request(secret=secret, store=store, timestamp="1700000601")
             )

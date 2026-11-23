@@ -24,11 +24,13 @@ class NonceStore(Protocol):
 
 
 class InMemoryNonceStore:
+    """Process-local replay records retained using elapsed time."""
+
     def __init__(self) -> None:
         self._seen: dict[str, float] = {}
 
     async def seen_before(self, nonce: str, ttl_seconds: int) -> bool:
-        now = time.time()
+        now = time.monotonic()
         self._seen = {k: exp for k, exp in self._seen.items() if exp > now}
         if nonce in self._seen:
             return True
