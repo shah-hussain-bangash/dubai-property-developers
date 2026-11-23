@@ -47,9 +47,10 @@ class InMemoryEventBus:
         self._handlers[event_type].append(handler)
 
     async def publish(self, event: DomainEvent) -> None:
-        self.published.append(event)
-        for handler in [*self._handlers.get(event.event_type, []), *self._handlers.get("*", [])]:
+        snapshot = event.model_copy(deep=True)
+        self.published.append(snapshot.model_copy(deep=True))
+        for handler in [*self._handlers.get(snapshot.event_type, []), *self._handlers.get("*", [])]:
             try:
-                await handler(event)
+                await handler(snapshot.model_copy(deep=True))
             except Exception:  # a failing subscriber must not break the publisher
-                logger.exception("event handler failed", extra={"event_type": event.event_type})
+                logger.exception("event handler failed", extra={"event_type": snapshot.event_type})
