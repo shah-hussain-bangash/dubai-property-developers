@@ -23,7 +23,9 @@ class WebhookRedactionTests(unittest.TestCase):
             for scheme in ("http", "https"):
                 with self.subTest(host=host, scheme=scheme):
                     url = f"{scheme}://{host}{WEBHOOK_PATH}?fixture=value"
-                    self.assertEqual(redact_text(f"request {url} failed"), f"request {REDACTED} failed")
+                    self.assertEqual(
+                        redact_text(f"request {url} failed"), f"request {REDACTED} failed"
+                    )
 
     def test_redaction_is_independent_of_pii_masking(self):
         self.assertEqual(redact_text(WEBHOOK_URL, mask_pii=False), REDACTED)
