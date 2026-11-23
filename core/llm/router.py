@@ -32,8 +32,8 @@ class ModelRouter:
     ) -> None:
         if not chain:
             raise ValueError("model chain must contain at least one target")
-        self._providers = providers
-        self._chain = chain
+        self._providers = dict(providers)
+        self._chain = tuple(chain)
         self._retry = retry_policy or RetryPolicy()
         self.usage_sink: UsageSink = usage_sink or InMemoryUsageTracker()
 
@@ -46,7 +46,7 @@ class ModelRouter:
         request = request.model_copy(deep=True)
         targets = self._chain
         if request.model:
-            targets = [t for t in self._chain if t.model == request.model] or self._chain
+            targets = tuple(t for t in self._chain if t.model == request.model) or self._chain
         last_error: Exception | None = None
         for target in targets:
             provider = self._providers.get(target.provider)
