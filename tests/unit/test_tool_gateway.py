@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any, ClassVar
+from unittest.mock import patch
 
 import pytest
 
@@ -261,3 +263,21 @@ async def test_editing_approval_snapshot_cannot_bypass_decision_or_change_payloa
     executed = await gateway.execute_approved(pending.approval_id, manager)
     assert executed.data == {"sent": "original"}
     assert tool.calls == 1
+
+
+@pytest.mark.parametrize("reject_first", [False, True])
+async def test_stale_approval_is_replaced_once_then_reused(reject_first: bool) -> None:
+    gateway, tool = _gateway()
+    first = await gateway.invoke(_ctx(), "test.send", {"to": "fixture"})
+    assert first.approval_id is not None
+    original = await gateway.approvals.get(first.approval_id)
+    if reject_first:
+        await gateway.approvals.decide(first.approval_id, approved=False, decided_by="manager")
+    with patch("core.policies.approvals.datetime") as clock:
+        clock.now.return_value = original.expires_at + timedelta(seconds=1)
+        replacement = await gateway.invoke(_ctx(), "test.send", {"to": "fixture"})
+        repeated = await gateway.invoke(_ctx(), "test.send", {"to": "fixture"})
+    assert replacement.status == ToolResultStatus.PENDING_APPROVAL
+    assert replacement.approval_id != first.approval_id
+    assert repeated.approval_id == replacement.approval_id
+    assert tool.calls == 0

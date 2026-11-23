@@ -63,18 +63,27 @@ class InMemoryApprovalStore:
         self._items: dict[str, ApprovalRequest] = {}
 
     async def create(self, request: ApprovalRequest) -> ApprovalRequest:
-        self._items[request.approval_id] = request.model_copy(deep=True)
-        return request.model_copy(deep=True)
+        saved = request.model_copy(deep=True)
+        self._expire_if_due(saved)
+        self._items[saved.approval_id] = saved
+        return saved.model_copy(deep=True)
 
     async def get(self, approval_id: str) -> ApprovalRequest:
         try:
-            return self._items[approval_id].model_copy(deep=True)
+            request = self._items[approval_id]
+            self._expire_if_due(request)
+            return request.model_copy(deep=True)
         except KeyError as exc:
             raise NotFoundError(f"approval {approval_id} not found") from exc
 
     async def find_by_idempotency_key(self, key: str) -> ApprovalRequest | None:
-        request = next((r for r in self._items.values() if r.idempotency_key == key), None)
-        return request.model_copy(deep=True) if request is not None else None
+        request = next(
+            (r for r in reversed(self._items.values()) if r.idempotency_key == key), None
+        )
+        if request is None:
+            return None
+        self._expire_if_due(request)
+        return request.model_copy(deep=True)
 
     async def decide(
         self, approval_id: str, *, approved: bool, decided_by: str, note: str | None = None
@@ -82,7 +91,7 @@ class InMemoryApprovalStore:
         request = await self.get(approval_id)
         if request.status != ApprovalStatus.PENDING:
             raise ConflictError(f"approval {approval_id} already {request.status}")
-        if request.expires_at < datetime.now(UTC):
+        if request.expires_at <= datetime.now(UTC):
             request.status = ApprovalStatus.EXPIRED
             self._items[approval_id] = request.model_copy(deep=True)
             raise ConflictError(f"approval {approval_id} expired")
@@ -94,8 +103,19 @@ class InMemoryApprovalStore:
         return request
 
     async def list_pending(self, tenant_id: str) -> list[ApprovalRequest]:
+        now = datetime.now(UTC)
+        for request in self._items.values():
+            if request.tenant_id == tenant_id:
+                self._expire_if_due(request, now=now)
         return [
             r.model_copy(deep=True)
             for r in self._items.values()
             if r.tenant_id == tenant_id and r.status == ApprovalStatus.PENDING
         ]
+
+    @staticmethod
+    def _expire_if_due(request: ApprovalRequest, *, now: datetime | None = None) -> None:
+        if request.status != ApprovalStatus.PENDING:
+            return
+        if request.expires_at <= (now or datetime.now(UTC)):
+            request.status = ApprovalStatus.EXPIRED
