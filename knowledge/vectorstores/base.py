@@ -47,12 +47,14 @@ class VectorStore(Protocol):
 
 
 class InMemoryVectorStore:
+    """Store independent snapshots and return detached search results."""
+
     def __init__(self) -> None:
         self._items: dict[str, tuple[Chunk, list[float]]] = {}
 
     async def upsert(self, chunks: list[Chunk], vectors: list[list[float]]) -> None:
         for chunk, vector in zip(chunks, vectors, strict=True):
-            self._items[chunk.chunk_id] = (chunk, vector)
+            self._items[chunk.chunk_id] = (chunk.model_copy(deep=True), list(vector))
 
     async def search(
         self, vector: list[float], *, k: int, filters: RetrievalFilter
@@ -63,7 +65,7 @@ class InMemoryVectorStore:
             if filters.allows(chunk)
         ]
         scored.sort(key=lambda s: (-s.score, s.chunk.chunk_id))
-        return scored[:k]
+        return [hit.model_copy(deep=True) for hit in scored[:k]]
 
     async def mark_superseded(self, tenant_id: str, document_key: str, below_version: int) -> int:
         count = 0
