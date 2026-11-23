@@ -49,6 +49,7 @@ class Retriever:
         validate_search_limit(k)
         if k == 0:
             return RetrievalResult(query=query, hits=[])
+        filters = filters.model_copy(deep=True)
         [vector] = await self._embedder.embed([query])
         hits = await self._store.search(vector, k=k, filters=filters)
         current = today or date.today()

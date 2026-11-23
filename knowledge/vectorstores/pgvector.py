@@ -45,6 +45,8 @@ class PgVectorStore:
         validate_search_limit(k)
         if k == 0 or filters.document_keys == set():
             return []
+        filters = filters.model_copy(deep=True)
+        vector = list(vector)
         distance = ChunkEmbedding.embedding.cosine_distance(vector)
         stmt = (
             select(KnowledgeChunk, KnowledgeDocument, distance.label("distance"))
