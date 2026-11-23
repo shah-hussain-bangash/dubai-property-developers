@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Protocol
 
 from core.events.bus import EventBus, InMemoryEventBus
@@ -25,9 +25,10 @@ class ExecutionContext:
     def system(
         cls, tenant_id: str | None = None, correlation_id: str | None = None
     ) -> ExecutionContext:
+        resolved_tenant = tenant_id or SYSTEM_PRINCIPAL.tenant_id
         return cls(
-            principal=SYSTEM_PRINCIPAL,
-            tenant_id=tenant_id or SYSTEM_PRINCIPAL.tenant_id,
+            principal=replace(SYSTEM_PRINCIPAL, tenant_id=resolved_tenant),
+            tenant_id=resolved_tenant,
             correlation_id=correlation_id or new_correlation_id(),
         )
 
