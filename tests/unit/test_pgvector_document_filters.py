@@ -70,8 +70,6 @@ class PostgreSQLDocumentFilterTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("knowledge_chunks.organization_id =", str(compiled))
         self.assertIn("knowledge_documents.organization_id =", str(compiled))
         organizations = [
-            value
-            for name, value in compiled.params.items()
-            if name.startswith("organization_id")
+            value for name, value in compiled.params.items() if name.startswith("organization_id")
         ]
         self.assertEqual(organizations, [store._org, store._org])
