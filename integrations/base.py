@@ -103,6 +103,13 @@ class HttpIntegrationClient:
         idempotency_key: str | None = None,
         expect_json: bool = True,
     ) -> Any:
+        url = self._client.build_request(method, path).url
+        base = self._client.base_url
+        if (url.scheme, url.host, url.port) != (base.scheme, base.host, base.port):
+            raise IntegrationRequestRejected(
+                f"{self.integration}: request URL must use the configured origin"
+            )
+
         headers = {
             "Accept": "application/json" if expect_json else "text/plain",
             **self._auth.headers(),
@@ -113,7 +120,7 @@ class HttpIntegrationClient:
         async def _send() -> Any:
             try:
                 response = await self._client.request(
-                    method, path, json=json, params=params, headers=headers
+                    method, url, json=json, params=params, headers=headers
                 )
             except httpx.TransportError as exc:
                 raise _RetryableHttpError(
