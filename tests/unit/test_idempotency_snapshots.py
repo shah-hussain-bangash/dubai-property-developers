@@ -52,7 +52,7 @@ class IdempotencySnapshotTests(unittest.IsolatedAsyncioTestCase):
     async def test_missing_and_expired_results_keep_existing_behavior(self):
         store = InMemoryIdempotencyStore()
         self.assertIsNone(await store.get("missing"))
-        with patch("core.resilience.idempotency.time.time") as clock:
+        with patch("core.resilience.idempotency.time.monotonic") as clock:
             clock.return_value = 1000.0
             await store.put("fixture-key", result(), 30)
             clock.return_value = 1029.999

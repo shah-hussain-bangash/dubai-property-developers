@@ -37,6 +37,8 @@ class IdempotencyStore(Protocol):
 
 
 class InMemoryIdempotencyStore:
+    """Process-local result snapshots with TTLs measured by a monotonic clock."""
+
     def __init__(self) -> None:
         self._items: dict[str, tuple[float, dict[str, Any]]] = {}
         self._execution_locks: WeakValueDictionary[str, asyncio.Lock] = WeakValueDictionary()
@@ -51,13 +53,13 @@ class InMemoryIdempotencyStore:
         if item is None:
             return None
         expires_at, result = item
-        if expires_at < time.time():
+        if expires_at <= time.monotonic():
             self._items.pop(key, None)
             return None
         return deepcopy(result)
 
     async def put(self, key: str, result: dict[str, Any], ttl_seconds: int) -> None:
-        self._items[key] = (time.time() + ttl_seconds, deepcopy(result))
+        self._items[key] = (time.monotonic() + ttl_seconds, deepcopy(result))
 
 
 class RedisIdempotencyStore:
