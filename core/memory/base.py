@@ -8,6 +8,7 @@ implementation lives in ``database/repositories/conversation_memory.py`` to keep
 from __future__ import annotations
 
 from collections import defaultdict
+from copy import deepcopy
 from datetime import UTC, datetime
 from typing import Any, Protocol
 
@@ -46,16 +47,19 @@ class InMemoryConversationMemory:
         self._state: dict[str, dict[str, Any]] = {}
 
     async def append(self, conversation_id: str, message: MemoryMessage) -> None:
-        self._messages[conversation_id].append(message)
+        self._messages[conversation_id].append(message.model_copy(deep=True))
 
     async def history(self, conversation_id: str, *, limit: int = 20) -> list[MemoryMessage]:
         validate_history_limit(limit)
         if limit == 0:
             return []
-        return list(self._messages.get(conversation_id, [])[-limit:])
+        return [
+            message.model_copy(deep=True)
+            for message in self._messages.get(conversation_id, [])[-limit:]
+        ]
 
     async def get_state(self, conversation_id: str) -> dict[str, Any]:
-        return dict(self._state.get(conversation_id, {}))
+        return deepcopy(self._state.get(conversation_id, {}))
 
     async def set_state(self, conversation_id: str, state: dict[str, Any]) -> None:
-        self._state[conversation_id] = dict(state)
+        self._state[conversation_id] = deepcopy(state)
