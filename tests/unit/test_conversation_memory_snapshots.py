@@ -16,7 +16,9 @@ class ConversationSnapshotTests(unittest.IsolatedAsyncioTestCase):
         message.role = "system"
         message.channel = "email"
         [saved] = await self.memory.history("fixture")
-        self.assertEqual((saved.role, saved.content, saved.channel), ("customer", "Original", "web"))
+        self.assertEqual(
+            (saved.role, saved.content, saved.channel), ("customer", "Original", "web")
+        )
 
     async def test_returned_message_changes_do_not_rewrite_saved_history(self):
         await self.memory.append("fixture", MemoryMessage(role="customer", content="Original"))
