@@ -51,6 +51,10 @@ class WebhookSlackNotifier:
         payload: dict[str, Any] = {"text": text}
         await self._http.request("POST", self._path, json=payload, expect_json=False)
 
+    async def aclose(self) -> None:
+        """Release the HTTP connection pool owned by this adapter."""
+        await self._http.aclose()
+
 
 def descriptor(config: SlackConfig) -> IntegrationDescriptor:
     return IntegrationDescriptor(

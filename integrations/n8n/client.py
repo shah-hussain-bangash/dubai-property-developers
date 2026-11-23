@@ -59,6 +59,10 @@ class HttpN8nClient:
             idempotency_key=idempotency_key,
         )
 
+    async def aclose(self) -> None:
+        """Release the HTTP connection pool owned by this adapter."""
+        await self._http.aclose()
+
 
 def descriptor(config: N8nConfig) -> IntegrationDescriptor:
     return IntegrationDescriptor(

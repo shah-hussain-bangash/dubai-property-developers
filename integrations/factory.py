@@ -6,6 +6,7 @@ when ``INTEGRATIONS_MODE=live`` AND that integration's credentials are present.
 
 from __future__ import annotations
 
+from contextlib import AsyncExitStack
 from dataclasses import dataclass, field
 
 from core.config.settings import Settings
@@ -53,6 +54,23 @@ class IntegrationSet:
     n8n: N8nClient
     slack: SlackNotifier
     descriptors: list[IntegrationDescriptor] = field(default_factory=list)
+
+    async def aclose(self) -> None:
+        """Close resource-owning clients, attempting every registered cleanup."""
+        async with AsyncExitStack() as cleanup:
+            for client in (
+                self.crm,
+                self.whatsapp,
+                self.calendar,
+                self.bayut,
+                self.propertyfinder,
+                self.telephony,
+                self.n8n,
+                self.slack,
+            ):
+                close = getattr(client, "aclose", None)
+                if close is not None:
+                    cleanup.push_async_callback(close)
 
 
 def _mode(settings: Settings, configured: bool) -> IntegrationMode:

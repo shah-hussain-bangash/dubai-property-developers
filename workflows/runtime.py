@@ -154,11 +154,15 @@ class PlatformRuntime:
     async def shutdown(self) -> None:
         """Release resources owned by this runtime."""
 
-        if self._db_engine is not None:
-            await self._db_engine.dispose()
-            self._db_engine = None
-
-        self._initialized = False
+        try:
+            await self.integrations.aclose()
+        finally:
+            try:
+                if self._db_engine is not None:
+                    await self._db_engine.dispose()
+                    self._db_engine = None
+            finally:
+                self._initialized = False
 
         logger.info("platform runtime shut down")
 
