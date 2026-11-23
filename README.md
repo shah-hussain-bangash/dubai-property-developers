@@ -26,22 +26,22 @@ Local defaults use mock integrations, a deterministic mock LLM and fictional dem
 
 ## Verified checks
 
-[![CI](https://github.com/zenithdevelopers7-source/dubai-property-developers/actions/workflows/ci.yml/badge.svg)](https://github.com/zenithdevelopers7-source/dubai-property-developers/actions/workflows/ci.yml)
+[![CI](https://github.com/shah-hussain-bangash/dubai-property-developers/actions/workflows/ci.yml/badge.svg)](https://github.com/shah-hussain-bangash/dubai-property-developers/actions/workflows/ci.yml)
 
-As of 20 November 2026, GitHub checks include:
+The [reference CI run](https://github.com/shah-hussain-bangash/dubai-property-developers/actions/runs/44920345593) for [commit `01359f8`](https://github.com/shah-hussain-bangash/dubai-property-developers/commit/01359f8ca7561be8eaf01e43a6d92fa2bd9f7ea0) reports:
 
-- **962 backend tests** on each of Python 3.12 and 3.15, plus lint, strict type checks, migration SQL and dependency audits. Existing expected-failure safety cases remain visible in test results.
-- **873 frontend tests**, TypeScript and ESLint checks, a lockfile-based installation, dependency audit and production build.
-- **161 database integration tests** on each Python version against temporary PostgreSQL/Redis services, with no unexpected skips. One strict expected failure documents the PostgreSQL-to-Redis fencing publication gap.
+- **1,087 passing backend tests** on each of Python 3.12 and 3.15, plus lint, strict type checks, migration SQL and dependency audits. The reports separately list 146 skipped cases and four expected failures; these are not counted as passes.
+- **873 passing frontend tests**, TypeScript and ESLint checks, a lockfile-based installation, dependency audit and production build.
+- **166 passing database/Redis integration tests** on each Python version against temporary PostgreSQL/Redis services, with no unexpected skips. One strict expected failure documents the PostgreSQL-to-Redis fencing publication gap.
 - An actual Python 3.15 API image build, installed-dependency check, non-root runtime check and container startup/health smoke test.
 
 Workflows use pinned action commits and read-only repository permissions; checkout credentials are not retained. Passing checks apply to this repository revision, not automatically to the separately deployed demo.
 
-Backend coverage reporting enforces a minimum of **80% line coverage**, with two decimal places of precision. The same configured application-source scope is used on Python 3.12 and 3.15.
+Backend coverage reporting enforces a minimum of **80% line coverage**, with two decimal places of precision. The same configured application-source scope is used on Python 3.12 and 3.15. The reference run measured **80.66%** on Python 3.12 and **80.46%** on Python 3.15.
 
 Each CI test job writes a summary table showing passes, skipped tests, expected failures, failures and errors. Backend summaries also show measured line coverage. Missing reports are identified explicitly; expected failures remain unresolved scenarios.
 
-To download test evidence, open a [CI run](https://github.com/zenithdevelopers7-source/dubai-property-developers/actions/workflows/ci.yml) and use its **Artifacts** section. Backend JUnit/coverage reports and database integration reports are labelled by Python version; frontend results are in `frontend-tests`. Reports are retained for seven days and uploaded when available even if a test step fails. GitHub may require you to sign in to download them.
+To download test evidence, open a [CI run](https://github.com/shah-hussain-bangash/dubai-property-developers/actions/workflows/ci.yml) and use its **Artifacts** section. Backend JUnit/coverage reports and database integration reports are labelled by Python version; frontend results are in `frontend-tests`. Reports are retained for seven days and uploaded when available even if a test step fails. GitHub may require you to sign in to download them.
 
 The [credential scan](docs/security/credential-scanning.md) checks fetched Git history with a checksum-verified scanner, narrow reviewed fixture exceptions and fully redacted findings.
 
