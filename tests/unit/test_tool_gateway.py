@@ -242,3 +242,22 @@ async def test_whatsapp_policy_blocks_before_approval() -> None:
         )
 
     assert await gateway.approvals.list_pending("demo-org") == []
+
+
+async def test_editing_approval_snapshot_cannot_bypass_decision_or_change_payload() -> None:
+    gateway, tool = _gateway()
+    pending = await gateway.invoke(_ctx(), "test.send", {"to": "original"})
+    assert pending.approval_id is not None
+    snapshot = await gateway.approvals.get(pending.approval_id)
+    snapshot.status = ApprovalStatus.APPROVED
+    snapshot.payload["to"] = "tampered"
+    manager = Principal(
+        subject="manager", tenant_id="demo-org", roles=frozenset({Role.SALES_MANAGER})
+    )
+    with pytest.raises(ConflictError):
+        await gateway.execute_approved(pending.approval_id, manager)
+    assert tool.calls == 0
+    await gateway.approvals.decide(pending.approval_id, approved=True, decided_by="manager")
+    executed = await gateway.execute_approved(pending.approval_id, manager)
+    assert executed.data == {"sent": "original"}
+    assert tool.calls == 1

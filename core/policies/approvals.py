@@ -63,17 +63,18 @@ class InMemoryApprovalStore:
         self._items: dict[str, ApprovalRequest] = {}
 
     async def create(self, request: ApprovalRequest) -> ApprovalRequest:
-        self._items[request.approval_id] = request
-        return request
+        self._items[request.approval_id] = request.model_copy(deep=True)
+        return request.model_copy(deep=True)
 
     async def get(self, approval_id: str) -> ApprovalRequest:
         try:
-            return self._items[approval_id]
+            return self._items[approval_id].model_copy(deep=True)
         except KeyError as exc:
             raise NotFoundError(f"approval {approval_id} not found") from exc
 
     async def find_by_idempotency_key(self, key: str) -> ApprovalRequest | None:
-        return next((r for r in self._items.values() if r.idempotency_key == key), None)
+        request = next((r for r in self._items.values() if r.idempotency_key == key), None)
+        return request.model_copy(deep=True) if request is not None else None
 
     async def decide(
         self, approval_id: str, *, approved: bool, decided_by: str, note: str | None = None
@@ -83,16 +84,18 @@ class InMemoryApprovalStore:
             raise ConflictError(f"approval {approval_id} already {request.status}")
         if request.expires_at < datetime.now(UTC):
             request.status = ApprovalStatus.EXPIRED
+            self._items[approval_id] = request.model_copy(deep=True)
             raise ConflictError(f"approval {approval_id} expired")
         request.status = ApprovalStatus.APPROVED if approved else ApprovalStatus.REJECTED
         request.decided_by = decided_by
         request.decided_at = datetime.now(UTC)
         request.decision_note = note
+        self._items[approval_id] = request.model_copy(deep=True)
         return request
 
     async def list_pending(self, tenant_id: str) -> list[ApprovalRequest]:
         return [
-            r
+            r.model_copy(deep=True)
             for r in self._items.values()
             if r.tenant_id == tenant_id and r.status == ApprovalStatus.PENDING
         ]
