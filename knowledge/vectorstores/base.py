@@ -21,7 +21,9 @@ class RetrievalFilter(BaseModel):
     def allows(self, chunk: Chunk) -> bool:
         if chunk.tenant_id != self.tenant_id:
             return False
-        if not self.include_superseded and chunk.status != DocumentStatus.ACTIVE:
+        if chunk.status != DocumentStatus.ACTIVE and not (
+            self.include_superseded and chunk.status == DocumentStatus.SUPERSEDED
+        ):
             return False
         if chunk.access_level not in self.access_levels:
             return False

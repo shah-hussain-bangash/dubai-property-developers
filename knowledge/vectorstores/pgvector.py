@@ -3,7 +3,8 @@
 Search uses cosine distance against ``chunk_embeddings`` joined to chunks and
 documents so tenant, status and access filters are applied in SQL. Restricted-role
 and metadata filters are applied in Python on the over-fetched candidate set.
-Covered only by integration tests (``RUN_INTEGRATION_TESTS=1``).
+Query status filtering is covered by unit tests. Database execution requires
+integration tests (``RUN_INTEGRATION_TESTS=1``).
 """
 
 from __future__ import annotations
@@ -53,8 +54,10 @@ class PgVectorStore:
             .order_by(distance)
             .limit(k * 4)
         )
-        if not filters.include_superseded:
-            stmt = stmt.where(KnowledgeDocument.status == DocumentStatus.ACTIVE.value)
+        statuses = [DocumentStatus.ACTIVE.value]
+        if filters.include_superseded:
+            statuses.append(DocumentStatus.SUPERSEDED.value)
+        stmt = stmt.where(KnowledgeDocument.status.in_(statuses))
         async with self._factory() as session:
             rows = (await session.execute(stmt)).all()
         results: list[ScoredChunk] = []
