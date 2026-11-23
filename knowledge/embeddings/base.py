@@ -87,7 +87,18 @@ class HashingEmbeddingProvider:
 
 
 def cosine(a: list[float], b: list[float]) -> float:
-    dot = sum(x * y for x, y in zip(a, b, strict=True))
-    na = math.sqrt(sum(x * x for x in a))
-    nb = math.sqrt(sum(y * y for y in b))
-    return dot / (na * nb) if na and nb else 0.0
+    """Compare finite vectors without squaring their original magnitudes."""
+    if len(a) != len(b):
+        raise ValueError("vectors must have the same dimension")
+    if any(not math.isfinite(value) for vector in (a, b) for value in vector):
+        raise ValueError("vector coordinates must be finite")
+    scale_a = max((abs(value) for value in a), default=0.0)
+    scale_b = max((abs(value) for value in b), default=0.0)
+    if not scale_a or not scale_b:
+        return 0.0
+    scaled_a = [value / scale_a for value in a]
+    scaled_b = [value / scale_b for value in b]
+    dot = math.fsum(x * y for x, y in zip(scaled_a, scaled_b, strict=True))
+    norm_a = math.sqrt(math.fsum(value * value for value in scaled_a))
+    norm_b = math.sqrt(math.fsum(value * value for value in scaled_b))
+    return max(-1.0, min(1.0, dot / (norm_a * norm_b)))
