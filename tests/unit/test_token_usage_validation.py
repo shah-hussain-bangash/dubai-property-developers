@@ -17,21 +17,22 @@ class TokenUsageValidationTests(unittest.IsolatedAsyncioTestCase):
     def test_usage_records_reject_negative_and_non_integer_counts(self):
         for field in ("input_tokens", "output_tokens"):
             for count in INVALID_COUNTS:
-                with self.subTest(field=field, count=count):
-                    with self.assertRaisesRegex(ValueError, "non-negative integers"):
-                        TokenUsage(**{field: count})
+                with (
+                    self.subTest(field=field, count=count),
+                    self.assertRaisesRegex(ValueError, "non-negative integers"),
+                ):
+                    TokenUsage(**{field: count})
 
     def test_model_responses_reject_invalid_counts_without_coercion(self):
         for field in ("input_tokens", "output_tokens"):
             for count in INVALID_COUNTS:
-                with self.subTest(field=field, count=count):
-                    with self.assertRaises(ValueError):
-                        LLMResponse(
-                            text="Fictional fixture answer",
-                            provider="fixture",
-                            model="fixture-model",
-                            **{field: count},
-                        )
+                with self.subTest(field=field, count=count), self.assertRaises(ValueError):
+                    LLMResponse(
+                        text="Fictional fixture answer",
+                        provider="fixture",
+                        model="fixture-model",
+                        **{field: count},
+                    )
 
     def test_valid_zero_and_large_counts_keep_aggregation_and_decimal_costs(self):
         self.assertEqual(TokenUsage().total_tokens, 0)
