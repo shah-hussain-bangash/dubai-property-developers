@@ -33,6 +33,7 @@ class IngestionPipeline:
         self._overlap = chunk_overlap
 
     async def ingest(self, document: SourceDocument) -> IngestionReport:
+        document = document.model_copy(deep=True)
         text = normalize_text(document.text)
         pieces = chunk_text(text, chunk_size=self._chunk_size, overlap=self._overlap)
         if not pieces:
