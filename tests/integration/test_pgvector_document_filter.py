@@ -1,4 +1,4 @@
-"""Allowed documents remain searchable behind nearer unrelated or restricted documents."""
+"""Allowed matching documents remain searchable beyond the first candidate batch."""
 
 import uuid
 
@@ -25,8 +25,9 @@ pytestmark = [
 ]
 
 
-@pytest.mark.parametrize("restricted_distractors", [False, True])
-async def test_requested_document_survives_nearer_unavailable_candidates(restricted_distractors):
+@pytest.mark.parametrize("filter_mode", ["document", "role", "metadata"])
+async def test_requested_document_survives_nearer_unavailable_candidates(filter_mode):
+    restricted_distractors = filter_mode == "role"
     settings = get_settings()
     if not settings.is_dev_like:
         pytest.skip("Knowledge search tests require a development database")
@@ -84,7 +85,7 @@ async def test_requested_document_survives_nearer_unavailable_candidates(restric
                                 content="Fictional knowledge",
                                 token_count=2,
                                 content_hash="fixture",
-                                attributes={},
+                                attributes={"section": "wanted" if requested else "other"},
                             )
                         )
                         await session.flush()
@@ -101,7 +102,7 @@ async def test_requested_document_survives_nearer_unavailable_candidates(restric
                             )
                         )
                 store = PgVectorStore(factory, organization_id, model)
-                if not restricted_distractors:
+                if filter_mode == "document":
                     unrestricted = await store.search(
                         query, k=1, filters=RetrievalFilter(tenant_id=str(organization_id))
                     )
@@ -111,7 +112,8 @@ async def test_requested_document_survives_nearer_unavailable_candidates(restric
                     k=1,
                     filters=RetrievalFilter(
                         tenant_id=str(organization_id),
-                        document_keys=None if restricted_distractors else {"requested-guide"},
+                        document_keys={"requested-guide"} if filter_mode == "document" else None,
+                        metadata_equals={"section": "wanted"} if filter_mode == "metadata" else {},
                         access_levels=set(AccessLevel),
                         principal_roles={"staff"},
                     ),

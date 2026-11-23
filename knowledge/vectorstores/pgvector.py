@@ -2,7 +2,7 @@
 
 Search uses cosine distance against ``chunk_embeddings`` joined to chunks and
 documents so tenant, status, access and restricted-role filters are applied in SQL.
-Metadata filters are applied in Python on the over-fetched candidate set.
+Metadata filters are applied in Python while paging through bounded candidate batches.
 Query filtering is covered by unit tests. Database execution requires
 integration tests (``RUN_INTEGRATION_TESTS=1``).
 """
@@ -12,7 +12,7 @@ from __future__ import annotations
 import uuid
 from typing import Any, cast
 
-from sqlalchemy import or_, select, update
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -55,7 +55,7 @@ class PgVectorStore:
                 ChunkEmbedding.embedding_model == self._model,
                 KnowledgeDocument.access_level.in_([a.value for a in filters.access_levels]),
             )
-            .order_by(distance)
+            .order_by(distance, KnowledgeChunk.id)
             .limit(k * 4)
         )
         statuses = [DocumentStatus.ACTIVE.value]
@@ -73,28 +73,40 @@ class PgVectorStore:
                 ),
             )
         )
-        async with self._factory() as session:
-            rows = (await session.execute(stmt)).all()
         results: list[ScoredChunk] = []
-        for chunk_row, doc, dist in rows:
-            chunk = Chunk(
-                chunk_id=str(chunk_row.id),
-                tenant_id=filters.tenant_id,
-                document_id=str(doc.id),
-                document_key=doc.document_key,
-                version=doc.version,
-                title=doc.title,
-                chunk_index=chunk_row.chunk_index,
-                content=chunk_row.content,
-                access_level=AccessLevel(doc.access_level),
-                allowed_roles=list(doc.allowed_roles),
-                status=DocumentStatus(doc.status),
-                review_by=doc.review_by,
-                metadata=dict(chunk_row.attributes),
-            )
-            if filters.allows(chunk):
-                results.append(ScoredChunk(chunk=chunk, score=1.0 - float(dist)))
-        return results[:k]
+        page = stmt
+        async with self._factory() as session:
+            while True:
+                rows = (await session.execute(page)).all()
+                for chunk_row, doc, dist in rows:
+                    chunk = Chunk(
+                        chunk_id=str(chunk_row.id),
+                        tenant_id=filters.tenant_id,
+                        document_id=str(doc.id),
+                        document_key=doc.document_key,
+                        version=doc.version,
+                        title=doc.title,
+                        chunk_index=chunk_row.chunk_index,
+                        content=chunk_row.content,
+                        access_level=AccessLevel(doc.access_level),
+                        allowed_roles=list(doc.allowed_roles),
+                        status=DocumentStatus(doc.status),
+                        review_by=doc.review_by,
+                        metadata=dict(chunk_row.attributes),
+                    )
+                    if filters.allows(chunk):
+                        results.append(ScoredChunk(chunk=chunk, score=1.0 - float(dist)))
+                        if len(results) == k:
+                            return results
+                if len(rows) < k * 4:
+                    return results
+                last_chunk, _, last_distance = rows[-1]
+                page = stmt.where(
+                    or_(
+                        distance > last_distance,
+                        and_(distance == last_distance, KnowledgeChunk.id > last_chunk.id),
+                    )
+                )
 
     async def mark_superseded(self, tenant_id: str, document_key: str, below_version: int) -> int:
         async with self._factory() as session, session.begin():
