@@ -49,7 +49,7 @@ class WebhookSlackNotifier:
 
     async def notify(self, text: str, *, idempotency_key: str) -> None:
         payload: dict[str, Any] = {"text": text}
-        await self._http.request("POST", self._path, json=payload)
+        await self._http.request("POST", self._path, json=payload, expect_json=False)
 
 
 def descriptor(config: SlackConfig) -> IntegrationDescriptor:
