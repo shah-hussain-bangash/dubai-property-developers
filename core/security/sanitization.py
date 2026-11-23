@@ -6,7 +6,7 @@ import re
 import unicodedata
 
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
-_ZERO_WIDTH = re.compile(r"[​-‏‪-‮⁠-⁤﻿]")
+_ZERO_WIDTH = re.compile(r"[\u061c\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]")
 _WHITESPACE = re.compile(r"[ \t]+")
 
 
