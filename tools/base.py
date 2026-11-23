@@ -20,6 +20,7 @@ Successful actions return cached results on subsequent replays.
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, ClassVar, Protocol
@@ -223,7 +224,8 @@ class ToolGateway:
 
             raise ToolPermissionError(f"agent '{ctx.agent_id}' may not use tool '{tool_name}'")
 
-        # 2. Validate tool-specific business rules.
+        # 2. Validate one payload snapshot throughout approval and execution.
+        payload = deepcopy(payload)
         tool.validate(payload)
 
         # 3. Generate a tenant-scoped idempotency key.
