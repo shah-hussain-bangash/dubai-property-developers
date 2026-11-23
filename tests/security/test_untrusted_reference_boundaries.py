@@ -58,7 +58,7 @@ class UntrustedReferenceBoundaryTests(unittest.TestCase):
         self.assertEqual(parsed.ends, ["untrusted"])
 
     def test_quoted_unicode_and_ampersand_references_round_trip(self):
-        for reference in ("fixture-doc:123", 'Fixture "A" & <B> \'C\' — دبي', "&quot;"):
+        for reference in ("fixture-doc:123", "Fixture \"A\" & <B> 'C' — دبي", "&quot;"):
             with self.subTest(reference=reference):
                 rendered = UntrustedContent(
                     ContentSource.RETRIEVED_DOCUMENT, "Fixture text", reference
