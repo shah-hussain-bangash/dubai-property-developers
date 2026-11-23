@@ -53,8 +53,11 @@ class InMemoryVectorStore:
         self._items: dict[str, tuple[Chunk, list[float]]] = {}
 
     async def upsert(self, chunks: list[Chunk], vectors: list[list[float]]) -> None:
-        for chunk, vector in zip(chunks, vectors, strict=True):
-            self._items[chunk.chunk_id] = (chunk.model_copy(deep=True), list(vector))
+        prepared = {
+            chunk.chunk_id: (chunk.model_copy(deep=True), list(vector))
+            for chunk, vector in zip(chunks, vectors, strict=True)
+        }
+        self._items.update(prepared)
 
     async def search(
         self, vector: list[float], *, k: int, filters: RetrievalFilter
