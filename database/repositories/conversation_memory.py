@@ -11,7 +11,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from core.memory.base import MemoryMessage
+from core.memory.base import MemoryMessage, validate_history_limit
 from database.models.conversation import Conversation, Message
 
 _ROLE_TO_SENDER = {
@@ -57,6 +57,9 @@ class SqlConversationMemory:
                 conversation.last_inbound_at = message.created_at
 
     async def history(self, conversation_id: str, *, limit: int = 20) -> list[MemoryMessage]:
+        validate_history_limit(limit)
+        if limit == 0:
+            return []
         async with self._factory() as session:
             stmt = (
                 select(Message)

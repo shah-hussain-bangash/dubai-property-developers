@@ -22,10 +22,18 @@ class MemoryMessage(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+def validate_history_limit(limit: int) -> None:
+    """Require a non-negative message count; zero requests no history."""
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 0:
+        raise ValueError("history limit must be a non-negative integer")
+
+
 class ConversationMemory(Protocol):
     async def append(self, conversation_id: str, message: MemoryMessage) -> None: ...
 
-    async def history(self, conversation_id: str, *, limit: int = 20) -> list[MemoryMessage]: ...
+    async def history(self, conversation_id: str, *, limit: int = 20) -> list[MemoryMessage]:
+        """Return up to limit recent messages in chronological order; zero returns none."""
+        ...
 
     async def get_state(self, conversation_id: str) -> dict[str, Any]: ...
 
@@ -41,6 +49,9 @@ class InMemoryConversationMemory:
         self._messages[conversation_id].append(message)
 
     async def history(self, conversation_id: str, *, limit: int = 20) -> list[MemoryMessage]:
+        validate_history_limit(limit)
+        if limit == 0:
+            return []
         return list(self._messages.get(conversation_id, [])[-limit:])
 
     async def get_state(self, conversation_id: str) -> dict[str, Any]:
