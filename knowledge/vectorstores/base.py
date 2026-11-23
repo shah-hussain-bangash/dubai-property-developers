@@ -50,11 +50,11 @@ class InMemoryVectorStore:
     """Store independent snapshots and return detached search results."""
 
     def __init__(self) -> None:
-        self._items: dict[str, tuple[Chunk, list[float]]] = {}
+        self._items: dict[tuple[str, str], tuple[Chunk, list[float]]] = {}
 
     async def upsert(self, chunks: list[Chunk], vectors: list[list[float]]) -> None:
         prepared = {
-            chunk.chunk_id: (chunk.model_copy(deep=True), list(vector))
+            (chunk.tenant_id, chunk.chunk_id): (chunk.model_copy(deep=True), list(vector))
             for chunk, vector in zip(chunks, vectors, strict=True)
         }
         self._items.update(prepared)
@@ -72,14 +72,14 @@ class InMemoryVectorStore:
 
     async def mark_superseded(self, tenant_id: str, document_key: str, below_version: int) -> int:
         count = 0
-        for chunk_id, (chunk, vec) in list(self._items.items()):
+        for key, (chunk, vec) in list(self._items.items()):
             if (
                 chunk.tenant_id == tenant_id
                 and chunk.document_key == document_key
                 and chunk.version < below_version
                 and chunk.status == DocumentStatus.ACTIVE
             ):
-                self._items[chunk_id] = (
+                self._items[key] = (
                     chunk.model_copy(update={"status": DocumentStatus.SUPERSEDED}),
                     vec,
                 )
