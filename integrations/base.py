@@ -7,6 +7,7 @@ written against public documentation and are UNTESTED against live accounts.
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any, Protocol
 
 import httpx
@@ -110,6 +111,9 @@ class HttpIntegrationClient:
                 f"{self.integration}: request URL must use the configured origin"
             )
 
+        # Keep retries tied to the data supplied when this call started.
+        json = deepcopy(json)
+        params = deepcopy(params)
         headers = {
             "Accept": "application/json" if expect_json else "text/plain",
             **self._auth.headers(),
