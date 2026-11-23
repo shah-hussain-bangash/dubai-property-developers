@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from database.models.knowledge import ChunkEmbedding, KnowledgeChunk, KnowledgeDocument
 from knowledge.documents.models import AccessLevel, Chunk, DocumentStatus, ScoredChunk
-from knowledge.vectorstores.base import RetrievalFilter
+from knowledge.vectorstores.base import RetrievalFilter, validate_search_limit
 
 
 class PgVectorStore:
@@ -41,6 +41,9 @@ class PgVectorStore:
     async def search(
         self, vector: list[float], *, k: int, filters: RetrievalFilter
     ) -> list[ScoredChunk]:
+        validate_search_limit(k)
+        if k == 0:
+            return []
         distance = ChunkEmbedding.embedding.cosine_distance(vector)
         stmt = (
             select(KnowledgeChunk, KnowledgeDocument, distance.label("distance"))

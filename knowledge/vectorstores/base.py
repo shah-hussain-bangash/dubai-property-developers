@@ -36,6 +36,12 @@ class RetrievalFilter(BaseModel):
         return all(str(chunk.metadata.get(k)) == v for k, v in self.metadata_equals.items())
 
 
+def validate_search_limit(k: int) -> None:
+    """Require a non-negative result count; zero requests no results."""
+    if isinstance(k, bool) or not isinstance(k, int) or k < 0:
+        raise ValueError("search limit must be a non-negative integer")
+
+
 class VectorStore(Protocol):
     async def upsert(self, chunks: list[Chunk], vectors: list[list[float]]) -> None: ...
 
@@ -64,6 +70,9 @@ class InMemoryVectorStore:
     async def search(
         self, vector: list[float], *, k: int, filters: RetrievalFilter
     ) -> list[ScoredChunk]:
+        validate_search_limit(k)
+        if k == 0:
+            return []
         scored = [
             ScoredChunk(chunk=chunk, score=cosine(vector, vec))
             for chunk, vec in self._items.values()
