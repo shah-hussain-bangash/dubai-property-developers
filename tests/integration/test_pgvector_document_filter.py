@@ -25,7 +25,7 @@ pytestmark = [
 ]
 
 
-@pytest.mark.parametrize("filter_mode", ["document", "role", "metadata"])
+@pytest.mark.parametrize("filter_mode", ["document", "role", "metadata", "organization"])
 async def test_requested_document_survives_nearer_unavailable_candidates(filter_mode):
     restricted_distractors = filter_mode == "role"
     settings = get_settings()
@@ -33,6 +33,7 @@ async def test_requested_document_survives_nearer_unavailable_candidates(filter_
         pytest.skip("Knowledge search tests require a development database")
     engine = create_engine(settings)
     organization_id = uuid.uuid4()
+    foreign_organization_id = uuid.uuid4()
     model = "fixture-document-filter"
     query = [1.0, 0.0] + [0.0] * (EMBEDDING_DIMENSION - 2)
     try:
@@ -51,6 +52,15 @@ async def test_requested_document_survives_nearer_unavailable_candidates(filter_
                             is_active=True,
                         )
                     )
+                    if filter_mode == "organization":
+                        session.add(
+                            Organization(
+                                id=foreign_organization_id,
+                                name="Fictional Foreign Knowledge Test",
+                                slug=f"foreign-knowledge-{foreign_organization_id.hex}",
+                                is_active=True,
+                            )
+                        )
                     await session.flush()
                     for index in range(5):
                         requested = index == 4
@@ -59,7 +69,13 @@ async def test_requested_document_survives_nearer_unavailable_candidates(filter_
                         session.add(
                             KnowledgeDocument(
                                 id=document_id,
-                                organization_id=organization_id,
+                                # Deliberately inconsistent fixture: a local chunk
+                                # references a document owned by another organization.
+                                organization_id=(
+                                    foreign_organization_id
+                                    if filter_mode == "organization" and not requested
+                                    else organization_id
+                                ),
                                 document_key=key,
                                 version=1,
                                 title="Fictional guide",
