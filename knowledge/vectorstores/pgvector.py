@@ -54,6 +54,7 @@ class PgVectorStore:
             .join(KnowledgeDocument, KnowledgeDocument.id == KnowledgeChunk.document_id)
             .where(
                 KnowledgeChunk.organization_id == self._org,
+                KnowledgeDocument.organization_id == self._org,
                 ChunkEmbedding.embedding_model == self._model,
                 KnowledgeDocument.access_level.in_([a.value for a in filters.access_levels]),
             )

@@ -56,3 +56,22 @@ class PostgreSQLDocumentFilterTests(unittest.IsolatedAsyncioTestCase):
         )
         factory.assert_not_called()
         session.execute.assert_not_awaited()
+
+    async def test_chunk_and_document_are_both_restricted_to_store_organization(self):
+        store, _, session = self.make_store()
+        await store.search(
+            [1.0, 0.0],
+            k=1,
+            filters=RetrievalFilter(tenant_id="fixture-tenant"),
+        )
+        statement = session.execute.await_args.args[0]
+        compiled = statement.whereclause.compile()
+
+        self.assertIn("knowledge_chunks.organization_id =", str(compiled))
+        self.assertIn("knowledge_documents.organization_id =", str(compiled))
+        organizations = [
+            value
+            for name, value in compiled.params.items()
+            if name.startswith("organization_id")
+        ]
+        self.assertEqual(organizations, [store._org, store._org])
