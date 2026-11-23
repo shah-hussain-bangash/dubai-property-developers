@@ -213,6 +213,12 @@ class ToolGateway:
         tool = self.registry.get(tool_name)
         spec = tool.spec
 
+        if ctx.principal.tenant_id != ctx.tenant_id:
+            await self._audit(
+                ctx, tool_name, "denied", {"why": "principal belongs to a different organization"}
+            )
+            raise AuthorizationError("principal belongs to a different organization")
+
         # 1. Enforce the agent tool allowlist.
         if ctx.agent_id is not None and tool_name not in ctx.allowed_tools:
             await self._audit(
