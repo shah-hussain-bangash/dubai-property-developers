@@ -11,6 +11,7 @@ import asyncio
 import hashlib
 import json
 import time
+from copy import deepcopy
 from typing import Any, Protocol
 from weakref import WeakValueDictionary
 
@@ -26,9 +27,13 @@ class IdempotencyStore(Protocol):
         """Serialize local callers sharing this store instance and key."""
         ...
 
-    async def get(self, key: str) -> dict[str, Any] | None: ...
+    async def get(self, key: str) -> dict[str, Any] | None:
+        """Return a result snapshot that callers may mutate independently."""
+        ...
 
-    async def put(self, key: str, result: dict[str, Any], ttl_seconds: int) -> None: ...
+    async def put(self, key: str, result: dict[str, Any], ttl_seconds: int) -> None:
+        """Store a snapshot independent of later changes to the supplied result."""
+        ...
 
 
 class InMemoryIdempotencyStore:
@@ -49,10 +54,10 @@ class InMemoryIdempotencyStore:
         if expires_at < time.time():
             self._items.pop(key, None)
             return None
-        return result
+        return deepcopy(result)
 
     async def put(self, key: str, result: dict[str, Any], ttl_seconds: int) -> None:
-        self._items[key] = (time.time() + ttl_seconds, result)
+        self._items[key] = (time.time() + ttl_seconds, deepcopy(result))
 
 
 class RedisIdempotencyStore:
