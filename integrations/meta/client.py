@@ -136,6 +136,10 @@ class HttpWhatsAppClient:
             idempotency_key,
         )
 
+    async def aclose(self) -> None:
+        """Release the HTTP connection pool owned by this adapter."""
+        await self._http.aclose()
+
 
 def descriptor(config: MetaWhatsAppConfig) -> IntegrationDescriptor:
     return IntegrationDescriptor(

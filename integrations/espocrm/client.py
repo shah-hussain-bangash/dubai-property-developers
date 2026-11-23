@@ -127,6 +127,10 @@ class HttpEspoCRMClient:
         )
         return str(body["id"])
 
+    async def aclose(self) -> None:
+        """Release the HTTP connection pool owned by this adapter."""
+        await self._http.aclose()
+
 
 def descriptor(config: EspoCRMConfig) -> IntegrationDescriptor:
     return IntegrationDescriptor(
