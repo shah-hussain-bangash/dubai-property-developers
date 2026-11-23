@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -13,6 +14,15 @@ from core.exceptions.errors import PlatformError
 T = TypeVar("T")
 
 
+def _valid_seconds(value: float, *, allow_zero: bool) -> bool:
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return False
+    try:
+        return math.isfinite(value) and (value >= 0 if allow_zero else value > 0)
+    except OverflowError:
+        return False
+
+
 @dataclass(frozen=True, slots=True)
 class RetryPolicy:
     max_attempts: int = 3
@@ -21,8 +31,35 @@ class RetryPolicy:
     timeout_seconds: float | None = 10.0
     jitter: bool = True
 
+    def __post_init__(self) -> None:
+        if (
+            isinstance(self.max_attempts, bool)
+            or not isinstance(self.max_attempts, int)
+            or self.max_attempts < 1
+        ):
+            raise ValueError("max_attempts must be a positive integer")
+        for name in ("base_delay_seconds", "max_delay_seconds"):
+            if not _valid_seconds(getattr(self, name), allow_zero=True):
+                raise ValueError(f"{name} must be finite and non-negative")
+        if self.timeout_seconds is not None and not _valid_seconds(
+            self.timeout_seconds, allow_zero=False
+        ):
+            raise ValueError("timeout_seconds must be finite and positive, or None")
+        if not isinstance(self.jitter, bool):
+            raise ValueError("jitter must be a boolean")
+
     def delay_for(self, attempt: int) -> float:
-        delay = min(self.max_delay_seconds, self.base_delay_seconds * (2 ** (attempt - 1)))
+        if isinstance(attempt, bool) or not isinstance(attempt, int) or attempt < 1:
+            raise ValueError("attempt must be a positive integer")
+        if self.base_delay_seconds == 0:
+            delay = 0.0
+        else:
+            try:
+                delay = min(
+                    self.max_delay_seconds, math.ldexp(self.base_delay_seconds, attempt - 1)
+                )
+            except OverflowError:
+                delay = self.max_delay_seconds
         if self.jitter:
             delay *= random.uniform(0.5, 1.0)  # noqa: S311 - not security sensitive
         return float(delay)
