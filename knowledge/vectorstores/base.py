@@ -33,7 +33,10 @@ class RetrievalFilter(BaseModel):
             return False
         if self.document_keys is not None and chunk.document_key not in self.document_keys:
             return False
-        return all(str(chunk.metadata.get(k)) == v for k, v in self.metadata_equals.items())
+        return all(
+            k in chunk.metadata and str(chunk.metadata[k]) == v
+            for k, v in self.metadata_equals.items()
+        )
 
 
 def validate_search_limit(k: int) -> None:
