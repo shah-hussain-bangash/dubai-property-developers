@@ -43,9 +43,7 @@ class AtomicKnowledgeBatchTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_missing_vector_does_not_insert_a_partial_batch(self):
         with self.assertRaises(ValueError):
-            await self.store.upsert(
-                [fixture_chunk("first"), fixture_chunk("second")], [[1.0, 0.0]]
-            )
+            await self.store.upsert([fixture_chunk("first"), fixture_chunk("second")], [[1.0, 0.0]])
         self.assertEqual(await self.records(), {"existing": "Original"})
 
     async def test_extra_vector_does_not_replace_an_existing_record(self):
