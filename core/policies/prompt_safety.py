@@ -81,9 +81,8 @@ class UntrustedContent:
     reference: str | None = None
 
     def render(self) -> str:
-        # Strip anything that looks like our own delimiters so content cannot close
-        # the block early and smuggle text into the trusted region.
-        body = re.sub(r"(?i)</?untrusted[^>]*>", "", sanitize_text(self.text, max_length=20_000))
+        # Encode markup after normalization so nested or partial tags remain data.
+        body = escape(sanitize_text(self.text, max_length=20_000), quote=False)
         ref = f' ref="{escape(self.reference, quote=True)}"' if self.reference else ""
         return f'<untrusted source="{self.source.value}"{ref}>\n{body}\n</untrusted>'
 
