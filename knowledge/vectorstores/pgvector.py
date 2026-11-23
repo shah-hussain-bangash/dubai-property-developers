@@ -1,8 +1,8 @@
 """pgvector-backed vector search (requires PostgreSQL with the ``vector`` extension).
 
 Search uses cosine distance against ``chunk_embeddings`` joined to chunks and
-documents so tenant, status and access filters are applied in SQL. Restricted-role
-and metadata filters are applied in Python on the over-fetched candidate set.
+documents so tenant, status, access and restricted-role filters are applied in SQL.
+Metadata filters are applied in Python on the over-fetched candidate set.
 Query filtering is covered by unit tests. Database execution requires
 integration tests (``RUN_INTEGRATION_TESTS=1``).
 """
@@ -12,7 +12,8 @@ from __future__ import annotations
 import uuid
 from typing import Any, cast
 
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -63,6 +64,15 @@ class PgVectorStore:
         stmt = stmt.where(KnowledgeDocument.status.in_(statuses))
         if filters.document_keys is not None:
             stmt = stmt.where(KnowledgeDocument.document_key.in_(sorted(filters.document_keys)))
+        stmt = stmt.where(
+            or_(
+                KnowledgeDocument.access_level != AccessLevel.RESTRICTED.value,
+                *(
+                    KnowledgeDocument.allowed_roles.cast(JSONB).contains([role])
+                    for role in sorted(filters.principal_roles)
+                ),
+            )
+        )
         async with self._factory() as session:
             rows = (await session.execute(stmt)).all()
         results: list[ScoredChunk] = []

@@ -1,4 +1,4 @@
-"""A requested document remains searchable behind nearer unrelated documents."""
+"""Allowed documents remain searchable behind nearer unrelated or restricted documents."""
 
 import uuid
 
@@ -14,6 +14,7 @@ from database.models.knowledge import (
     KnowledgeDocument,
 )
 from database.sessions.engine import create_engine
+from knowledge.documents.models import AccessLevel
 from knowledge.vectorstores.base import RetrievalFilter
 from knowledge.vectorstores.pgvector import PgVectorStore
 from tests.factories import integration_enabled
@@ -24,7 +25,8 @@ pytestmark = [
 ]
 
 
-async def test_requested_document_survives_nearer_unrelated_candidates():
+@pytest.mark.parametrize("restricted_distractors", [False, True])
+async def test_requested_document_survives_nearer_unavailable_candidates(restricted_distractors):
     settings = get_settings()
     if not settings.is_dev_like:
         pytest.skip("Knowledge search tests require a development database")
@@ -62,8 +64,12 @@ async def test_requested_document_survives_nearer_unrelated_candidates():
                                 title="Fictional guide",
                                 mime_type="text/plain",
                                 status="active",
-                                access_level="public",
-                                allowed_roles=[],
+                                access_level=(
+                                    "restricted"
+                                    if restricted_distractors and not requested
+                                    else "public"
+                                ),
+                                allowed_roles=["manager"] if restricted_distractors else [],
                                 content_hash="fixture",
                                 attributes={},
                             )
@@ -95,20 +101,37 @@ async def test_requested_document_survives_nearer_unrelated_candidates():
                             )
                         )
                 store = PgVectorStore(factory, organization_id, model)
-                unrestricted = await store.search(
-                    query, k=1, filters=RetrievalFilter(tenant_id=str(organization_id))
-                )
-                assert unrestricted[0].chunk.document_key.startswith("unrelated-")
+                if not restricted_distractors:
+                    unrestricted = await store.search(
+                        query, k=1, filters=RetrievalFilter(tenant_id=str(organization_id))
+                    )
+                    assert unrestricted[0].chunk.document_key.startswith("unrelated-")
                 hits = await store.search(
                     query,
                     k=1,
                     filters=RetrievalFilter(
-                        tenant_id=str(organization_id), document_keys={"requested-guide"}
+                        tenant_id=str(organization_id),
+                        document_keys=None if restricted_distractors else {"requested-guide"},
+                        access_levels=set(AccessLevel),
+                        principal_roles={"staff"},
                     ),
                 )
                 assert len(hits) == 1
                 assert hits[0].chunk.document_key == "requested-guide"
                 assert hits[0].score == pytest.approx(0.8, abs=1e-6)
+                if restricted_distractors:
+                    authorized = await store.search(
+                        query,
+                        k=1,
+                        filters=RetrievalFilter(
+                            tenant_id=str(organization_id),
+                            access_levels=set(AccessLevel),
+                            principal_roles={"staff", "manager"},
+                        ),
+                    )
+                    assert len(authorized) == 1
+                    assert authorized[0].chunk.access_level == AccessLevel.RESTRICTED
+                    assert authorized[0].score == pytest.approx(1.0)
             finally:
                 await transaction.rollback()
     finally:
