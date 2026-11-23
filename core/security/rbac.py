@@ -99,6 +99,9 @@ class Principal:
     roles: frozenset[Role] = field(default_factory=frozenset)
     display_name: str | None = None
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "roles", frozenset(self.roles))
+
     @property
     def permissions(self) -> frozenset[Permission]:
         granted: set[Permission] = set()

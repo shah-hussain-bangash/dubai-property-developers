@@ -110,6 +110,9 @@ class ToolCallContext:
     agent_id: str | None = None
     allowed_tools: frozenset[str] = field(default_factory=frozenset)
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "allowed_tools", frozenset(self.allowed_tools))
+
 
 class ToolRegistry:
     def __init__(self) -> None:
