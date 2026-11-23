@@ -80,6 +80,6 @@ def redact_value(value: Any, *, mask_pii: bool = True, _depth: int = 0) -> Any:
             )
             for k, v in value.items()
         }
-    if isinstance(value, list | tuple | set):
+    if isinstance(value, list | tuple | set | frozenset):
         return [redact_value(v, mask_pii=mask_pii, _depth=_depth + 1) for v in value]
     return value
