@@ -101,8 +101,12 @@ class HttpIntegrationClient:
         json: Any = None,
         params: dict[str, Any] | None = None,
         idempotency_key: str | None = None,
+        expect_json: bool = True,
     ) -> Any:
-        headers = {"Accept": "application/json", **self._auth.headers()}
+        headers = {
+            "Accept": "application/json" if expect_json else "text/plain",
+            **self._auth.headers(),
+        }
         if idempotency_key:
             headers["Idempotency-Key"] = idempotency_key
 
@@ -128,7 +132,9 @@ class HttpIntegrationClient:
                         "body": redact_text(response.text[:500]),
                     },
                 )
-            return response.json() if response.content else None
+            if not response.content:
+                return None
+            return response.json() if expect_json else response.text
 
         logger.info(
             "integration request",
