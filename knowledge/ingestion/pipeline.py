@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from core.exceptions.errors import DomainValidationError
 from knowledge.documents.models import Chunk, SourceDocument
 from knowledge.embeddings.base import EmbeddingProvider
 from knowledge.ingestion.chunking import chunk_text, normalize_text
@@ -34,6 +35,8 @@ class IngestionPipeline:
     async def ingest(self, document: SourceDocument) -> IngestionReport:
         text = normalize_text(document.text)
         pieces = chunk_text(text, chunk_size=self._chunk_size, overlap=self._overlap)
+        if not pieces:
+            raise DomainValidationError("Document has no text to ingest")
         chunks = [
             Chunk(
                 chunk_id=f"{document.document_id}#{i}",
@@ -51,9 +54,8 @@ class IngestionPipeline:
             )
             for i, piece in enumerate(pieces)
         ]
-        if chunks:
-            vectors = await self._embedder.embed([c.content for c in chunks])
-            await self._store.upsert(chunks, vectors)
+        vectors = await self._embedder.embed([c.content for c in chunks])
+        await self._store.upsert(chunks, vectors)
         superseded = await self._store.mark_superseded(
             document.tenant_id, document.document_key, below_version=document.version
         )
