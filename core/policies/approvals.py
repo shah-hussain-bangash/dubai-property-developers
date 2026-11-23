@@ -63,6 +63,8 @@ class InMemoryApprovalStore:
         self._items: dict[str, ApprovalRequest] = {}
 
     async def create(self, request: ApprovalRequest) -> ApprovalRequest:
+        if request.approval_id in self._items:
+            raise ConflictError(f"approval {request.approval_id} already exists")
         saved = request.model_copy(deep=True)
         self._expire_if_due(saved)
         self._items[saved.approval_id] = saved

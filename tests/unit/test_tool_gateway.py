@@ -281,3 +281,20 @@ async def test_stale_approval_is_replaced_once_then_reused(reject_first: bool) -
     assert replacement.approval_id != first.approval_id
     assert repeated.approval_id == replacement.approval_id
     assert tool.calls == 0
+
+
+async def test_duplicate_approval_id_cannot_replace_an_approved_action_payload() -> None:
+    gateway, tool = _gateway()
+    pending = await gateway.invoke(_ctx(), "test.send", {"to": "original"})
+    assert pending.approval_id is not None
+    await gateway.approvals.decide(pending.approval_id, approved=True, decided_by="manager")
+    replacement = await gateway.approvals.get(pending.approval_id)
+    replacement.payload["to"] = "tampered"
+    with pytest.raises(ConflictError):
+        await gateway.approvals.create(replacement)
+    manager = Principal(
+        subject="manager", tenant_id="demo-org", roles=frozenset({Role.SALES_MANAGER})
+    )
+    executed = await gateway.execute_approved(pending.approval_id, manager)
+    assert executed.data == {"sent": "original"}
+    assert tool.calls == 1
