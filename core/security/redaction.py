@@ -31,6 +31,7 @@ SENSITIVE_KEYS = frozenset(
 )
 
 _SECRET_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"""(?i)https?://hooks\.slack(?:-gov)?\.com/services/[^\s"'<>]+"""),
     re.compile(r"(?i)\bbearer\s+[a-z0-9._~+/\-]+=*"),
     re.compile(r"\bsk-[A-Za-z0-9_\-]{16,}"),
     re.compile(r"\bEAA[A-Za-z0-9]{20,}"),  # Meta-style access tokens

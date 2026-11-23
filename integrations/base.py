@@ -132,7 +132,7 @@ class HttpIntegrationClient:
 
         logger.info(
             "integration request",
-            extra={"integration": self.integration, "method": method, "path": path},
+            extra={"integration": self.integration, "method": method},
         )
         try:
             return await retry_async(_send, self._retry)
