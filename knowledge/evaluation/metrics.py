@@ -24,17 +24,19 @@ class EvalReport:
 async def evaluate_retrieval(
     retriever: Retriever, cases: list[EvalCase], filters: RetrievalFilter, *, k: int = 4
 ) -> EvalReport:
+    """Average document recall and reciprocal rank; empty labels contribute zero."""
     if not cases:
         return EvalReport(0, 0.0, 0.0)
-    hits_total = 0
+    recall_sum = 0.0
     reciprocal_sum = 0.0
     for case in cases:
         result = await retriever.retrieve(case.query, filters, k=k)
         keys = [h.chunk.document_key for h in result.hits]
-        if case.relevant_document_keys.intersection(keys):
-            hits_total += 1
+        relevant = case.relevant_document_keys
+        if relevant:
+            recall_sum += len(relevant.intersection(keys)) / len(relevant)
         for rank, key in enumerate(keys, start=1):
             if key in case.relevant_document_keys:
                 reciprocal_sum += 1.0 / rank
                 break
-    return EvalReport(len(cases), hits_total / len(cases), reciprocal_sum / len(cases))
+    return EvalReport(len(cases), recall_sum / len(cases), reciprocal_sum / len(cases))
