@@ -14,6 +14,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from enum import StrEnum
+from html import escape
 
 from core.security.sanitization import sanitize_text
 
@@ -83,7 +84,7 @@ class UntrustedContent:
         # Strip anything that looks like our own delimiters so content cannot close
         # the block early and smuggle text into the trusted region.
         body = re.sub(r"(?i)</?untrusted[^>]*>", "", sanitize_text(self.text, max_length=20_000))
-        ref = f' ref="{self.reference}"' if self.reference else ""
+        ref = f' ref="{escape(self.reference, quote=True)}"' if self.reference else ""
         return f'<untrusted source="{self.source.value}"{ref}>\n{body}\n</untrusted>'
 
 
