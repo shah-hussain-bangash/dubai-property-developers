@@ -17,6 +17,11 @@ class TokenUsage:
     input_tokens: int = 0
     output_tokens: int = 0
 
+    def __post_init__(self) -> None:
+        for count in (self.input_tokens, self.output_tokens):
+            if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+                raise ValueError("token counts must be non-negative integers")
+
     @property
     def total_tokens(self) -> int:
         return self.input_tokens + self.output_tokens

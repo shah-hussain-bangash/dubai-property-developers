@@ -33,8 +33,8 @@ class LLMResponse(BaseModel):
     text: str
     provider: str
     model: str
-    input_tokens: int = 0
-    output_tokens: int = 0
+    input_tokens: int = Field(default=0, ge=0, strict=True)
+    output_tokens: int = Field(default=0, ge=0, strict=True)
     finish_reason: str = "stop"
     is_mock: bool = False
 
