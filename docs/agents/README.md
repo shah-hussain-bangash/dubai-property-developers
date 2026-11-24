@@ -19,7 +19,7 @@ Result statuses: `succeeded`, `failed`, `timed_out`, `pending_approval`, `escala
 | 08 | `email` | partial | `email.render_template`, `email.send` | Template drafts, approval-gated send, rule-based reply classification. No email provider configured |
 | 09 | `whatsapp` | partial | `whatsapp.send_message` | Opt-in, 24h window (free text vs template), opt-out handling, Meta webhook parser |
 | 10 | `voice` | interface_only | none | Audio raises `integration_not_configured`; a transcript-only path exists for contract tests; always escalates |
-| 11 | `marketing` | partial | none | Consent-filtered segmentation; copy drafts require approval. No sending |
+| 11 | `marketing` | partial | `documents.search` | Consent-filtered segments; supplied-source drafts quote only approved own material, otherwise escalate. No sending |
 | 12 | `documents` | partial | `documents.search` | Extractive summaries; cited answers; low confidence or stale sources go to a human |
 | 13 | `analytics` | partial | `analytics.sales_summary` | Lead source/status/conversion + agent performance from execution records |
 
@@ -62,6 +62,10 @@ falls back to fictional fixtures. Sales replies quote the supplied material with
 template facts. Their existing approval and escalation controls remain in place. Routing,
 calculations and other deterministic agents still use typed workflow inputs; uploading a policy
 does not retrain them or silently change their rules.
+Marketing campaign drafts also search only the Marketing Agent's own customer-approved sources,
+using the campaign goal as the query. The headline uses the source title and the body quotes cited
+passages without template claims. Missing, unrelated, removed or unapproved sources produce no
+draft and request human review. Marketing consent remains required; this agent cannot send.
 Supplied-source mode also disables fictional corpus ingestion and the backend's seeded property
 catalog. PDF text is not silently converted into verified structured property listings; use the
 source-answer workspace to query it, and create reviewed property records separately.
