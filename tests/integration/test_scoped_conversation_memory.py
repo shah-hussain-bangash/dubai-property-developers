@@ -1,8 +1,10 @@
 """PostgreSQL ownership filters and agent-state partitions on existing conversations."""
 
+import asyncio
 import uuid
 
 import pytest
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from core.config.settings import get_settings
@@ -126,6 +128,8 @@ async def test_database_legacy_state_requires_ownership_review(scoped_database):
         await wa.get_state(conversation)
     with pytest.raises(AuthorizationError, match="ownership review"):
         await wa.set_state(conversation, {})
+    with pytest.raises(AuthorizationError, match="ownership review"):
+        await wa.update_state(conversation, {"marker": "blocked"})
     assert await raw.get_state(conversation) == {"opted_out": True}
 
 
@@ -137,3 +141,83 @@ async def test_database_scope_cannot_rebind_to_another_owner(scoped_database):
     wa = raw.scoped(str(raw._org), "whatsapp")
     with pytest.raises(AuthorizationError):
         wa.scoped(str(raw._org), "sales_conversation")
+
+
+async def test_database_patch_preserves_optout_and_rejects_reserved_state_injection(
+    scoped_database,
+):
+    raw, _, conversation = scoped_database
+    wa = raw.scoped(str(raw._org), "whatsapp")
+    sales = raw.scoped(str(raw._org), "sales_conversation")
+    await wa.update_state(conversation, {"opted_out": True})
+    await sales.update_state(conversation, {"marker": "sales-only"})
+    result = await wa.update_state(conversation, {"last_inbound_at": "fictional-later-event"})
+    assert result["opted_out"] is True
+    await raw.update_state(
+        conversation,
+        {"operator_note": "Fictional", STATE_FIELD: {"whatsapp": {"opted_out": False}}},
+    )
+    assert (await wa.get_state(conversation))["opted_out"] is True
+    assert await sales.get_state(conversation) == {"marker": "sales-only"}
+    assert await raw.get_state(conversation) == {"operator_note": "Fictional"}
+
+
+async def test_concurrent_database_patches_do_not_lose_fields_or_optout():
+    settings = get_settings()
+    if not settings.is_dev_like:
+        pytest.skip("Concurrent memory checks require a development database")
+    engine = create_engine(settings)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    organization, conversation = uuid.uuid4(), uuid.uuid4()
+    tasks = []
+    try:
+        # Separate connections need committed, exclusively owned fictional fixtures.
+        async with factory() as session, session.begin():
+            session.add(
+                Organization(
+                    id=organization,
+                    name="Fictional concurrent memory",
+                    slug="memory-" + organization.hex,
+                    is_active=True,
+                )
+            )
+            await session.flush()
+            session.add(
+                Conversation(
+                    id=conversation,
+                    organization_id=organization,
+                    channel="whatsapp",
+                    state={},
+                )
+            )
+        raw = SqlConversationMemory(factory, organization)
+        wa = raw.scoped(str(organization), "whatsapp")
+        sales = raw.scoped(str(organization), "sales_conversation")
+        await wa.update_state(str(conversation), {"opted_out": True})
+        await sales.update_state(str(conversation), {"marker": "sales-only"})
+        tasks = [
+            asyncio.create_task(wa.update_state(str(conversation), {f"event_{i}": i}))
+            for i in range(8)
+        ]
+        await asyncio.wait_for(asyncio.gather(*tasks), timeout=10)
+        assert await wa.get_state(str(conversation)) == {
+            "opted_out": True,
+            **{f"event_{i}": i for i in range(8)},
+        }
+        assert await sales.get_state(str(conversation)) == {"marker": "sales-only"}
+    finally:
+        for pending in tasks:
+            if not pending.done():
+                pending.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        try:
+            async with factory() as session, session.begin():
+                await session.execute(
+                    delete(Conversation).where(
+                        Conversation.id == conversation,
+                        Conversation.organization_id == organization,
+                    )
+                )
+                await session.execute(delete(Organization).where(Organization.id == organization))
+        finally:
+            await engine.dispose()

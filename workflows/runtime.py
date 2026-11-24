@@ -255,13 +255,14 @@ def build_runtime(settings: Settings) -> PlatformRuntime:
     assigned_sources = (
         AssignedSources(settings.agent_knowledge_path) if settings.agent_knowledge_path else None
     )
+    memory = InMemoryConversationMemory()
 
     for tool in (
         CRMFindLeadsTool(integrations.crm),
         CRMCreateLeadTool(integrations.crm),
         CRMUpdateLeadTool(integrations.crm),
         CRMAddNoteTool(integrations.crm),
-        WhatsAppSendTool(integrations.whatsapp, assigned_sources),
+        WhatsAppSendTool(integrations.whatsapp, assigned_sources, memory),
         EmailRenderTemplateTool(),
         EmailSendTool(email_sender, assigned_sources),
         CalendarCreateEventTool(integrations.calendar),
@@ -302,7 +303,7 @@ def build_runtime(settings: Settings) -> PlatformRuntime:
         supplied_knowledge_only=assigned_sources is not None,
         gateway=gateway,
         llm=build_model_router(settings),
-        memory=InMemoryConversationMemory(),
+        memory=memory,
         events=InMemoryEventBus(),
         tracer=tracer,
         executions=InMemoryExecutionRecorder(),

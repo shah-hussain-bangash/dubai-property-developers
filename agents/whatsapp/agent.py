@@ -43,12 +43,16 @@ class WhatsAppAgent(BaseAgent[WhatsAppAgentInput, WhatsAppAgentOutput]):
             data.conversation_id,
             MemoryMessage(role="customer", content=data.text, channel="whatsapp"),
         )
-        state = await memory.get_state(data.conversation_id)
-        state["last_inbound_at"] = data.received_at.isoformat()
+        patch: dict[str, Any] = {
+            "last_inbound_at": data.received_at.isoformat(),
+            "from_e164": data.from_e164,
+            "consent_whatsapp": data.consent_whatsapp,
+        }
+        if intent == CustomerIntent.UNSUBSCRIBE:
+            patch["opted_out"] = True
+        state = await memory.update_state(data.conversation_id, patch)
 
         if intent == CustomerIntent.UNSUBSCRIBE:
-            state["opted_out"] = True
-            await memory.set_state(data.conversation_id, state)
             return WhatsAppAgentOutput(
                 intent=intent,
                 reply_mode=ReplyMode.NO_REPLY,
@@ -57,8 +61,6 @@ class WhatsAppAgent(BaseAgent[WhatsAppAgentInput, WhatsAppAgentOutput]):
                     "Customer opted out: record consent withdrawal in CRM; no further messages."
                 ],
             )
-        await memory.set_state(data.conversation_id, state)
-
         if not data.consent_whatsapp or state.get("opted_out"):
             return WhatsAppAgentOutput(
                 intent=intent,
@@ -111,6 +113,7 @@ class WhatsAppAgent(BaseAgent[WhatsAppAgentInput, WhatsAppAgentOutput]):
         )
         if data.send_reply and (output.reply_text or output.template_name) and not output.escalate:
             payload: dict[str, Any] = {
+                "conversation_id": data.conversation_id,
                 "to_e164": data.from_e164,
                 "consent_whatsapp": data.consent_whatsapp,
                 "last_inbound_at": data.received_at.isoformat(),

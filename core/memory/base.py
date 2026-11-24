@@ -44,6 +44,10 @@ class ConversationMemory(Protocol):
 
     async def set_state(self, conversation_id: str, state: dict[str, Any]) -> None: ...
 
+    async def update_state(self, conversation_id: str, patch: dict[str, Any]) -> dict[str, Any]:
+        """Atomically merge top-level fields and return an independent resulting snapshot."""
+        ...
+
 
 @runtime_checkable
 class ScopedMemoryProvider(Protocol):
@@ -79,6 +83,9 @@ class ScopedConversationMemory:
     async def set_state(self, conversation_id: str, state: dict[str, Any]) -> None:
         await self._memory.set_state(self._key(conversation_id), state)
 
+    async def update_state(self, conversation_id: str, patch: dict[str, Any]) -> dict[str, Any]:
+        return await self._memory.update_state(self._key(conversation_id), patch)
+
 
 class InMemoryConversationMemory:
     def __init__(self) -> None:
@@ -105,3 +112,10 @@ class InMemoryConversationMemory:
 
     async def set_state(self, conversation_id: str, state: dict[str, Any]) -> None:
         self._state[conversation_id] = deepcopy(state)
+
+    async def update_state(self, conversation_id: str, patch: dict[str, Any]) -> dict[str, Any]:
+        # No await before assignment: one atomic patch on the process-local event loop.
+        state = deepcopy(self._state.get(conversation_id, {}))
+        state.update(deepcopy(patch))
+        self._state[conversation_id] = state
+        return deepcopy(state)

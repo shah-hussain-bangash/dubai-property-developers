@@ -48,6 +48,17 @@ def attach_sources(runtime, ctx, data):
     )["citations"]
 
 
+async def attach_conversation(runtime, ctx, data):
+    data["conversation_id"] = "fictional-execution-window"
+    await (
+        runtime.agents.get("whatsapp")
+        .conversation_memory(ctx)
+        .update_state(
+            data["conversation_id"], {"from_e164": data["to_e164"], "consent_whatsapp": True}
+        )
+    )
+
+
 @pytest.mark.parametrize("supplied", [False, True])
 @pytest.mark.parametrize("entry", ["approved", "invoke"])
 @pytest.mark.parametrize("expires", [False, True])
@@ -60,6 +71,7 @@ async def test_waiting_for_execution_cannot_preserve_an_expired_window(
     await runtime.initialize()
     state = controlled_clock(monkeypatch)
     data = payload(state["now"])
+    await attach_conversation(runtime, ctx, data)
     if supplied:
         attach_sources(runtime, ctx, data)
     agent = runtime.agents.get("whatsapp")
@@ -115,6 +127,7 @@ async def test_window_is_rechecked_after_asynchronous_source_validation(
     await runtime.initialize()
     state = controlled_clock(monkeypatch)
     data = payload(state["now"])
+    await attach_conversation(runtime, ctx, data)
     attach_sources(runtime, ctx, data)
     source_check = runtime.assigned_sources.validate_message
 

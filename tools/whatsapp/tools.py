@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, ClassVar
 
 from core.exceptions.errors import AuthorizationError, DomainValidationError, PolicyViolationError
+from core.memory.base import ScopedMemoryProvider
 from core.policies.actions import ActionCategory
 from core.security.rbac import Permission
 from integrations.meta.client import WhatsAppClient
@@ -25,10 +26,14 @@ class WhatsAppSendTool(BaseTool):
     )
 
     def __init__(
-        self, client: WhatsAppClient, assigned_sources: AssignedSources | None = None
+        self,
+        client: WhatsAppClient,
+        assigned_sources: AssignedSources | None = None,
+        memory: ScopedMemoryProvider | None = None,
     ) -> None:
         self._client = client
         self._assigned_sources = assigned_sources
+        self._memory = memory
 
     def validate(self, payload: dict[str, Any]) -> None:
         if not str(payload.get("to_e164", "")).startswith("+"):
@@ -54,8 +59,8 @@ class WhatsAppSendTool(BaseTool):
             raise DomainValidationError("either text or template_name is required")
 
     async def execute(self, payload: dict[str, Any]) -> dict[str, Any]:
-        if self._assigned_sources is not None:
-            raise AuthorizationError("Assigned-source sends require a trusted caller identity")
+        if self._assigned_sources is not None or self._memory is not None:
+            raise AuthorizationError("Conversation-bound sends require a trusted caller identity")
         return await self._send(payload)
 
     async def execute_with_context(
@@ -73,6 +78,19 @@ class WhatsAppSendTool(BaseTool):
                 payload.get("knowledge_citations"),
                 payload.get("text", ""),
             )
+        if self._memory is not None and ctx.agent_id == "whatsapp":
+            conversation = payload.get("conversation_id")
+            if not isinstance(conversation, str) or not conversation:
+                raise PolicyViolationError("Conversation consent requires a fresh approved reply")
+            state = await self._memory.scoped(ctx.tenant_id, "whatsapp").get_state(conversation)
+            if (
+                state.get("opted_out")
+                or not state.get("consent_whatsapp")
+                or state.get("from_e164") != payload.get("to_e164")
+            ):
+                raise PolicyViolationError(
+                    "Conversation consent changed; prepare a new approved reply"
+                )
         return await self._send(payload)
 
     async def _send(self, payload: dict[str, Any]) -> dict[str, Any]:

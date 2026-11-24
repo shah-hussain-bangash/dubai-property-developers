@@ -209,6 +209,23 @@ explicit ownership review before scoped access; no automatic consent/state migra
 The SQL adapter is not newly wired into runtime configuration by this change. See the
 [memory isolation verification](../verification/agent-memory-isolation-local-2026-11-24.md).
 
+WhatsApp changes conversation state with `update_state`, an atomic top-level patch rather than
+a read/replace cycle. Ordinary messages update their inbound/contact/consent fields without
+clearing an existing `opted_out` flag. In-memory patches are atomic on the local event loop;
+SQL patches lock the conversation row and preserve other fields and agent partitions.
+
+WhatsApp Agent send approvals also carry their conversation reference. Before a new provider call,
+the configured send tool checks that this organization's WhatsApp conversation still permits
+replies and still matches the approved recipient. An opt-out, withdrawn consent flag, unknown
+reference or recipient change blocks the queued send. Older requests without a reference need a
+fresh draft. Completed cached sends can replay without delivering again. The reference is kept
+inside the approval payload rather than added as a provider message field.
+
+This is a per-conversation WhatsApp Agent check. It does not add a durable contact-wide consent
+registry, automatic re-consent or CRM writes, and Follow-Up still relies on its typed workflow
+consent input. Memory remains process-local by default, and an in-flight provider request cannot
+be recalled. See the [opt-out concurrency verification](../verification/whatsapp-optout-concurrency-local-2026-11-24.md).
+
 Run the agent and data-boundary checks without live providers:
 
 ```text

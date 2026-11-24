@@ -145,3 +145,30 @@ class SqlConversationMemory:
                 scopes[self._agent] = deepcopy(state)
                 updated[STATE_FIELD] = scopes
             conversation.state = updated
+
+    async def update_state(self, conversation_id: str, patch: dict[str, Any]) -> dict[str, Any]:
+        async with self._factory() as session, session.begin():
+            conversation = await self._conversation(session, conversation_id, lock=True)
+            existing = dict(conversation.state)
+            scopes = existing.get(STATE_FIELD, {})
+            scopes = deepcopy(scopes) if isinstance(scopes, dict) else {}
+            if self._agent is None:
+                updated = deepcopy(existing)
+                values = deepcopy(patch)
+                values.pop(STATE_FIELD, None)
+                updated.update(values)
+                result = deepcopy(updated)
+                result.pop(STATE_FIELD, None)
+            else:
+                if existing and STATE_FIELD not in existing:
+                    raise AuthorizationError(
+                        "Legacy conversation state requires explicit ownership review"
+                    )
+                previous = scopes.get(self._agent, {})
+                result = deepcopy(previous) if isinstance(previous, dict) else {}
+                result.update(deepcopy(patch))
+                scopes[self._agent] = result
+                updated = deepcopy(existing)
+                updated[STATE_FIELD] = scopes
+            conversation.state = updated
+            return deepcopy(result)
