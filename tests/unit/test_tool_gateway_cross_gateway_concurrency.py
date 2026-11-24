@@ -121,6 +121,8 @@ async def test_shared_gateways_must_not_execute_action_twice(
                 principal=approver,
                 tenant_id="demo-org",
                 correlation_id="cross-gateway-invoke-test",
+                agent_id=ctx.agent_id,
+                allowed_tools=ctx.allowed_tools,
             ),
             "test.cross_gateway_send",
             {"to": "mock-recipient"},

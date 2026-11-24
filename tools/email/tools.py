@@ -64,12 +64,14 @@ class EmailSendTool(BaseTool):
                 payload["body"],
                 payload["subject"],
             )
-        return await self._send(payload, scope=ctx.tenant_id)
+        return await self._send(payload, scope=ctx.tenant_id, agent_id=ctx.agent_id)
 
-    async def _send(self, payload: dict[str, Any], *, scope: str | None = None) -> dict[str, Any]:
+    async def _send(
+        self, payload: dict[str, Any], *, scope: str | None = None, agent_id: str | None = None
+    ) -> dict[str, Any]:
         self.validate(payload)
         key = (
-            make_idempotency_key(self.spec.name, payload, scope=scope)
+            make_idempotency_key(self.spec.name, payload, scope=scope, agent_id=agent_id)
             if scope is not None
             else str(payload.get("idempotency_key", ""))
         )

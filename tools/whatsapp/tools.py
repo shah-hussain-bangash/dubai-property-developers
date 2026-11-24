@@ -92,13 +92,15 @@ class WhatsAppSendTool(BaseTool):
                 raise PolicyViolationError(
                     "Conversation consent changed; prepare a new approved reply"
                 )
-        return await self._send(payload, scope=ctx.tenant_id)
+        return await self._send(payload, scope=ctx.tenant_id, agent_id=ctx.agent_id)
 
-    async def _send(self, payload: dict[str, Any], *, scope: str | None = None) -> dict[str, Any]:
+    async def _send(
+        self, payload: dict[str, Any], *, scope: str | None = None, agent_id: str | None = None
+    ) -> dict[str, Any]:
         # Queue/lock/source-check waits must not preserve an expired service window.
         self.validate(payload)
         key = (
-            make_idempotency_key(self.spec.name, payload, scope=scope)
+            make_idempotency_key(self.spec.name, payload, scope=scope, agent_id=agent_id)
             if scope is not None
             else str(
                 payload.get("idempotency_key") or payload["to_e164"] + str(payload.get("text"))

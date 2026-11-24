@@ -253,6 +253,7 @@ class ToolGateway:
             tool_name,
             payload,
             scope=ctx.tenant_id,
+            agent_id=ctx.agent_id,
         )
 
         # 4. Check cached results.
