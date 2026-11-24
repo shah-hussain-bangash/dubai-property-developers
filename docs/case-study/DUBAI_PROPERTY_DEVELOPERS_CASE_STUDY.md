@@ -3,7 +3,7 @@
 ## From website enquiry to an owned client brief
 
 **Shah Hussain Bangash · Dubai, UAE**  
-**Scope:** Full-stack architecture and a fictional software workflow. Hosted CI, source review and a disposable local browser run provide the evidence below.
+**Scope:** Portfolio demonstration of full-stack architecture and a fictional software workflow. Hosted CI, source review and a disposable local browser run provide the evidence below.
 
 ### The business problem
 
@@ -48,6 +48,8 @@ flowchart LR
 
 [Enquiry implementation notes](../connected_website_enquiries.txt) · [Portal store](../../apps/dashboard/src/lib/agentPropertyStore.ts) · [System architecture](../../ARCHITECTURE.md)
 
-### Next evidence to collect
+### Portfolio scope and optional follow-up
 
-Run the fictional enquiry through the browser in an isolated staging environment. Capture the tested revision, receipt, admin assignment and agent-owned client brief, then confirm the same record is invisible to a second agent. A complete staging run, provider delivery and measured conversion improvements remain open.
+The captured local journey, synthetic records, screenshots and focused tests are the evidence for this portfolio case. The public demo is available for viewing; it is not evidence that the complete hosted journey has passed.
+
+A read-only hosted Admin check on 24 November 2026 found zero registered members, approved agents or access requests. The API identified itself as staging, but the deployed Git revision was not established. No new hosted enquiry or account was created. A future hosted verification would need synthetic operator access and a confirmed deployed revision. Provider delivery and measured conversion improvements remain unverified.

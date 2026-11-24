@@ -1,6 +1,6 @@
 # Local website to operations verification
 
-The fictional enquiry completed the browser journey from anonymous intake to an owned client brief on **24 November 2026**, using revision [`c3f49e8`](https://github.com/shah-hussain-bangash/dubai-property-developers/commit/c3f49e8eb3732e1e8618ea08185503a840b17f9b) in a disposable local environment. This verifies the Next.js enquiry and portal-store handoff. **Hosted staging verification remains pending.**
+The fictional enquiry completed the browser journey from anonymous intake to an owned client brief on **24 November 2026**, using revision [`c3f49e8`](https://github.com/shah-hussain-bangash/dubai-property-developers/commit/c3f49e8eb3732e1e8618ea08185503a840b17f9b) in a disposable local environment. This verifies the Next.js enquiry and portal-store handoff. **The complete hosted journey remains unverified; this local result is the portfolio evidence.**
 
 ## Traceable result
 
@@ -50,6 +50,8 @@ Run the focused checks from `apps/dashboard`:
 npm test -- src/__tests__/ConnectedEnquiries.test.ts src/__tests__/ConnectedEnquiryViews.test.tsx
 ```
 
-## Remaining staging verification
+## Hosted follow-up and portfolio boundary
 
-The documented hosted website was reachable in a subsequent read-only check. Its deployment helper pins an older release input, which does not establish the currently deployed revision or that the host is staging. A confirmed staging target, deployed revision and synthetic role access are still needed for the same journey there. Provider delivery and measured conversion improvements remain outside this local result.
+A subsequent read-only check reached the hosted Admin console. The API identified itself as staging. On 24 November 2026, **Agent management** showed zero registered members, zero approved agents and zero access requests, with the message “No member accounts yet. New agents can register from the website.” Assignment could not proceed without an eligible synthetic operator; no new hosted enquiry, account or approval was created.
+
+The deployed Git revision remains unknown. The release input pinned by the deployment helper does not establish the running revision. A future complete hosted run would require that revision and synthetic operator access. This is optional follow-up for the portfolio; the traceable local result above remains the demonstrated journey. Provider delivery and measured conversion improvements were not verified.
