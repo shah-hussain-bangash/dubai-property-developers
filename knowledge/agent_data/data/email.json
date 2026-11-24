@@ -1,0 +1,48 @@
+{
+  "agent_id": "email",
+  "version": 1,
+  "fictional": true,
+  "knowledge": [
+    {
+      "key": "role-guide",
+      "title": "Fictional email operating guide",
+      "text": "Classify unsubscribe requests and prepare approved templates. Sending requires human approval and a configured provider; evaluation uses a mock sender."
+    }
+  ],
+  "evaluations": [
+    {
+      "case_id": "classify-optout",
+      "input": {
+        "mode": "classify",
+        "inbound_text": "Please unsubscribe me"
+      },
+      "expected_status": "succeeded",
+      "expected_output": {
+        "classification": "unsubscribe"
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "require-send-approval",
+      "input": {
+        "mode": "send",
+        "template": "lead_acknowledgement",
+        "recipient_email": "email.eval@example.com"
+      },
+      "expected_status": "pending_approval",
+      "expected_output": {
+        "send_status": "pending_approval"
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "reject-missing-template",
+      "input": {
+        "mode": "draft"
+      },
+      "expected_status": "failed",
+      "expected_output": {},
+      "expected_error": "validation_error"
+    }
+  ]
+}

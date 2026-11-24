@@ -32,7 +32,55 @@ Result statuses: `succeeded`, `failed`, `timed_out`, `pending_approval`, `escala
 
 ## LLM usage
 
-`deps.llm` (a `ModelRouter`) is available to every agent. No agent depends on it yet, because only the
-mock provider exists. When adding LLM drafting, build prompts with `core/llm/prompts.build_messages`
+`deps.llm` (a `ModelRouter`) is available to every agent. These 13 agents currently use deterministic
+rules, templates and extractive retrieval; they do not call a model or learn from examples at runtime.
+The router defaults to a mock and has optional OpenAI and local Ollama adapters requiring explicit
+configuration. When adding LLM drafting, build prompts with `core/llm/prompts.build_messages`
 so customer and document text stays in `<untrusted>` blocks. Keep the tool and approval checks as they
 are: they don't depend on model output.
+
+## Separate agent knowledge and evaluations
+
+Every registered agent has its own versioned fictional dataset in
+[`knowledge/agent_data/data`](../../knowledge/agent_data/data). Each file has:
+
+- An agent owner and dataset version, validated against its filename.
+- Role-specific knowledge entries with access levels, permitted roles and source review dates.
+- At least three held-out behavioral cases: typed input, expected result status, selected output
+  assertions and, where appropriate, an expected error. Cases include consent, approval, escalation
+  or validation boundaries as well as ordinary behavior.
+
+These are knowledge and evaluation data, **not separately fine-tuned models**. The evaluation inputs
+and expected answers are never ingested into the knowledge store. Rules-based agents continue to
+use their structured inputs and existing tool allowlists; adding a knowledge file grants no new
+tools or outbound access. Their dataset examples exercise those inputs directly.
+
+The registry validates all 13 datasets at startup. Development/test initialization ingests only
+their knowledge entries and labels each chunk with its agent owner. `documents.search` receives
+identity from the ToolGateway's trusted caller context; a payload cannot choose another agent,
+organization or privileged role. Agent searches require their own owner label and retain tenant,
+customer/staff, role and staleness controls. General unscoped retrieval remains available to
+internal non-agent callers, and cannot see agent-owned chunks. The in-memory and pgvector search
+paths apply the same `RetrievalFilter` ownership rule. Production does not auto-ingest fictional data.
+
+Some public fictional FAQs are deliberately copied into both the sales-conversation and documents
+datasets because both roles need them. The copies have separate agent-owned document keys and
+retain their original review dates. Sharing a fact does not grant access to the other agent's corpus.
+Conversation history and explicitly passed workflow records remain separate concerns; this change
+does not claim isolation of every runtime store.
+
+Run the agent and data-boundary checks without live providers:
+
+```text
+python -m pytest tests/agents tests/security/test_agent_knowledge_isolation.py tests/evaluations -q
+```
+
+The suite runs 39 per-agent dataset cases and checks all 13 knowledge scopes, payload spoofing,
+tenant and role boundaries, unchanged tool allowlists, source review dates and detached dataset
+copies. Passing voice cases means unsupported audio fails clearly and transcripts escalate; it
+does not mean speech-to-text or calling is implemented. The functional/partial/interface statuses
+in the table above remain the capability boundary.
+
+When adding an agent, add its dataset and update the registry together. Keep input examples fictional,
+make expected outcomes independent of current outputs, retain source provenance and review dates,
+and add held-out cases when fixing an observed failure. Never add customer records or credentials.

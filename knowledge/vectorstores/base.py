@@ -12,6 +12,7 @@ from knowledge.embeddings.base import cosine
 
 class RetrievalFilter(BaseModel):
     tenant_id: str
+    agent_id: str | None = None
     access_levels: set[AccessLevel] = Field(default_factory=lambda: {AccessLevel.PUBLIC})
     principal_roles: set[str] = Field(default_factory=set)
     document_keys: set[str] | None = None
@@ -20,6 +21,10 @@ class RetrievalFilter(BaseModel):
 
     def allows(self, chunk: Chunk) -> bool:
         if chunk.tenant_id != self.tenant_id:
+            return False
+        # Unscoped searches see only general documents; agents see only their
+        # explicitly labelled knowledge. Missing labels never widen agent access.
+        if chunk.metadata.get("agent_id") != self.agent_id:
             return False
         if chunk.status != DocumentStatus.ACTIVE and not (
             self.include_superseded and chunk.status == DocumentStatus.SUPERSEDED

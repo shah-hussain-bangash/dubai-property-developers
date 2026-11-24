@@ -59,6 +59,7 @@ from integrations.factory import (
     IntegrationSet,
     build_integrations,
 )
+from knowledge.agent_data.catalogue import agent_documents
 from knowledge.documents.demo_corpus import demo_documents
 from knowledge.embeddings.base import HashingEmbeddingProvider
 from knowledge.ingestion.pipeline import IngestionPipeline
@@ -144,7 +145,10 @@ class PlatformRuntime:
             return
 
         if self.settings.is_dev_like:
-            for doc in demo_documents(self.settings.default_tenant_id):
+            for doc in [
+                *demo_documents(self.settings.default_tenant_id),
+                *agent_documents(self.settings.default_tenant_id),
+            ]:
                 await self.ingestion.ingest(doc)
 
             logger.info("demo knowledge corpus ingested (fictional)")

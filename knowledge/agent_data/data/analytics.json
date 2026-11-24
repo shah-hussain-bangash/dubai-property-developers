@@ -1,0 +1,104 @@
+{
+  "agent_id": "analytics",
+  "version": 1,
+  "fictional": true,
+  "knowledge": [
+    {
+      "key": "role-guide",
+      "title": "Fictional analytics operating guide",
+      "text": "Calculate source, status and conversion counts from supplied fictional records. Report the period and denominator; do not imply causal performance gains."
+    }
+  ],
+  "evaluations": [
+    {
+      "case_id": "measure-conversion",
+      "input": {
+        "leads": [
+          {
+            "lead_id": "eval-analytics",
+            "tenant_id": "demo-org",
+            "full_name": "Demo Lead One",
+            "email": "analytics@example.com",
+            "phone_e164": "+971500000001",
+            "phone_region": null,
+            "source": "website",
+            "message": null,
+            "budget_min_aed": null,
+            "budget_max_aed": "1500000",
+            "preferred_locations": [
+              "Business Bay"
+            ],
+            "property_types": [
+              "apartment"
+            ],
+            "bedrooms": 1,
+            "purpose": "investment",
+            "timeline_months": 3,
+            "consent_marketing": true,
+            "consent_whatsapp": true,
+            "external_ref": null,
+            "dedupe_keys": [],
+            "received_at": "2026-11-24T06:57:54.845205Z",
+            "status": "converted"
+          },
+          {
+            "lead_id": "eval-analytics-new",
+            "tenant_id": "demo-org",
+            "full_name": "Demo Lead One",
+            "email": "analytics-new@example.com",
+            "phone_e164": "+971500000001",
+            "phone_region": null,
+            "source": "website",
+            "message": null,
+            "budget_min_aed": null,
+            "budget_max_aed": "1500000",
+            "preferred_locations": [
+              "Business Bay"
+            ],
+            "property_types": [
+              "apartment"
+            ],
+            "bedrooms": 1,
+            "purpose": "investment",
+            "timeline_months": 3,
+            "consent_marketing": true,
+            "consent_whatsapp": true,
+            "external_ref": null,
+            "dedupe_keys": [],
+            "received_at": "2026-11-24T06:57:54.845212Z",
+            "status": "new"
+          }
+        ]
+      },
+      "expected_status": "succeeded",
+      "expected_output": {
+        "sales.total_leads": 2,
+        "sales.conversion_rate": 0.5
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "handle-empty-period",
+      "input": {
+        "leads": []
+      },
+      "expected_status": "succeeded",
+      "expected_output": {
+        "sales.total_leads": 0,
+        "sales.conversion_rate": 0.0
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "reject-invalid-input",
+      "input": {
+        "leads": [
+          "not-a-lead"
+        ]
+      },
+      "expected_status": "failed",
+      "expected_output": {},
+      "expected_error": "invalid_input"
+    }
+  ]
+}

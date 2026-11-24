@@ -1,0 +1,96 @@
+{
+  "agent_id": "lead_intake",
+  "version": 1,
+  "fictional": true,
+  "knowledge": [
+    {
+      "key": "role-guide",
+      "title": "Fictional lead_intake operating guide",
+      "text": "Validate contact details, normalize email and UAE phone numbers, and check duplicate keys. Do not infer marketing or WhatsApp consent from an enquiry."
+    }
+  ],
+  "evaluations": [
+    {
+      "case_id": "normalize-contact",
+      "input": {
+        "full_name": "Demo Lead One",
+        "email": "INTAKE.EVAL@example.com",
+        "phone": "050 000 0001",
+        "source": "website",
+        "message": "Looking for a 1 bedroom apartment in Business Bay, would like a viewing.",
+        "budget_min_aed": "900000",
+        "budget_max_aed": "1500000",
+        "preferred_locations": [
+          "business bay"
+        ],
+        "property_types": [
+          "apartment"
+        ],
+        "bedrooms": 1,
+        "purpose": "investment",
+        "timeline_months": 3,
+        "consent_marketing": true,
+        "consent_whatsapp": true
+      },
+      "expected_status": "succeeded",
+      "expected_output": {
+        "lead.email": "intake.eval@example.com",
+        "lead.phone_e164": "+971500000001",
+        "is_duplicate": false
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "reject-invalid-input",
+      "input": {
+        "full_name": "Demo Lead One",
+        "email": null,
+        "phone": null,
+        "source": "website",
+        "message": "Looking for a 1 bedroom apartment in Business Bay, would like a viewing.",
+        "budget_min_aed": "900000",
+        "budget_max_aed": "1500000",
+        "preferred_locations": [
+          "business bay"
+        ],
+        "property_types": [
+          "apartment"
+        ],
+        "bedrooms": 1,
+        "purpose": "investment",
+        "timeline_months": 3,
+        "consent_marketing": true,
+        "consent_whatsapp": true
+      },
+      "expected_status": "failed",
+      "expected_output": {},
+      "expected_error": "invalid_input"
+    },
+    {
+      "case_id": "reject-invalid-phone",
+      "input": {
+        "full_name": "Demo Lead One",
+        "email": null,
+        "phone": "12",
+        "source": "website",
+        "message": "Looking for a 1 bedroom apartment in Business Bay, would like a viewing.",
+        "budget_min_aed": "900000",
+        "budget_max_aed": "1500000",
+        "preferred_locations": [
+          "business bay"
+        ],
+        "property_types": [
+          "apartment"
+        ],
+        "bedrooms": 1,
+        "purpose": "investment",
+        "timeline_months": 3,
+        "consent_marketing": true,
+        "consent_whatsapp": true
+      },
+      "expected_status": "failed",
+      "expected_output": {},
+      "expected_error": "validation_error"
+    }
+  ]
+}

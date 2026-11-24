@@ -1,0 +1,100 @@
+{
+  "agent_id": "crm",
+  "version": 1,
+  "fictional": true,
+  "knowledge": [
+    {
+      "key": "role-guide",
+      "title": "Fictional crm operating guide",
+      "text": "Save validated leads using approved tool calls and stable identities. Demo evaluations use a mock CRM; no live CRM is contacted."
+    }
+  ],
+  "evaluations": [
+    {
+      "case_id": "save-fictional-lead",
+      "input": {
+        "lead": {
+          "lead_id": "eval-crm",
+          "tenant_id": "demo-org",
+          "full_name": "Demo Lead One",
+          "email": "crm@example.com",
+          "phone_e164": "+971500000001",
+          "phone_region": null,
+          "source": "website",
+          "message": null,
+          "budget_min_aed": null,
+          "budget_max_aed": "1500000",
+          "preferred_locations": [
+            "Business Bay"
+          ],
+          "property_types": [
+            "apartment"
+          ],
+          "bedrooms": 1,
+          "purpose": "investment",
+          "timeline_months": 3,
+          "consent_marketing": true,
+          "consent_whatsapp": true,
+          "external_ref": null,
+          "dedupe_keys": [],
+          "received_at": "2026-11-24T06:57:54.845163Z",
+          "status": "new"
+        }
+      },
+      "expected_status": "succeeded",
+      "expected_output": {
+        "lead_id": "eval-crm",
+        "created": true,
+        "status": "executed"
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "save-rental-lead",
+      "input": {
+        "lead": {
+          "lead_id": "eval-crm-rental",
+          "tenant_id": "demo-org",
+          "full_name": "Demo Lead One",
+          "email": "crm-rental@example.com",
+          "phone_e164": "+971500000001",
+          "phone_region": null,
+          "source": "website",
+          "message": null,
+          "budget_min_aed": null,
+          "budget_max_aed": "1500000",
+          "preferred_locations": [
+            "Business Bay"
+          ],
+          "property_types": [
+            "apartment"
+          ],
+          "bedrooms": 1,
+          "purpose": "rent",
+          "timeline_months": 3,
+          "consent_marketing": true,
+          "consent_whatsapp": true,
+          "external_ref": null,
+          "dedupe_keys": [],
+          "received_at": "2026-11-24T06:57:54.845172Z",
+          "status": "new"
+        }
+      },
+      "expected_status": "succeeded",
+      "expected_output": {
+        "lead_id": "eval-crm-rental",
+        "created": true
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "reject-invalid-input",
+      "input": {
+        "lead": {}
+      },
+      "expected_status": "failed",
+      "expected_output": {},
+      "expected_error": "invalid_input"
+    }
+  ]
+}
