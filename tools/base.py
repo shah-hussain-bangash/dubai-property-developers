@@ -141,7 +141,7 @@ class ToolRegistry:
 
 @runtime_checkable
 class ContextualTool(Protocol):
-    """Optional read-tool entry point that receives trusted caller identity."""
+    """Optional tool entry point that receives trusted caller identity."""
 
     async def execute_with_context(
         self, payload: dict[str, Any], ctx: ToolCallContext
@@ -349,6 +349,7 @@ class ToolGateway:
             principal=approver,
             tenant_id=request.tenant_id,
             correlation_id=request.correlation_id or "",
+            agent_id=request.requested_by_agent,
         )
 
         tool.validate(request.payload)

@@ -105,6 +105,11 @@ class EmailAgent(BaseAgent[EmailAgentInput, EmailAgentOutput]):
                 "body": body,
                 "is_marketing": data.is_marketing,
                 "consent_marketing": data.consent_marketing,
+                **(
+                    {"knowledge_citations": [c.model_dump() for c in citations]}
+                    if self.deps.supplied_knowledge_only
+                    else {}
+                ),
             },
             reason=f"Send '{data.template}' email",
         )

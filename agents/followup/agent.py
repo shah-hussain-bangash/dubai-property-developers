@@ -168,6 +168,8 @@ class FollowUpAgent(BaseAgent[FollowUpInput, FollowUpPlan]):
             )
             if data.dispatch:
                 tool, payload = self._send_request(task, subject, body)
+                if self.deps.supplied_knowledge_only:
+                    payload["knowledge_citations"] = [c.model_dump() for c in citations]
                 try:
                     sent = await self.use_tool(
                         ctx, tool, payload, reason=f"Follow-up for task {task.task_id}"

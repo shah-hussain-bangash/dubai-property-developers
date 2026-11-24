@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 from typing import Any, ClassVar
 
-from core.exceptions.errors import DomainValidationError, PolicyViolationError
+from core.exceptions.errors import AuthorizationError, DomainValidationError, PolicyViolationError
 from core.policies.actions import ActionCategory
 from core.security.rbac import Permission
 from integrations.meta.client import WhatsAppClient
-from tools.base import BaseTool, ToolSpec
+from knowledge.assigned_sources import AssignedSources
+from tools.base import BaseTool, ToolCallContext, ToolSpec
 from tools.whatsapp.policy import is_within_service_window
 
 
@@ -22,8 +24,11 @@ class WhatsAppSendTool(BaseTool):
         permission=Permission.MESSAGES_SEND,
     )
 
-    def __init__(self, client: WhatsAppClient) -> None:
+    def __init__(
+        self, client: WhatsAppClient, assigned_sources: AssignedSources | None = None
+    ) -> None:
         self._client = client
+        self._assigned_sources = assigned_sources
 
     def validate(self, payload: dict[str, Any]) -> None:
         if not str(payload.get("to_e164", "")).startswith("+"):
@@ -49,6 +54,28 @@ class WhatsAppSendTool(BaseTool):
             raise DomainValidationError("either text or template_name is required")
 
     async def execute(self, payload: dict[str, Any]) -> dict[str, Any]:
+        if self._assigned_sources is not None:
+            raise AuthorizationError("Assigned-source sends require a trusted caller identity")
+        return await self._send(payload)
+
+    async def execute_with_context(
+        self, payload: dict[str, Any], ctx: ToolCallContext
+    ) -> dict[str, Any]:
+        if self._assigned_sources is not None:
+            if payload.get("template_name"):
+                raise PolicyViolationError(
+                    "Provider template content is not assigned-source verified"
+                )
+            await asyncio.to_thread(
+                self._assigned_sources.validate_message,
+                ctx.tenant_id,
+                ctx.agent_id,
+                payload.get("knowledge_citations"),
+                payload.get("text", ""),
+            )
+        return await self._send(payload)
+
+    async def _send(self, payload: dict[str, Any]) -> dict[str, Any]:
         key = str(payload.get("idempotency_key") or payload["to_e164"] + str(payload.get("text")))
         if payload.get("text"):
             message_id = await self._client.send_text(

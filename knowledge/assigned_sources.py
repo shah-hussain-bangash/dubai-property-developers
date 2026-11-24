@@ -14,9 +14,17 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
-from core.exceptions.errors import ConflictError, DomainValidationError, NotFoundError
+from pydantic import ValidationError
+
+from core.exceptions.errors import (
+    ConflictError,
+    DomainValidationError,
+    NotFoundError,
+    PolicyViolationError,
+)
 from knowledge.embeddings.base import tokenize
 from knowledge.ingestion.chunking import chunk_text
+from schemas.conversations.models import Citation
 
 MAX_SOURCE_CHARS = 200_000
 MAX_AGENT_CHARS = 2_000_000
@@ -212,3 +220,54 @@ class AssignedSources:
             ],
             "passages": [s["excerpt"] for s in sources],
         }
+
+    def validate_message(
+        self,
+        tenant: str,
+        agent: str | None,
+        references: Any,
+        body: str,
+        subject: str | None = None,
+    ) -> None:
+        """Recheck the approved citation snapshot immediately before a provider call."""
+        message = "Message sources changed or are unavailable. Prepare a new draft for review."
+        if not agent or not isinstance(references, list) or not 1 <= len(references) <= 3:
+            raise PolicyViolationError(message)
+        try:
+            citations = [Citation.model_validate(c) for c in references]
+        except ValidationError:
+            raise PolicyViolationError(message) from None
+        seen: set[str] = set()
+        with closing(self._connect()) as db:
+            db.execute("BEGIN")
+            for citation in citations:
+                prefix = tenant + ":"
+                source_id = citation.document_id.removeprefix(prefix)
+                if (
+                    not citation.document_id.startswith(prefix)
+                    or not re.fullmatch(r"[a-f0-9]{64}", source_id)
+                    or source_id in seen
+                    or citation.version != 1
+                ):
+                    raise PolicyViolationError(message)
+                seen.add(source_id)
+                row = db.execute(
+                    "SELECT * FROM agent_sources WHERE tenant=? AND agent=? AND id=? "
+                    "AND customer_safe=1 AND (review_by IS NULL OR review_by>=?)",
+                    (tenant, agent, source_id, date.today().isoformat()),
+                ).fetchone()
+                if row is None or citation.title != row["title"]:
+                    raise PolicyViolationError(message)
+                matches = any(
+                    citation.excerpt == passage
+                    and citation.chunk_id
+                    == f"{source_id}:{page if row['kind'] == 'pdf' else None}:{index}"
+                    for page, text in enumerate(json.loads(row["pages"]), 1)
+                    for index, passage in enumerate(chunk_text(text, chunk_size=700, overlap=80))
+                )
+                if not matches:
+                    raise PolicyViolationError(message)
+        if body != "\n\n".join(c.excerpt for c in citations):
+            raise PolicyViolationError(message)
+        if subject is not None and subject != citations[0].title:
+            raise PolicyViolationError(message)

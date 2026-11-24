@@ -96,6 +96,21 @@ missing timestamps cannot authorize free text. Time-zone offsets are handled con
 legacy naive datetime values interpreted as UTC. See the
 [timestamp guard verification](../verification/whatsapp-timestamp-guards-local-2026-11-24.md).
 
+Source-only send requests retain their citation snapshot in the private approval payload.
+Immediately before a new provider call, the send tool rechecks the original agent and organization,
+current customer approval/review date, source title, passage reference and exact outgoing text.
+Email subjects must still match the cited source title. Removed, expired, withdrawn, renamed or
+altered material blocks execution and requires a fresh draft/review. A human approval does not
+override the source-only policy. Unscoped legacy approvals without citations cannot execute in this
+mode; payload fields cannot supply their own trusted agent identity. Citation metadata stays inside
+the approval system and is not passed to message providers.
+
+Cached successful executions can still return their result after source withdrawal without
+sending again. This check cannot recall messages already delivered or guarantee cancellation of
+a provider request already in flight. It validates current sources immediately before calling the
+provider; it does not hold a database lock across network delivery. See the
+[approval-source verification](../verification/source-bound-approvals-local-2026-11-24.md).
+
 Document summaries in supplied-source mode require a `query`, just like document answers.
 For example, `{"action":"summarize","query":"garden policy","max_sentences":3}` summarizes
 matched passages from the Document Agent's own sources and retains their citations. Caller-supplied

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from agents.base.agent import AgentSpec, BaseAgent
 from agents.base.context import ExecutionContext
@@ -109,7 +109,7 @@ class WhatsAppAgent(BaseAgent[WhatsAppAgentInput, WhatsAppAgentOutput]):
             citations=citations,
         )
         if data.send_reply and (output.reply_text or output.template_name) and not output.escalate:
-            payload = {
+            payload: dict[str, Any] = {
                 "to_e164": data.from_e164,
                 "consent_whatsapp": data.consent_whatsapp,
                 "last_inbound_at": data.received_at.isoformat(),
@@ -120,6 +120,8 @@ class WhatsAppAgent(BaseAgent[WhatsAppAgentInput, WhatsAppAgentOutput]):
             else:
                 payload["template_name"] = output.template_name
                 payload["language_code"] = "en"
+            if self.deps.supplied_knowledge_only:
+                payload["knowledge_citations"] = [c.model_dump() for c in citations]
             sent = await self.use_tool(
                 ctx, "whatsapp.send_message", payload, reason="Reply to customer"
             )

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any, ClassVar
 
-from core.exceptions.errors import DomainValidationError, PolicyViolationError
+from core.exceptions.errors import AuthorizationError, DomainValidationError, PolicyViolationError
 from core.policies.actions import ActionCategory
 from core.security.rbac import Permission
-from tools.base import BaseTool, ToolSpec
+from knowledge.assigned_sources import AssignedSources
+from tools.base import BaseTool, ToolCallContext, ToolSpec
 from tools.email.sender import EmailSender
 from tools.email.templates import render_template
 
@@ -30,8 +32,11 @@ class EmailSendTool(BaseTool):
         permission=Permission.MESSAGES_SEND,
     )
 
-    def __init__(self, sender: EmailSender) -> None:
+    def __init__(
+        self, sender: EmailSender, assigned_sources: AssignedSources | None = None
+    ) -> None:
         self._sender = sender
+        self._assigned_sources = assigned_sources
 
     def validate(self, payload: dict[str, Any]) -> None:
         if "@" not in str(payload.get("to", "")):
@@ -42,6 +47,25 @@ class EmailSendTool(BaseTool):
             raise PolicyViolationError("marketing email requires recorded marketing consent")
 
     async def execute(self, payload: dict[str, Any]) -> dict[str, Any]:
+        if self._assigned_sources is not None:
+            raise AuthorizationError("Assigned-source sends require a trusted caller identity")
+        return await self._send(payload)
+
+    async def execute_with_context(
+        self, payload: dict[str, Any], ctx: ToolCallContext
+    ) -> dict[str, Any]:
+        if self._assigned_sources is not None:
+            await asyncio.to_thread(
+                self._assigned_sources.validate_message,
+                ctx.tenant_id,
+                ctx.agent_id,
+                payload.get("knowledge_citations"),
+                payload["body"],
+                payload["subject"],
+            )
+        return await self._send(payload)
+
+    async def _send(self, payload: dict[str, Any]) -> dict[str, Any]:
         message_id = await self._sender.send(
             to=payload["to"],
             subject=payload["subject"],
