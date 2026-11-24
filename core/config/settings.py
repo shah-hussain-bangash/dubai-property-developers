@@ -183,6 +183,8 @@ class Settings(BaseSettings):
     knowledge_chunk_size: int = 800
     knowledge_chunk_overlap: int = 120
     knowledge_stale_after_days: int = 180
+    # Enables durable owner-supplied knowledge; None keeps explicit demo fixtures.
+    agent_knowledge_path: str | None = Field(default=None, min_length=1, max_length=1000)
 
     # --- agents & governance ----------------------------------------------
     agent_default_timeout_seconds: float = 20.0

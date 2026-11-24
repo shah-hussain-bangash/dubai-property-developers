@@ -60,6 +60,7 @@ from integrations.factory import (
     build_integrations,
 )
 from knowledge.agent_data.catalogue import agent_documents
+from knowledge.assigned_sources import AssignedSources
 from knowledge.documents.demo_corpus import demo_documents
 from knowledge.embeddings.base import HashingEmbeddingProvider
 from knowledge.ingestion.pipeline import IngestionPipeline
@@ -125,6 +126,7 @@ class PlatformRuntime:
     audit: InMemoryAuditSink
     approvals: InMemoryApprovalStore
     email_sender: MockEmailSender
+    assigned_sources: AssignedSources | None = None
 
     # Shared runtime-owned PostgreSQL engine.
     # None when both storage backends use memory.
@@ -144,7 +146,7 @@ class PlatformRuntime:
         if self._initialized:
             return
 
-        if self.settings.is_dev_like:
+        if self.settings.is_dev_like and self.assigned_sources is None:
             for doc in [
                 *demo_documents(self.settings.default_tenant_id),
                 *agent_documents(self.settings.default_tenant_id),
@@ -240,13 +242,19 @@ def build_runtime(settings: Settings) -> PlatformRuntime:
     # 5. Property catalog
     # ---------------------------------------------------------------
 
-    catalog = InMemoryPropertyCatalog()
+    # Supplied-source workspaces must not recommend records from the demo seed.
+    catalog = (
+        InMemoryPropertyCatalog(()) if settings.agent_knowledge_path else InMemoryPropertyCatalog()
+    )
 
     # ---------------------------------------------------------------
     # 6. Tool registration
     # ---------------------------------------------------------------
 
     tools = ToolRegistry()
+    assigned_sources = (
+        AssignedSources(settings.agent_knowledge_path) if settings.agent_knowledge_path else None
+    )
 
     for tool in (
         CRMFindLeadsTool(integrations.crm),
@@ -259,7 +267,7 @@ def build_runtime(settings: Settings) -> PlatformRuntime:
         CalendarCreateEventTool(integrations.calendar),
         PropertySearchTool(catalog),
         PropertyMatchTool(catalog),
-        DocumentSearchTool(retriever),
+        DocumentSearchTool(retriever, assigned_sources),
         LeadDuplicateSearchTool(lead_store),
         LeadSaveTool(lead_store),
         LeadScoringTool(),
@@ -291,6 +299,7 @@ def build_runtime(settings: Settings) -> PlatformRuntime:
     # ---------------------------------------------------------------
 
     deps = AgentDependencies(
+        supplied_knowledge_only=assigned_sources is not None,
         gateway=gateway,
         llm=build_model_router(settings),
         memory=InMemoryConversationMemory(),
@@ -353,5 +362,6 @@ def build_runtime(settings: Settings) -> PlatformRuntime:
         audit=audit,
         approvals=approvals,
         email_sender=email_sender,
+        assigned_sources=assigned_sources,
         _db_engine=db_engine,
     )

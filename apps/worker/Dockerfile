@@ -20,5 +20,6 @@ RUN groupadd --system app && useradd --system --gid app --home /app app
 WORKDIR /app
 COPY --from=builder /wheels /wheels
 RUN pip install /wheels/*.whl && rm -rf /wheels
+RUN mkdir -p /app/agent-knowledge && chown app:app /app/agent-knowledge
 USER app
 CMD ["python", "-m", "apps.worker.main"]

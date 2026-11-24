@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from apps.api.app.api.v1.routes import (
+    agent_knowledge,
     agents,
     approvals,
     conversation_demo,
@@ -26,6 +27,7 @@ def build_v1_router(settings: Settings) -> APIRouter:
     router.include_router(workflows.router)
     router.include_router(approvals.router)
     router.include_router(integrations.router)
+    router.include_router(agent_knowledge.router)
     if settings.enable_dev_routes and settings.is_dev_like:
         if settings.prospect_storage_enabled:
             router.include_router(prospect_research.router)

@@ -41,6 +41,58 @@ are: they don't depend on model output.
 
 ## Separate agent knowledge and evaluations
 
+### Upload your own knowledge
+
+Open **Knowledge** in the signed-in operations workspace. Select an agent, then add a PDF, text or
+Markdown file, a public HTTPS page, or pasted text. Sources are assigned to that agent and your
+organization only. Use **Test this agent's knowledge** to see exact matching excerpts, source titles
+and PDF page references. Missing or unrelated knowledge produces an explicit not-found response.
+Sources can be removed from future answers after confirmation.
+
+This workspace uses only supplied sources, with no model generation, demo facts or web-search
+fallback. It returns matching quoted passages rather than a synthesized answer. The lexical search
+can miss paraphrases; reword the question or add a clearer source. Instructions inside a document
+are quoted data and cannot grant tools or trigger actions. Answers are staff previews and send
+nothing to customers. Voice and other partial provider capabilities are unchanged.
+
+By default, sources are **staff only**. Check **Allow this source in customer-facing answers** only
+for approved public material. In supplied-source mode, document and sales-conversation agents search
+only their own assigned, customer-approved sources for customer replies; an empty corpus never
+falls back to fictional fixtures. Sales replies quote the supplied material without appending
+template facts. Their existing approval and escalation controls remain in place. Routing,
+calculations and other deterministic agents still use typed workflow inputs; uploading a policy
+does not retrain them or silently change their rules.
+Supplied-source mode also disables fictional corpus ingestion and the backend's seeded property
+catalog. PDF text is not silently converted into verified structured property listings; use the
+source-answer workspace to query it, and create reviewed property records separately.
+
+Local setup uses `AGENT_KNOWLEDGE_PATH=.data/agent-knowledge/sources.sqlite3` from `.env.example`.
+The Docker Compose API and worker share a dedicated `agent-knowledge-data` volume. Both images
+prepare that directory for the non-root runtime user. Back up this private volume separately from
+the browser portal and PostgreSQL data; do not commit it. Without the setting, source management
+reports storage unavailable and explicitly labelled developer fixtures remain available for tests.
+Supply a writable persistent path when starting the API outside Compose. Normal API authentication
+is required: knowledge-read roles may preview answers; workflow-execution roles may import/remove
+sources. The browser gateway continues to require the owner session.
+
+Import limits are 2 MB per file/page response, 100 PDF pages, 200,000 extracted characters per source,
+and 100 sources / 2,000,000 characters per agent and organization. PDFs run in a separate parser
+process with a 15-second lifetime and Unix CPU/memory caps. Encrypted, malformed or image-only PDFs
+need conversion/OCR before upload. Website imports pin a checked public IP, verify TLS, recheck
+redirects and reject private-network targets. They import one readable page snapshot, without
+JavaScript rendering, sign-in, cookies or recursive crawling. Review web snapshots as they age;
+remove an obsolete source before importing its replacement so contradictory copies do not remain.
+The API also supports an optional source `review_by` date; expired sources cannot supply answers.
+
+Source endpoints are under `/api/v1/knowledge/agents`: list agents; list/import sources at
+`/{agent}/sources`; remove `/{agent}/sources/{source_id}`; and preview an answer at `/{agent}/answer`.
+Imports accept JSON `{title, kind: "text", text}` or `{title, kind: "website", url}`, with optional
+`customer_safe` and `review_by`. File imports use raw PDF/text/Markdown bytes with the corresponding
+Content-Type and a `title` query parameter. Original binary files are not retained; extracted text,
+source URL/title, ownership, import time and approval classification persist in SQLite.
+
+### Fictional evaluation datasets
+
 Every registered agent has its own versioned fictional dataset in
 [`knowledge/agent_data/data`](../../knowledge/agent_data/data). Each file has:
 
