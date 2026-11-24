@@ -140,6 +140,13 @@ class ToolRegistry:
 
 
 @runtime_checkable
+class ContextAuthorizingTool(Protocol):
+    """Optional ownership check before approval creation or cached replay."""
+
+    def authorize_context(self, ctx: ToolCallContext) -> None: ...
+
+
+@runtime_checkable
 class ContextualTool(Protocol):
     """Optional tool entry point that receives trusted caller identity."""
 
@@ -214,6 +221,14 @@ class ToolGateway:
 
             raise AuthorizationError(f"principal lacks permission {spec.permission.value}")
 
+    async def _authorize_context(self, ctx: ToolCallContext, tool: Tool) -> None:
+        if isinstance(tool, ContextAuthorizingTool):
+            try:
+                tool.authorize_context(ctx)
+            except AuthorizationError:
+                await self._audit(ctx, tool.spec.name, "denied", {"why": "tool ownership"})
+                raise
+
     async def invoke(
         self,
         ctx: ToolCallContext,
@@ -241,6 +256,8 @@ class ToolGateway:
             )
 
             raise ToolPermissionError(f"agent '{ctx.agent_id}' may not use tool '{tool_name}'")
+
+        await self._authorize_context(ctx, tool)
 
         # 2. Validate one payload snapshot throughout approval and execution.
         payload = deepcopy(payload)
@@ -353,6 +370,7 @@ class ToolGateway:
             agent_id=request.requested_by_agent,
         )
 
+        await self._authorize_context(ctx, tool)
         tool.validate(request.payload)
 
         # RBAC must pass before cached results are returned.

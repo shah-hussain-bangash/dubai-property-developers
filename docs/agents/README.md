@@ -23,6 +23,12 @@ Result statuses: `succeeded`, `failed`, `timed_out`, `pending_approval`, `escala
 | 12 | `documents` | partial | `documents.search` | Supplied-source summaries and answers use cited own passages; missing/stale evidence goes to a human |
 | 13 | `analytics` | partial | `analytics.sales_summary` | Lead source/status/conversion + agent performance from execution records |
 
+The runtime's single CRM account is bound to `DEFAULT_TENANT_ID`, for mock and HTTP clients.
+CRM tools reject other organizations before approval creation, cached replay or client access;
+human approval cannot override the account binding. Additional organizations need their own
+explicit account routing before CRM synchronization is supported. This does not provision accounts
+or verify live EspoCRM. See the [CRM binding verification](../verification/crm-account-binding-local-2026-11-24.md).
+
 ## Adding an agent
 
 1. Create `agents/<name>/schemas.py` (input/output models) and `agents/<name>/agent.py`.

@@ -258,10 +258,10 @@ def build_runtime(settings: Settings) -> PlatformRuntime:
     memory = InMemoryConversationMemory()
 
     for tool in (
-        CRMFindLeadsTool(integrations.crm),
-        CRMCreateLeadTool(integrations.crm),
-        CRMUpdateLeadTool(integrations.crm),
-        CRMAddNoteTool(integrations.crm),
+        CRMFindLeadsTool(integrations.crm, tenant_id=settings.default_tenant_id),
+        CRMCreateLeadTool(integrations.crm, tenant_id=settings.default_tenant_id),
+        CRMUpdateLeadTool(integrations.crm, tenant_id=settings.default_tenant_id),
+        CRMAddNoteTool(integrations.crm, tenant_id=settings.default_tenant_id),
         WhatsAppSendTool(integrations.whatsapp, assigned_sources, memory),
         EmailRenderTemplateTool(),
         EmailSendTool(email_sender, assigned_sources),
