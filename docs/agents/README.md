@@ -124,7 +124,7 @@ does not claim isolation of every runtime store.
 Run the agent and data-boundary checks without live providers:
 
 ```text
-python -m pytest tests/agents tests/security/test_agent_knowledge_isolation.py tests/evaluations -q
+python -m pytest tests/agents tests/security/test_agent_knowledge_isolation.py tests/security/test_assigned_source_api_isolation.py tests/evaluations -q
 ```
 
 The suite runs 39 per-agent dataset cases and checks all 13 knowledge scopes, payload spoofing,
@@ -132,6 +132,11 @@ tenant and role boundaries, unchanged tool allowlists, source review dates and d
 copies. Passing voice cases means unsupported audio fails clearly and transcripts escalate; it
 does not mean speech-to-text or calling is implemented. The functional/partial/interface statuses
 in the table above remain the capability boundary.
+
+The authenticated supplied-source API checks also cover every agent in two organizations,
+persistence after restart, foreign-source deletion attempts, viewer restrictions and deletion
+of identical content without removing another owner's copy. See the
+[local verification record](../verification/agent-source-boundaries-local-2026-11-24.md).
 
 When adding an agent, add its dataset and update the registry together. Keep input examples fictional,
 make expected outcomes independent of current outputs, retain source provenance and review dates,
