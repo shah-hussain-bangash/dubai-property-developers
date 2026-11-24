@@ -44,7 +44,7 @@ class EmailSendTool(BaseTool):
             raise DomainValidationError("valid recipient email required")
         if not payload.get("subject") or not payload.get("body"):
             raise DomainValidationError("subject and body are required")
-        if payload.get("is_marketing") and not payload.get("consent_marketing"):
+        if payload.get("is_marketing") and payload.get("consent_marketing") is not True:
             raise PolicyViolationError("marketing email requires recorded marketing consent")
 
     async def execute(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -67,6 +67,7 @@ class EmailSendTool(BaseTool):
         return await self._send(payload, scope=ctx.tenant_id)
 
     async def _send(self, payload: dict[str, Any], *, scope: str | None = None) -> dict[str, Any]:
+        self.validate(payload)
         key = (
             make_idempotency_key(self.spec.name, payload, scope=scope)
             if scope is not None

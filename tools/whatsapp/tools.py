@@ -39,7 +39,7 @@ class WhatsAppSendTool(BaseTool):
     def validate(self, payload: dict[str, Any]) -> None:
         if not str(payload.get("to_e164", "")).startswith("+"):
             raise DomainValidationError("to_e164 must be an E.164 number")
-        if not payload.get("consent_whatsapp"):
+        if payload.get("consent_whatsapp") is not True:
             raise PolicyViolationError("contact has not opted in to WhatsApp messages")
         raw = payload.get("last_inbound_at")
         last_inbound = None
@@ -86,7 +86,7 @@ class WhatsAppSendTool(BaseTool):
             state = await self._memory.scoped(ctx.tenant_id, "whatsapp").get_state(conversation)
             if (
                 state.get("opted_out")
-                or not state.get("consent_whatsapp")
+                or state.get("consent_whatsapp") is not True
                 or state.get("from_e164") != payload.get("to_e164")
             ):
                 raise PolicyViolationError(
