@@ -4,7 +4,9 @@
 
 A full-stack real estate website and operations portal with a Python API, a Next.js frontend, database migrations, agent workflows and automated tests.
 
-**Live demo:** https://dubai-property-test.duckdns.org/
+**Live demo:** [Public portfolio website](https://dubai-property-test.duckdns.org/)
+
+**Verified workflow:** [Local browser evidence and screenshots](docs/verification/website-operations-local-2026-11-24.md) — one fictional enquiry through recorded consent, Admin assignment and an owned client brief; 36 focused tests passed at application revision `c3f49e8`. The complete hosted journey has not been verified.
 
 ## Portfolio source
 

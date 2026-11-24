@@ -1,0 +1,121 @@
+{
+  "verification_date": "2026-11-24",
+  "timezone": "Asia/Dubai",
+  "environment": "disposable-local",
+  "result": "pass",
+  "tested_revision": "c3f49e8eb3732e1e8618ea08185503a840b17f9b",
+  "source_verification": {
+    "files": 394,
+    "allMatchedBeforeStartup": true,
+    "runtimeGeneratedDifferences": [
+      "apps/dashboard/next-env.d.ts"
+    ]
+  },
+  "enquiry": {
+    "id": "99b5f88b5aa9e70e7212c5b7de32d818",
+    "reference": "DPD-E-99B5F88B",
+    "source": "website",
+    "page": "home",
+    "permission": "enquiry",
+    "status": "In progress",
+    "version": 3
+  },
+  "client_brief": {
+    "id": "4b8e788a4112c7924af1f9521777aec9",
+    "owner_id": "4f5ff398140cc77bd64912b65469322d",
+    "owner_label": "Fictional Operator Alpha",
+    "version": 1,
+    "source_reference_retained_in_notes": true,
+    "original_message_retained_in_notes": true
+  },
+  "linkage": {
+    "enquiry_client_id": "4b8e788a4112c7924af1f9521777aec9",
+    "assigned_to_equals_client_owner": true
+  },
+  "other_operator": {
+    "id": "9ab03befe0e31639a8148a6bfe6ff606",
+    "label": "Fictional Operator Beta",
+    "access": "approved",
+    "visible_enquiries": 0,
+    "visible_client_briefs": 0
+  },
+  "final_counts": {
+    "enquiries": 1,
+    "clientBriefs": 1,
+    "connectors": 0,
+    "followUpTasks": 0
+  },
+  "local_focused_tests": {
+    "passed": 36,
+    "failed": 0,
+    "suites": {
+      "ConnectedEnquiries.test.ts": 28,
+      "ConnectedEnquiryViews.test.tsx": 8
+    },
+    "runs": "before and after browser journey"
+  },
+  "tested_revision_ci": {
+    "url": "https://github.com/shah-hussain-bangash/dubai-property-developers/actions/runs/45179343845",
+    "successful_jobs": 10
+  },
+  "runtime_stopped": true,
+  "boundaries": {
+    "application_changes": 0,
+    "merges": 0,
+    "deployments": 0,
+    "external_delivery_configured": false,
+    "hosted_staging_verified": false
+  },
+  "remaining_staging_dependencies": [
+    "Confirmed staging target",
+    "Verifiable deployed revision",
+    "Synthetic Admin and approved operator access"
+  ],
+  "screenshots": [
+    {
+      "path": "assets/local-owned-client-brief.jpg",
+      "sha256": "0f91999c08a6c6bca2a94149be6ed34d9522d9ff418871e91c1de6b1bf640d94"
+    },
+    {
+      "path": "assets/local-other-operator-empty-client-desk.jpg",
+      "sha256": "9f479138e92297d8f34c4a5fd76074d9aeaa5934a70d96638457745df54d09fd"
+    }
+  ],
+  "audit": [
+    {
+      "id": "1bc8db76cb2ca5260d0a881ccdeb5838",
+      "actor": "admin",
+      "action": "access_approved",
+      "subject": "4f5ff398140cc77bd64912b65469322d",
+      "at": 1795498194865
+    },
+    {
+      "id": "14da1d6c994978388d3d138824460fbe",
+      "actor": "admin",
+      "action": "access_approved",
+      "subject": "9ab03befe0e31639a8148a6bfe6ff606",
+      "at": 1795498194896
+    },
+    {
+      "id": "3d3a62d19907168b59091c8ee841d4ad",
+      "actor": "admin",
+      "action": "enquiry_updated",
+      "subject": "99b5f88b5aa9e70e7212c5b7de32d818",
+      "at": 1795498258601
+    },
+    {
+      "id": "5ab9c34cd1a64fd9f272f5c744f8748c",
+      "actor": "4f5ff398140cc77bd64912b65469322d",
+      "action": "client_created",
+      "subject": "4b8e788a4112c7924af1f9521777aec9",
+      "at": 1795498329881
+    },
+    {
+      "id": "e38bdb0ddbbc547ed81fda7683c719d7",
+      "actor": "4f5ff398140cc77bd64912b65469322d",
+      "action": "enquiry_converted",
+      "subject": "99b5f88b5aa9e70e7212c5b7de32d818",
+      "at": 1795498329881
+    }
+  ]
+}
