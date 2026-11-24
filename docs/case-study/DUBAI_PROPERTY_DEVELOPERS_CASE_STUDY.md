@@ -3,7 +3,7 @@
 ## From website enquiry to an owned client brief
 
 **Shah Hussain Bangash · Dubai, UAE**  
-**Scope:** Full-stack architecture and a fictional software workflow. Hosted CI and source review provide the evidence below.
+**Scope:** Full-stack architecture and a fictional software workflow. Hosted CI, source review and a disposable local browser run provide the evidence below.
 
 ### The business problem
 
@@ -43,7 +43,8 @@ flowchart LR
 | --- | --- |
 | [Connected enquiry store and handler tests](../../apps/dashboard/src/__tests__/ConnectedEnquiries.test.ts) | Tests cover receipt deduplication, role-scoped visibility, stale edits, revocation, opt-out handling and concurrent conversion using fictional fixtures. |
 | [Enquiry UI tests](../../apps/dashboard/src/__tests__/ConnectedEnquiryViews.test.tsx) | Component tests use mocked responses to check consent submission, failure feedback and assignment with the current version. |
-| [GitHub Actions run 44871320870](https://github.com/shah-hussain-bangash/dubai-property-developers/actions/runs/44871320870) | All 10 reported jobs passed on 21 November 2026 for commit [`f24771d`](https://github.com/shah-hussain-bangash/dubai-property-developers/commit/f24771ddbf12e08c2f607b291d15ec73ec98260f). This is a dated project CI baseline. The current enquiry tests above were inspected as source. |
+| [Local browser journey on 24 November 2026](../verification/website-operations-local-2026-11-24.md) | At revision `c3f49e8`, one fictional enquiry retained its consent and source, was assigned to Alpha, and became an Alpha-owned brief. Beta saw neither record. The 36 focused tests passed before and after the run. This is local evidence; hosted staging remains unverified. |
+| [GitHub Actions run 44871320870](https://github.com/shah-hussain-bangash/dubai-property-developers/actions/runs/44871320870) | All 10 reported jobs passed on 21 November 2026 for commit [`f24771d`](https://github.com/shah-hussain-bangash/dubai-property-developers/commit/f24771ddbf12e08c2f607b291d15ec73ec98260f). This is a dated project CI baseline; the separate local run above covers the enquiry workflow at its recorded revision. |
 
 [Enquiry implementation notes](../connected_website_enquiries.txt) · [Portal store](../../apps/dashboard/src/lib/agentPropertyStore.ts) · [System architecture](../../ARCHITECTURE.md)
 
