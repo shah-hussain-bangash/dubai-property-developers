@@ -38,16 +38,17 @@ class WhatsAppAgent(BaseAgent[WhatsAppAgentInput, WhatsAppAgentOutput]):
 
     async def execute(self, data: WhatsAppAgentInput, ctx: ExecutionContext) -> WhatsAppAgentOutput:
         intent = detect_intent(data.text)
-        await self.deps.memory.append(
+        memory = self.conversation_memory(ctx)
+        await memory.append(
             data.conversation_id,
             MemoryMessage(role="customer", content=data.text, channel="whatsapp"),
         )
-        state = await self.deps.memory.get_state(data.conversation_id)
+        state = await memory.get_state(data.conversation_id)
         state["last_inbound_at"] = data.received_at.isoformat()
 
         if intent == CustomerIntent.UNSUBSCRIBE:
             state["opted_out"] = True
-            await self.deps.memory.set_state(data.conversation_id, state)
+            await memory.set_state(data.conversation_id, state)
             return WhatsAppAgentOutput(
                 intent=intent,
                 reply_mode=ReplyMode.NO_REPLY,
@@ -56,7 +57,7 @@ class WhatsAppAgent(BaseAgent[WhatsAppAgentInput, WhatsAppAgentOutput]):
                     "Customer opted out: record consent withdrawal in CRM; no further messages."
                 ],
             )
-        await self.deps.memory.set_state(data.conversation_id, state)
+        await memory.set_state(data.conversation_id, state)
 
         if not data.consent_whatsapp or state.get("opted_out"):
             return WhatsAppAgentOutput(

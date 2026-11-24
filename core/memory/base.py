@@ -7,12 +7,16 @@ implementation lives in ``database/repositories/conversation_memory.py`` to keep
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections import defaultdict
 from copy import deepcopy
 from datetime import UTC, datetime
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
+
+from core.exceptions.errors import AuthorizationError
 
 
 class MemoryMessage(BaseModel):
@@ -41,10 +45,48 @@ class ConversationMemory(Protocol):
     async def set_state(self, conversation_id: str, state: dict[str, Any]) -> None: ...
 
 
+@runtime_checkable
+class ScopedMemoryProvider(Protocol):
+    def scoped(self, tenant_id: str, agent_id: str) -> ConversationMemory: ...
+
+
+class ScopedConversationMemory:
+    """An isolated view over a string-keyed memory backend."""
+
+    def __init__(self, memory: ConversationMemory, tenant_id: str, agent_id: str) -> None:
+        self._memory = memory
+        self._tenant = tenant_id
+        self._agent = agent_id
+
+    def scoped(self, tenant_id: str, agent_id: str) -> ConversationMemory:
+        if (tenant_id, agent_id) != (self._tenant, self._agent):
+            raise AuthorizationError("Memory belongs to a different organization or agent")
+        return self
+
+    def _key(self, conversation_id: str) -> str:
+        identity = json.dumps([self._tenant, self._agent, conversation_id])
+        return "agent-memory:v1:" + hashlib.sha256(identity.encode()).hexdigest()
+
+    async def append(self, conversation_id: str, message: MemoryMessage) -> None:
+        await self._memory.append(self._key(conversation_id), message)
+
+    async def history(self, conversation_id: str, *, limit: int = 20) -> list[MemoryMessage]:
+        return await self._memory.history(self._key(conversation_id), limit=limit)
+
+    async def get_state(self, conversation_id: str) -> dict[str, Any]:
+        return await self._memory.get_state(self._key(conversation_id))
+
+    async def set_state(self, conversation_id: str, state: dict[str, Any]) -> None:
+        await self._memory.set_state(self._key(conversation_id), state)
+
+
 class InMemoryConversationMemory:
     def __init__(self) -> None:
         self._messages: dict[str, list[MemoryMessage]] = defaultdict(list)
         self._state: dict[str, dict[str, Any]] = {}
+
+    def scoped(self, tenant_id: str, agent_id: str) -> ConversationMemory:
+        return ScopedConversationMemory(self, tenant_id, agent_id)
 
     async def append(self, conversation_id: str, message: MemoryMessage) -> None:
         self._messages[conversation_id].append(message.model_copy(deep=True))

@@ -16,7 +16,8 @@ from typing import Any, ClassVar, Generic, TypeVar
 from pydantic import BaseModel, Field, SerializeAsAny, ValidationError
 
 from agents.base.context import AgentDependencies, ExecutionContext
-from core.exceptions.errors import PlatformError
+from core.exceptions.errors import AuthorizationError, PlatformError
+from core.memory.base import ConversationMemory, ScopedMemoryProvider
 from core.observability.context import set_correlation_id
 from core.observability.logging import get_logger
 from schemas.agents.models import AgentDescriptor, AgentRunStatus, ImplementationStatus
@@ -93,6 +94,13 @@ class BaseAgent(ABC, Generic[InT, OutT]):  # noqa: UP046 -- Retain the public Ge
     @property
     def timeout_seconds(self) -> float:
         return self.config.timeout_seconds or self.spec.default_timeout_seconds
+
+    def conversation_memory(self, ctx: ExecutionContext) -> ConversationMemory:
+        if ctx.principal.tenant_id != ctx.tenant_id:
+            raise AuthorizationError("Principal belongs to a different organization")
+        if not isinstance(self.deps.memory, ScopedMemoryProvider):
+            raise AuthorizationError("Memory backend does not support organization/agent scopes")
+        return self.deps.memory.scoped(ctx.tenant_id, self.spec.agent_id)
 
     @abstractmethod
     async def execute(self, data: InT, ctx: ExecutionContext) -> OutT: ...

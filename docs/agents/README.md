@@ -30,6 +30,9 @@ Result statuses: `succeeded`, `failed`, `timed_out`, `pending_approval`, `escala
 3. Implement `async def execute(self, data, ctx)`. Override `outcome_status` for approval/escalation.
 4. Add the class to `AGENT_CLASSES` and add tests under `tests/agents/`.
 
+Use `self.conversation_memory(ctx)` for agent history/state rather than the raw dependency store.
+It binds the organization and agent from trusted execution context, independently of payload IDs.
+
 ## LLM usage
 
 `deps.llm` (a `ModelRouter`) is available to every agent. These 13 agents currently use deterministic
@@ -180,8 +183,31 @@ paths apply the same `RetrievalFilter` ownership rule. Production does not auto-
 Some public fictional FAQs are deliberately copied into both the sales-conversation and documents
 datasets because both roles need them. The copies have separate agent-owned document keys and
 retain their original review dates. Sharing a fact does not grant access to the other agent's corpus.
-Conversation history and explicitly passed workflow records remain separate concerns; this change
-does not claim isolation of every runtime store.
+Conversation history/state now use the organization and agent scopes described below. Explicitly
+passed workflow records and other runtime stores retain their own access rules; this does not
+claim isolation of every store or automatically change workflow sharing.
+
+### Agent conversation memory
+
+`BaseAgent.conversation_memory(ctx)` provides an organization/agent-scoped view. A mismatched
+principal/organization or a backend without scoped-memory support is rejected before memory use.
+Sales Conversation and WhatsApp use this view for their history/state. Matching conversation IDs
+in different organizations or agents cannot select the same memory; matching operators within
+one organization/agent retain that conversation's state, including a WhatsApp opt-out.
+
+The current runtime still uses process-local in-memory storage. Its scoped keys encode the full
+organization/agent/conversation tuple unambiguously. Old unscoped entries are not borrowed or
+deleted, and there is no unscoped fallback. This does not make conversation memory or consent
+durable across restarts, or write consent changes to CRM.
+
+The optional SQL adapter also supports scoped views without changing conversation UUIDs or adding
+tables. It filters message history by organization and trusted agent ownership, ignores caller
+ownership tags, and partitions state within existing JSON fields. State updates lock the row and
+preserve other agent partitions. Unscoped callers do not receive agent-owned history/state and
+cannot forge or replace reserved partitions. Legacy SQL state without agent ownership requires
+explicit ownership review before scoped access; no automatic consent/state migration occurs.
+The SQL adapter is not newly wired into runtime configuration by this change. See the
+[memory isolation verification](../verification/agent-memory-isolation-local-2026-11-24.md).
 
 Run the agent and data-boundary checks without live providers:
 
