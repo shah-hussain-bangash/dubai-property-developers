@@ -8,10 +8,13 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from core.exceptions.errors import AuthorizationError
 from schemas.leads.models import NormalizedLead
 
 
 class LeadStore(Protocol):
+    """Read records are detached snapshots; persist edits through an explicit save."""
+
     async def find_by_dedupe_keys(
         self, tenant_id: str, keys: list[str]
     ) -> list[NormalizedLead]: ...
@@ -28,13 +31,21 @@ class InMemoryLeadStore:
     async def find_by_dedupe_keys(self, tenant_id: str, keys: list[str]) -> list[NormalizedLead]:
         wanted = set(keys)
         return [
-            lead
+            lead.model_copy(deep=True)
             for lead in self._leads.values()
             if lead.tenant_id == tenant_id and wanted.intersection(lead.dedupe_keys)
         ]
 
     async def save(self, lead: NormalizedLead) -> None:
-        self._leads[lead.lead_id] = lead
+        saved = lead.model_copy(deep=True)
+        existing = self._leads.get(saved.lead_id)
+        if existing is not None and existing.tenant_id != saved.tenant_id:
+            raise AuthorizationError("Lead belongs to a different organization")
+        self._leads[saved.lead_id] = saved
 
     async def list(self, tenant_id: str) -> list[NormalizedLead]:
-        return [lead for lead in self._leads.values() if lead.tenant_id == tenant_id]
+        return [
+            lead.model_copy(deep=True)
+            for lead in self._leads.values()
+            if lead.tenant_id == tenant_id
+        ]
