@@ -31,7 +31,16 @@ class WhatsAppSendTool(BaseTool):
         if not payload.get("consent_whatsapp"):
             raise PolicyViolationError("contact has not opted in to WhatsApp messages")
         raw = payload.get("last_inbound_at")
-        last_inbound = datetime.fromisoformat(raw) if isinstance(raw, str) else None
+        last_inbound = None
+        if raw is not None:
+            if not isinstance(raw, str):
+                raise DomainValidationError("last_inbound_at must be an ISO timestamp or null")
+            try:
+                last_inbound = datetime.fromisoformat(raw)
+            except ValueError:
+                raise DomainValidationError(
+                    "last_inbound_at must be an ISO timestamp or null"
+                ) from None
         if payload.get("text") and not is_within_service_window(last_inbound):
             raise PolicyViolationError(
                 "outside the 24h customer-service window: an approved template is required"

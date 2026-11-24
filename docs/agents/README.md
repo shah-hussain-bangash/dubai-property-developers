@@ -90,6 +90,12 @@ and source citations. Due/status/reply/consent/attempt checks and send approvals
 The database task source and scheduled worker trigger remain partial; adding knowledge does not
 activate scheduling or live messaging. Developer fixture mode retains its template workflow.
 
+The shared WhatsApp free-text window requires a non-future inbound timestamp no more than
+24 hours old. Invalid timestamp strings/types produce validation errors before send approval;
+missing timestamps cannot authorize free text. Time-zone offsets are handled consistently, with
+legacy naive datetime values interpreted as UTC. See the
+[timestamp guard verification](../verification/whatsapp-timestamp-guards-local-2026-11-24.md).
+
 Document summaries in supplied-source mode require a `query`, just like document answers.
 For example, `{"action":"summarize","query":"garden policy","max_sentences":3}` summarizes
 matched passages from the Document Agent's own sources and retains their citations. Caller-supplied

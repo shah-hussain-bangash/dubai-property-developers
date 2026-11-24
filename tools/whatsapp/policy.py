@@ -17,4 +17,8 @@ def is_within_service_window(last_inbound_at: datetime | None, now: datetime | N
         return False
     if last_inbound_at.tzinfo is None:
         last_inbound_at = last_inbound_at.replace(tzinfo=UTC)
-    return (now or datetime.now(UTC)) - last_inbound_at <= SERVICE_WINDOW
+    current = now or datetime.now(UTC)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=UTC)
+    age = current - last_inbound_at
+    return timedelta(0) <= age <= SERVICE_WINDOW
