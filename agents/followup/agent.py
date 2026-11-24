@@ -13,9 +13,11 @@ from agents.followup.schemas import (
     SkippedTask,
 )
 from core.exceptions.errors import PlatformError
+from knowledge.assigned_sources import NO_ANSWER
 from schemas.agents.models import AgentRunStatus, ImplementationStatus
-from schemas.conversations.models import Channel
+from schemas.conversations.models import Channel, Citation
 from tools.base import ToolResultStatus
+from tools.whatsapp.policy import is_within_service_window
 
 MAX_ATTEMPTS = 3
 OVERDUE_ESCALATION = timedelta(hours=48)
@@ -37,9 +39,11 @@ class FollowUpAgent(BaseAgent[FollowUpInput, FollowUpPlan]):
             "Escalate overdue sales activities",
         ],
         implementation_status=ImplementationStatus.PARTIAL,
-        allowed_tools=frozenset({"email.render_template", "email.send", "whatsapp.send_message"}),
+        allowed_tools=frozenset(
+            {"documents.search", "email.render_template", "email.send", "whatsapp.send_message"}
+        ),
         status_notes="Planning + approval-gated dispatch work with mocks; DB task source and "
-        "scheduled worker trigger pending.",
+        "scheduled worker trigger pending. Supplied-source drafts quote approved own material.",
     )
     input_model = FollowUpInput
     output_model = FollowUpPlan
@@ -66,16 +70,19 @@ class FollowUpAgent(BaseAgent[FollowUpInput, FollowUpPlan]):
     ) -> tuple[str, dict[str, Any]]:
         key = f"followup:{task.task_id}:{task.attempts}"
         if task.channel == Channel.WHATSAPP:
-            return "whatsapp.send_message", {
+            payload = {
                 "to_e164": task.to_e164,
                 "consent_whatsapp": task.consent_whatsapp,
                 "last_inbound_at": task.last_inbound_at.isoformat()
                 if task.last_inbound_at
                 else None,
-                "template_name": WHATSAPP_FOLLOWUP_TEMPLATE,
-                "language_code": "en",
                 "idempotency_key": key,
             }
+            if self.deps.supplied_knowledge_only:
+                payload["text"] = body
+            else:
+                payload.update(template_name=WHATSAPP_FOLLOWUP_TEMPLATE, language_code="en")
+            return "whatsapp.send_message", payload
         return "email.send", {
             "to": task.email,
             "subject": subject,
@@ -101,28 +108,66 @@ class FollowUpAgent(BaseAgent[FollowUpInput, FollowUpPlan]):
                 plan.escalations.append(
                     SkippedTask(task_id=task.task_id, reason="overdue by more than 48h")
                 )
-            rendered = await self.use_tool(
-                ctx,
-                "email.render_template",
-                {
-                    "template": "follow_up_generic",
-                    "values": {
-                        "first_name": task.contact_first_name,
-                        "advisor_name": "Your advisor",
+            citations: list[Citation] = []
+            if self.deps.supplied_knowledge_only:
+                if task.channel == Channel.WHATSAPP and not is_within_service_window(
+                    task.last_inbound_at
+                ):
+                    plan.escalations.append(
+                        SkippedTask(
+                            task_id=task.task_id,
+                            reason="Staff review required: an approved WhatsApp provider template "
+                            "is not configured outside the service window.",
+                        )
+                    )
+                    continue
+                if not task.knowledge_query or not task.knowledge_query.strip():
+                    plan.escalations.append(
+                        SkippedTask(task_id=task.task_id, reason="Provide a knowledge_query.")
+                    )
+                    continue
+                source = await self.use_tool(
+                    ctx,
+                    "documents.search",
+                    {
+                        "query": task.knowledge_query,
+                        "tenant_id": ctx.tenant_id,
+                        "audience": "customer",
+                        "k": 3,
                     },
-                },
-            )
+                )
+                if not source.data.get("has_stale"):
+                    citations = [
+                        Citation.model_validate(c) for c in source.data.get("citations", [])
+                    ]
+                if not citations:
+                    plan.escalations.append(SkippedTask(task_id=task.task_id, reason=NO_ANSWER))
+                    continue
+                subject = citations[0].title
+                body = "\n\n".join(c.excerpt for c in citations)
+            else:
+                rendered = await self.use_tool(
+                    ctx,
+                    "email.render_template",
+                    {
+                        "template": "follow_up_generic",
+                        "values": {
+                            "first_name": task.contact_first_name,
+                            "advisor_name": "Your advisor",
+                        },
+                    },
+                )
+                subject, body = rendered.data["subject"], rendered.data["body"]
             action = FollowUpAction(
                 task_id=task.task_id,
                 lead_id=task.lead_id,
                 channel=task.channel,
-                template=WHATSAPP_FOLLOWUP_TEMPLATE,
-                draft_text=rendered.data["body"],
+                template=None if self.deps.supplied_knowledge_only else WHATSAPP_FOLLOWUP_TEMPLATE,
+                draft_text=body,
+                citations=citations,
             )
             if data.dispatch:
-                tool, payload = self._send_request(
-                    task, rendered.data["subject"], rendered.data["body"]
-                )
+                tool, payload = self._send_request(task, subject, body)
                 try:
                     sent = await self.use_tool(
                         ctx, tool, payload, reason=f"Follow-up for task {task.task_id}"

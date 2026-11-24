@@ -14,7 +14,7 @@ Result statuses: `succeeded`, `failed`, `timed_out`, `pending_approval`, `escala
 | 03 | `qualification` | functional | `analytics.score_lead` | `rules-v1` explainable score; categories hot/warm/nurture/cold; rent goes to the leasing queue. Weights are uncalibrated |
 | 04 | `property_recommendation` | functional | `property.match`, `property.search` | Hard filters + weighted ranking with reasons and caveats; fictional catalog |
 | 05 | `sales_conversation` | partial | `documents.search` | Intent → public-document retrieval → approved template draft (EN; basic AR) → always approval-gated; escalates when no current cited source exists |
-| 06 | `followup` | partial | `email.render_template`, `email.send`, `whatsapp.send_message` | Due/consent/status checks, max 3 attempts, 48h overdue escalation, approval-gated dispatch |
+| 06 | `followup` | partial | `documents.search`, `email.render_template`, `email.send`, `whatsapp.send_message` | Own-source drafts in supplied mode; due/consent/reply/attempt checks and approval-gated dispatch |
 | 07 | `crm` | functional | `crm.*`, `leads.save` | Local save + EspoCRM upsert (mock) + qualification note. Opportunities pending |
 | 08 | `email` | partial | `documents.search`, `email.render_template`, `email.send` | Own-source cited drafts in supplied mode, approval-gated send requests, reply classification. Mock sender |
 | 09 | `whatsapp` | partial | `documents.search`, `whatsapp.send_message` | Own-source cited replies, opt-in/opt-out and 24h-window checks. Supplied mode escalates outside window; mock client |
@@ -78,7 +78,17 @@ customer-approved sources using the incoming message. An unverified `draft_reply
 Outside the service window, no generic provider template is substituted: the result requests
 staff review because approved template content/catalogue sync is not configured. Consent,
 opt-out, complaints and send-approval checks still apply. This does not configure live messaging
-providers or change the separate Follow-Up Agent's template workflow.
+providers.
+
+Follow-Up Agent tasks in supplied-source mode also require their own `knowledge_query`
+(3–1,000 characters). Follow-up drafts quote only customer-approved sources assigned to the
+Follow-Up Agent, without borrowing Email or WhatsApp sources. Missing queries or relevant
+sources escalate that task without an action; other grounded tasks in the batch can proceed.
+Email subjects use source titles. WhatsApp follow-ups use cited free text only inside the
+current service window; outside it they request staff review. Their action has `template: null`
+and source citations. Due/status/reply/consent/attempt checks and send approvals remain in place.
+The database task source and scheduled worker trigger remain partial; adding knowledge does not
+activate scheduling or live messaging. Developer fixture mode retains its template workflow.
 Supplied-source mode also disables fictional corpus ingestion and the backend's seeded property
 catalog. PDF text is not silently converted into verified structured property listings; use the
 source-answer workspace to query it, and create reviewed property records separately.

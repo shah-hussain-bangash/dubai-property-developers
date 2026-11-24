@@ -38,7 +38,7 @@ async def test_all_agent_knowledge_scopes_are_independent(
 
 
 @pytest.mark.parametrize(
-    "agent", ["documents", "sales_conversation", "marketing", "email", "whatsapp"]
+    "agent", ["documents", "sales_conversation", "marketing", "email", "whatsapp", "followup"]
 )
 async def test_payload_cannot_select_another_agent_or_general_corpus(
     agent: str, runtime: PlatformRuntime, ctx: ExecutionContext

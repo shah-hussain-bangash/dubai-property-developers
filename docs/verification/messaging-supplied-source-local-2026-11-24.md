@@ -42,6 +42,7 @@ python -m ruff check agents/email agents/whatsapp tests/agents/test_messaging_as
 python -m mypy agents/email agents/whatsapp
 ```
 
-This is local verification, not a deployment or provider integration. The separate
-Follow-Up Agent still has its existing template workflow. Voice and other partial
-agent capabilities remain as documented in the capability table.
+This is local verification, not a deployment or provider integration. At this stage
+the separate Follow-Up Agent retained its template workflow; the subsequent
+[follow-up correction](followup-supplied-source-local-2026-11-24.md) covers that path.
+Voice and other partial agent capabilities remain as documented in the capability table.
