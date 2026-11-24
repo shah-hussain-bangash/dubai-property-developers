@@ -265,7 +265,7 @@ def build_runtime(settings: Settings) -> PlatformRuntime:
         WhatsAppSendTool(integrations.whatsapp, assigned_sources, memory),
         EmailRenderTemplateTool(),
         EmailSendTool(email_sender, assigned_sources),
-        CalendarCreateEventTool(integrations.calendar),
+        CalendarCreateEventTool(integrations.calendar, tenant_id=settings.default_tenant_id),
         PropertySearchTool(catalog),
         PropertyMatchTool(catalog),
         DocumentSearchTool(retriever, assigned_sources),

@@ -29,6 +29,11 @@ human approval cannot override the account binding. Additional organizations nee
 explicit account routing before CRM synchronization is supported. This does not provision accounts
 or verify live EspoCRM. See the [CRM binding verification](../verification/crm-account-binding-local-2026-11-24.md).
 
+The runtime calendar follows the same `DEFAULT_TENANT_ID` account binding. Bookings require
+explicit UTC offsets, and provider keys retain the trusted organization/agent and complete
+approved event. The calendar remains mock-only; no existing agent gains booking permission.
+See the [calendar boundary verification](../verification/calendar-booking-boundaries-local-2026-11-24.md).
+
 ## Adding an agent
 
 1. Create `agents/<name>/schemas.py` (input/output models) and `agents/<name>/agent.py`.
