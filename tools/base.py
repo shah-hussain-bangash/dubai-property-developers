@@ -23,7 +23,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, ClassVar, Protocol
+from typing import Any, ClassVar, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
@@ -137,6 +137,15 @@ class ToolRegistry:
 
     def specs(self) -> list[ToolSpec]:
         return [self._tools[name].spec for name in self.names()]
+
+
+@runtime_checkable
+class ContextualTool(Protocol):
+    """Optional read-tool entry point that receives trusted caller identity."""
+
+    async def execute_with_context(
+        self, payload: dict[str, Any], ctx: ToolCallContext
+    ) -> dict[str, Any]: ...
 
 
 class ToolGateway:
@@ -411,7 +420,10 @@ class ToolGateway:
             agent=ctx.agent_id,
         ):
             try:
-                data = await tool.execute(payload)
+                if isinstance(tool, ContextualTool):
+                    data = await tool.execute_with_context(payload, ctx)
+                else:
+                    data = await tool.execute(payload)
 
             except Exception as exc:
                 await self._audit(

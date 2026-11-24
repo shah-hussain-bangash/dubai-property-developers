@@ -1,0 +1,43 @@
+{
+  "agent_id": "voice",
+  "version": 1,
+  "fictional": true,
+  "knowledge": [
+    {
+      "key": "role-guide",
+      "title": "Fictional voice operating guide",
+      "text": "No speech-to-text or telephony provider is configured. Transcript examples exercise an interface and always escalate to a human."
+    }
+  ],
+  "evaluations": [
+    {
+      "case_id": "escalate-transcript",
+      "input": {
+        "call_id": "eval-voice",
+        "transcript": "Hello. Can you call me back tomorrow?"
+      },
+      "expected_status": "escalated",
+      "expected_output": {
+        "appointment_requested": true
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "report-unconfigured-audio",
+      "input": {
+        "call_id": "eval-voice-audio",
+        "audio_uri": "s3://fictional/not-read.wav"
+      },
+      "expected_status": "failed",
+      "expected_output": {},
+      "expected_error": "integration_not_configured"
+    },
+    {
+      "case_id": "reject-invalid-input",
+      "input": {},
+      "expected_status": "failed",
+      "expected_output": {},
+      "expected_error": "invalid_input"
+    }
+  ]
+}

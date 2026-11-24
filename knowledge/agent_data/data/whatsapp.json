@@ -1,0 +1,59 @@
+{
+  "agent_id": "whatsapp",
+  "version": 1,
+  "fictional": true,
+  "knowledge": [
+    {
+      "key": "role-guide",
+      "title": "Fictional whatsapp operating guide",
+      "text": "Respect opt-outs and WhatsApp consent. Older inbound events require an approved template. Never send before approval; provider validation is separate."
+    }
+  ],
+  "evaluations": [
+    {
+      "case_id": "require-approved-template",
+      "input": {
+        "conversation_id": "eval-whatsapp",
+        "from_e164": "+971500000001",
+        "received_at": "2000-01-01T00:00:00Z",
+        "consent_whatsapp": true,
+        "text": "Hello"
+      },
+      "expected_status": "succeeded",
+      "expected_output": {
+        "reply_mode": "template_required"
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "respect-optout",
+      "input": {
+        "conversation_id": "eval-whatsapp",
+        "from_e164": "+971500000001",
+        "received_at": "2000-01-01T00:00:00Z",
+        "consent_whatsapp": true,
+        "text": "STOP sending, unsubscribe"
+      },
+      "expected_status": "escalated",
+      "expected_output": {
+        "reply_mode": "no_reply"
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "respect-no-consent",
+      "input": {
+        "conversation_id": "eval-whatsapp",
+        "from_e164": "+971500000001",
+        "received_at": "2000-01-01T00:00:00Z",
+        "consent_whatsapp": false,
+        "text": "Hello"
+      },
+      "expected_status": "escalated",
+      "expected_output": {
+        "reply_mode": "no_reply"
+      },
+      "expected_error": null
+    }
+  ]
+}

@@ -17,6 +17,7 @@ from agents.sales_conversation.templates import ESCALATION_ACK, render_reply
 from core.memory.base import MemoryMessage
 from core.policies.prompt_safety import assess_injection
 from core.security.sanitization import sanitize_text
+from knowledge.assigned_sources import NO_ANSWER
 from schemas.agents.models import AgentRunStatus, ImplementationStatus
 from schemas.conversations.models import Citation, CustomerIntent, DraftReply
 
@@ -82,7 +83,7 @@ class SalesConversationAgent(BaseAgent[SalesConversationInput, SalesConversation
         citations: list[Citation] = []
         context = ""
         top_score = 0.0
-        if intent in _CONTEXT_INTENTS:
+        if intent in _CONTEXT_INTENTS or self.deps.supplied_knowledge_only:
             result = await self.use_tool(
                 ctx,
                 "documents.search",
@@ -93,9 +94,13 @@ class SalesConversationAgent(BaseAgent[SalesConversationInput, SalesConversation
                 citations = [Citation.model_validate(c) for c in result.data["citations"]]
                 context = "\n".join(result.data["passages"][:1])
 
-        escalate = intent == CustomerIntent.PAYMENT_PLAN and not citations
+        escalate = (
+            intent == CustomerIntent.PAYMENT_PLAN or self.deps.supplied_knowledge_only
+        ) and not citations
         draft = DraftReply(
-            text=render_reply(
+            text=(context if citations else NO_ANSWER)
+            if self.deps.supplied_knowledge_only
+            else render_reply(
                 language, intent if not escalate else CustomerIntent.GENERAL, name, context
             ),
             channel=data.message.channel,

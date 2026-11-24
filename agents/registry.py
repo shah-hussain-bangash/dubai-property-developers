@@ -20,6 +20,7 @@ from agents.supervisor.agent import SupervisorAgent
 from agents.voice.agent import VoiceAgent
 from agents.whatsapp.agent import WhatsAppAgent
 from core.exceptions.errors import AgentNotFoundError
+from knowledge.agent_data.catalogue import AgentDataset, load_agent_dataset
 from schemas.agents.models import AgentDescriptor
 
 AGENT_CLASSES: tuple[type[BaseAgent[Any, Any]], ...] = (
@@ -52,12 +53,14 @@ class AgentRegistry:
     ) -> None:
         configs = configs or {}
         self._agents: dict[str, BaseAgent[Any, Any]] = {}
+        self._datasets: dict[str, AgentDataset] = {}
         for cls in AGENT_CLASSES:
             agent_id = cls.spec.agent_id
             if agent_id in self._agents:
                 raise ValueError(f"duplicate agent id {agent_id}")
             config = configs.get(agent_id) or AgentConfig(timeout_seconds=default_timeout)
             self._agents[agent_id] = cls(deps, config)
+            self._datasets[agent_id] = load_agent_dataset(agent_id)
 
     def get(self, agent_id: str) -> BaseAgent[Any, Any]:
         try:
@@ -67,6 +70,10 @@ class AgentRegistry:
 
     def ids(self) -> list[str]:
         return list(self._agents)
+
+    def dataset(self, agent_id: str) -> AgentDataset:
+        self.get(agent_id)
+        return self._datasets[agent_id].model_copy(deep=True)
 
     def descriptors(self) -> list[AgentDescriptor]:
         return [a.spec.descriptor(a.timeout_seconds) for a in self._agents.values()]

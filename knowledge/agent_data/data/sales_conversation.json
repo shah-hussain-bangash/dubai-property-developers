@@ -1,0 +1,89 @@
+{
+  "agent_id": "sales_conversation",
+  "version": 1,
+  "fictional": true,
+  "knowledge": [
+    {
+      "key": "role-guide",
+      "title": "Fictional sales_conversation operating guide",
+      "text": "Use current authorized cited sources for customer replies. Drafts require review. Escalate complaints and unsupported payment-plan questions."
+    },
+    {
+      "key": "faq-buying-process",
+      "title": "Demo FAQ: Buying Process (Fictional)",
+      "text": "Buying process overview. Buyers usually reserve a unit with a booking form and deposit, then sign the sales agreement. Off-plan purchases are registered with the relevant authority. A licensed advisor will confirm current fees and steps.\n\nViewings. Viewings can be scheduled with an advisor. Show homes are available for some demo projects.",
+      "access_level": "public",
+      "allowed_roles": [],
+      "review_by": "2030-01-01"
+    },
+    {
+      "key": "demo-creek-heights-payment-plan",
+      "title": "Demo Creek Heights Payment Plan (Fictional)",
+      "text": "Demo Creek Heights payment plan. 10 percent down payment, 40 percent during construction, 10 percent on handover and 40 percent post handover over 36 months. Payment plan terms must be confirmed with the developer before quoting.",
+      "access_level": "public",
+      "allowed_roles": [],
+      "review_by": "2030-01-01"
+    },
+    {
+      "key": "internal-commission-policy",
+      "title": "Internal Commission Policy (Fictional)",
+      "text": "Commission splits are confidential and are never shared with customers.",
+      "access_level": "restricted",
+      "allowed_roles": [
+        "sales_manager",
+        "admin"
+      ]
+    }
+  ],
+  "evaluations": [
+    {
+      "case_id": "cite-payment-plan",
+      "input": {
+        "message": {
+          "conversation_id": "eval-sales",
+          "channel": "web_chat",
+          "direction": "inbound",
+          "sender": "customer",
+          "text": "What is the payment plan for Demo Creek Heights?"
+        },
+        "customer_first_name": "Fictional Visitor"
+      },
+      "expected_status": "succeeded",
+      "expected_output": {
+        "intent": "payment_plan",
+        "draft.requires_approval": true,
+        "draft.escalate": false
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "escalate-complaint",
+      "input": {
+        "message": {
+          "conversation_id": "eval-sales",
+          "channel": "web_chat",
+          "direction": "inbound",
+          "sender": "customer",
+          "text": "I have a complaint"
+        },
+        "customer_first_name": "Fictional Visitor"
+      },
+      "expected_status": "escalated",
+      "expected_output": {
+        "draft.escalate": true
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "reject-invalid-input",
+      "input": {
+        "message": {
+          "text": "missing required envelope"
+        }
+      },
+      "expected_status": "failed",
+      "expected_output": {},
+      "expected_error": "invalid_input"
+    }
+  ]
+}

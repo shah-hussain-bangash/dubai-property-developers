@@ -1,0 +1,56 @@
+{
+  "agent_id": "property_recommendation",
+  "version": 1,
+  "fictional": true,
+  "knowledge": [
+    {
+      "key": "role-guide",
+      "title": "Fictional property_recommendation operating guide",
+      "text": "Respect stated budget, location and availability. Catalog entries are fictional. Explain matches and never guarantee investment returns."
+    }
+  ],
+  "evaluations": [
+    {
+      "case_id": "match-marina",
+      "input": {
+        "criteria": {
+          "budget_max_aed": "2500000",
+          "locations": [
+            "Dubai Marina"
+          ]
+        }
+      },
+      "expected_status": "succeeded",
+      "expected_output": {
+        "contains_demo_data": true,
+        "recommendations.0.listing.community": "Dubai Marina"
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "respect-budget",
+      "input": {
+        "criteria": {
+          "budget_max_aed": "1",
+          "locations": ["Dubai Marina"]
+        }
+      },
+      "expected_status": "succeeded",
+      "expected_output": {
+        "recommendations": []
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "reject-invalid-input",
+      "input": {
+        "criteria": {
+          "limit": 0
+        }
+      },
+      "expected_status": "failed",
+      "expected_output": {},
+      "expected_error": "invalid_input"
+    }
+  ]
+}

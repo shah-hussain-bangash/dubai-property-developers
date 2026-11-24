@@ -55,3 +55,4 @@ class AgentDependencies:
     events: EventBus = field(default_factory=InMemoryEventBus)
     tracer: Tracer = field(default_factory=NoopTracer)
     executions: ExecutionRecorder = field(default_factory=InMemoryExecutionRecorder)
+    supplied_knowledge_only: bool = False

@@ -1,0 +1,96 @@
+{
+  "agent_id": "qualification",
+  "version": 1,
+  "fictional": true,
+  "knowledge": [
+    {
+      "key": "role-guide",
+      "title": "Fictional qualification operating guide",
+      "text": "Explain rules-v1 factors; route rental requests to leasing. The weights are fictional and uncalibrated; a score is not proof of buying ability."
+    }
+  ],
+  "evaluations": [
+    {
+      "case_id": "route-ready-buyer",
+      "input": {
+        "lead": {
+          "lead_id": "eval-qualification",
+          "tenant_id": "demo-org",
+          "full_name": "Demo Lead One",
+          "email": "qualification@example.com",
+          "phone_e164": "+971500000001",
+          "phone_region": null,
+          "source": "website",
+          "message": "book a viewing",
+          "budget_min_aed": null,
+          "budget_max_aed": "1500000",
+          "preferred_locations": [
+            "Business Bay"
+          ],
+          "property_types": [
+            "apartment"
+          ],
+          "bedrooms": 1,
+          "purpose": "investment",
+          "timeline_months": 3,
+          "consent_marketing": true,
+          "consent_whatsapp": true,
+          "external_ref": null,
+          "dedupe_keys": [],
+          "received_at": "2026-11-24T06:57:54.845075Z",
+          "status": "new"
+        }
+      },
+      "expected_status": "succeeded",
+      "expected_output": {
+        "score.category": "hot",
+        "routing.queue": "sales-priority"
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "route-rental",
+      "input": {
+        "lead": {
+          "lead_id": "eval-qualification",
+          "tenant_id": "demo-org",
+          "full_name": "Demo Lead One",
+          "email": "qualification@example.com",
+          "phone_e164": "+971500000001",
+          "phone_region": null,
+          "source": "website",
+          "message": null,
+          "budget_min_aed": null,
+          "budget_max_aed": "1500000",
+          "preferred_locations": [
+            "Business Bay"
+          ],
+          "property_types": [
+            "apartment"
+          ],
+          "bedrooms": 1,
+          "purpose": "rent",
+          "timeline_months": 3,
+          "consent_marketing": true,
+          "consent_whatsapp": true,
+          "external_ref": null,
+          "dedupe_keys": [],
+          "received_at": "2026-11-24T06:57:54.845142Z",
+          "status": "new"
+        }
+      },
+      "expected_status": "succeeded",
+      "expected_output": {
+        "routing.queue": "leasing"
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "reject-invalid-input",
+      "input": {},
+      "expected_status": "failed",
+      "expected_output": {},
+      "expected_error": "invalid_input"
+    }
+  ]
+}

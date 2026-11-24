@@ -1,0 +1,74 @@
+{
+  "agent_id": "documents",
+  "version": 1,
+  "fictional": true,
+  "knowledge": [
+    {
+      "key": "role-guide",
+      "title": "Fictional documents operating guide",
+      "text": "Answer with authorized source citations and escalate stale or unsupported answers. Summaries are extractive. Never expose restricted content to customers."
+    },
+    {
+      "key": "faq-buying-process",
+      "title": "Demo FAQ: Buying Process (Fictional)",
+      "text": "Buying process overview. Buyers usually reserve a unit with a booking form and deposit, then sign the sales agreement. Off-plan purchases are registered with the relevant authority. A licensed advisor will confirm current fees and steps.\n\nViewings. Viewings can be scheduled with an advisor. Show homes are available for some demo projects.",
+      "access_level": "public",
+      "allowed_roles": [],
+      "review_by": "2030-01-01"
+    },
+    {
+      "key": "demo-creek-heights-payment-plan",
+      "title": "Demo Creek Heights Payment Plan (Fictional)",
+      "text": "Demo Creek Heights payment plan. 10 percent down payment, 40 percent during construction, 10 percent on handover and 40 percent post handover over 36 months. Payment plan terms must be confirmed with the developer before quoting.",
+      "access_level": "public",
+      "allowed_roles": [],
+      "review_by": "2030-01-01"
+    },
+    {
+      "key": "internal-commission-policy",
+      "title": "Internal Commission Policy (Fictional)",
+      "text": "Commission splits are confidential and are never shared with customers.",
+      "access_level": "restricted",
+      "allowed_roles": [
+        "sales_manager",
+        "admin"
+      ]
+    }
+  ],
+  "evaluations": [
+    {
+      "case_id": "cite-payment-plan",
+      "input": {
+        "action": "answer",
+        "query": "Demo Creek Heights payment plan"
+      },
+      "expected_status": "succeeded",
+      "expected_output": {
+        "needs_human": false,
+        "citations.0.version": 1
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "escalate-unknown-source",
+      "input": {
+        "action": "answer",
+        "query": "zzqx unrelated vocabulary"
+      },
+      "expected_status": "escalated",
+      "expected_output": {
+        "needs_human": true
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "require-summary-text",
+      "input": {
+        "action": "summarize"
+      },
+      "expected_status": "failed",
+      "expected_output": {},
+      "expected_error": "validation_error"
+    }
+  ]
+}

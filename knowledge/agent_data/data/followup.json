@@ -1,0 +1,71 @@
+{
+  "agent_id": "followup",
+  "version": 1,
+  "fictional": true,
+  "knowledge": [
+    {
+      "key": "role-guide",
+      "title": "Fictional followup operating guide",
+      "text": "Prepare due tasks only. Respect consent, replies and attempt limits. Approval is required before outbound dispatch; planning alone sends nothing."
+    }
+  ],
+  "evaluations": [
+    {
+      "case_id": "prepare-due-followup",
+      "input": {
+        "tasks": [
+          {
+            "task_id": "due-email",
+            "lead_id": "eval-followup",
+            "contact_first_name": "Fictional Visitor",
+            "channel": "email",
+            "email": "followup@example.com",
+            "due_at": "2030-01-02T11:00:00Z"
+          }
+        ],
+        "now": "2030-01-02T12:00:00Z"
+      },
+      "expected_status": "succeeded",
+      "expected_output": {
+        "actions.0.task_id": "due-email",
+        "actions.0.requires_approval": true
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "respect-attempt-limit",
+      "input": {
+        "tasks": [
+          {
+            "task_id": "due-email",
+            "lead_id": "eval-followup",
+            "contact_first_name": "Fictional Visitor",
+            "channel": "email",
+            "email": "followup@example.com",
+            "due_at": "2030-01-02T11:00:00Z",
+            "attempts": 3
+          }
+        ],
+        "now": "2030-01-02T12:00:00Z"
+      },
+      "expected_status": "escalated",
+      "expected_output": {
+        "escalations.0.task_id": "due-email"
+      },
+      "expected_error": null
+    },
+    {
+      "case_id": "reject-invalid-input",
+      "input": {
+        "tasks": [
+          {
+            "task_id": "incomplete"
+          }
+        ]
+      },
+      "expected_status": "failed",
+      "expected_output": {},
+      "expected_error": "invalid_input"
+    }
+  ]
+}

@@ -11,7 +11,7 @@ from apps.api.app.dependencies.auth import require_permission
 from apps.api.app.dependencies.runtime import get_runtime
 from core.observability.context import get_correlation_id, new_correlation_id
 from core.security.rbac import Permission, Principal
-from knowledge.documents.demo_corpus import demo_documents
+from knowledge.agent_data.catalogue import load_agent_dataset
 from knowledge.documents.models import AccessLevel
 from workflows.customer_support_flow import KNOWLEDGE_SUPPORT, SupportFlowState
 from workflows.runtime import PlatformRuntime
@@ -33,6 +33,10 @@ async def demo_answer(
     principal: Principal = Depends(require_permission(Permission.WORKFLOWS_EXECUTE)),
 ) -> dict[str, Any]:
     _require_isolated_demo(runtime)
+    if runtime.assigned_sources is not None:
+        raise HTTPException(
+            409, "Use the assigned-source knowledge workspace when supplied knowledge is enabled."
+        )
     context = ExecutionContext(
         principal=principal,
         tenant_id=principal.tenant_id,
@@ -45,7 +49,7 @@ async def demo_answer(
         raise HTTPException(status_code=503, detail="Demo knowledge answer unavailable")
     allowed = {
         doc.document_id
-        for doc in demo_documents(principal.tenant_id)
+        for doc in load_agent_dataset("documents").documents(principal.tenant_id)
         if doc.access_level == AccessLevel.PUBLIC
     }
     if any(citation.document_id not in allowed for citation in state.answer.citations):

@@ -53,6 +53,9 @@ include = [
 ]
 exclude = ["tests*", "apps.dashboard*"]
 
+[tool.setuptools.package-data]
+"knowledge.agent_data" = ["data/*.json"]
+
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
 minversion = "8.0"
