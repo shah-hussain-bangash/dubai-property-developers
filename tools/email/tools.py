@@ -5,6 +5,7 @@ from typing import Any, ClassVar
 
 from core.exceptions.errors import AuthorizationError, DomainValidationError, PolicyViolationError
 from core.policies.actions import ActionCategory
+from core.resilience.idempotency import make_idempotency_key
 from core.security.rbac import Permission
 from knowledge.assigned_sources import AssignedSources
 from tools.base import BaseTool, ToolCallContext, ToolSpec
@@ -63,13 +64,18 @@ class EmailSendTool(BaseTool):
                 payload["body"],
                 payload["subject"],
             )
-        return await self._send(payload)
+        return await self._send(payload, scope=ctx.tenant_id)
 
-    async def _send(self, payload: dict[str, Any]) -> dict[str, Any]:
+    async def _send(self, payload: dict[str, Any], *, scope: str | None = None) -> dict[str, Any]:
+        key = (
+            make_idempotency_key(self.spec.name, payload, scope=scope)
+            if scope is not None
+            else str(payload.get("idempotency_key", ""))
+        )
         message_id = await self._sender.send(
             to=payload["to"],
             subject=payload["subject"],
             body=payload["body"],
-            idempotency_key=str(payload.get("idempotency_key", "")),
+            idempotency_key=key,
         )
         return {"message_id": message_id}

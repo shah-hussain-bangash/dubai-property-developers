@@ -119,6 +119,16 @@ a provider request already in flight. It validates current sources immediately b
 provider; it does not hold a database lock across network delivery. See the
 [approval-source verification](../verification/source-bound-approvals-local-2026-11-24.md).
 
+Contextual email and WhatsApp sends derive provider delivery keys from the trusted organization,
+tool action and complete approved payload. Identical event IDs in different organizations no
+longer share a WhatsApp deduplication key. Changing an approved recipient/content produces a
+different key, while retrying the same scoped payload retains its key. Email sends through the
+gateway also receive non-empty keys when the caller did not supply one. Keys are opaque digests
+instead of raw conversation IDs or addresses. Standalone calls without context retain their
+explicit legacy key behavior. Provider-side deduplication still depends on the provider/client;
+this does not establish distributed or live-provider exactly-once delivery. See the
+[delivery-key verification](../verification/delivery-key-isolation-local-2026-11-24.md).
+
 Document summaries in supplied-source mode require a `query`, just like document answers.
 For example, `{"action":"summarize","query":"garden policy","max_sentences":3}` summarizes
 matched passages from the Document Agent's own sources and retains their citations. Caller-supplied

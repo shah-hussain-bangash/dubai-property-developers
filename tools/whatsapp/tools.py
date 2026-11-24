@@ -7,6 +7,7 @@ from typing import Any, ClassVar
 from core.exceptions.errors import AuthorizationError, DomainValidationError, PolicyViolationError
 from core.memory.base import ScopedMemoryProvider
 from core.policies.actions import ActionCategory
+from core.resilience.idempotency import make_idempotency_key
 from core.security.rbac import Permission
 from integrations.meta.client import WhatsAppClient
 from knowledge.assigned_sources import AssignedSources
@@ -91,12 +92,18 @@ class WhatsAppSendTool(BaseTool):
                 raise PolicyViolationError(
                     "Conversation consent changed; prepare a new approved reply"
                 )
-        return await self._send(payload)
+        return await self._send(payload, scope=ctx.tenant_id)
 
-    async def _send(self, payload: dict[str, Any]) -> dict[str, Any]:
+    async def _send(self, payload: dict[str, Any], *, scope: str | None = None) -> dict[str, Any]:
         # Queue/lock/source-check waits must not preserve an expired service window.
         self.validate(payload)
-        key = str(payload.get("idempotency_key") or payload["to_e164"] + str(payload.get("text")))
+        key = (
+            make_idempotency_key(self.spec.name, payload, scope=scope)
+            if scope is not None
+            else str(
+                payload.get("idempotency_key") or payload["to_e164"] + str(payload.get("text"))
+            )
+        )
         if payload.get("text"):
             message_id = await self._client.send_text(
                 to_e164=payload["to_e164"], body=payload["text"], idempotency_key=key
