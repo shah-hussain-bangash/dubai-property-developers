@@ -5,7 +5,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-from schemas.conversations.models import CustomerIntent
+from schemas.conversations.models import Citation, CustomerIntent
 
 
 class ReplyMode(StrEnum):
@@ -34,3 +34,4 @@ class WhatsAppAgentOutput(BaseModel):
     approval_id: str | None = None
     escalate: bool = False
     notes: list[str] = Field(default_factory=list)
+    citations: list[Citation] = Field(default_factory=list)

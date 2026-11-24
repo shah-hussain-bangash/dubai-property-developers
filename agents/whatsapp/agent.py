@@ -8,8 +8,9 @@ from agents.base.context import ExecutionContext
 from agents.base.intent import detect_intent
 from agents.whatsapp.schemas import ReplyMode, WhatsAppAgentInput, WhatsAppAgentOutput
 from core.memory.base import MemoryMessage
+from knowledge.assigned_sources import NO_ANSWER
 from schemas.agents.models import AgentRunStatus, ImplementationStatus
-from schemas.conversations.models import CustomerIntent
+from schemas.conversations.models import Citation, CustomerIntent
 from tools.whatsapp.policy import is_within_service_window
 
 FALLBACK_TEMPLATE = "follow_up_generic"
@@ -28,8 +29,9 @@ class WhatsAppAgent(BaseAgent[WhatsAppAgentInput, WhatsAppAgentOutput]):
             "Escalate conversations to staff",
         ],
         implementation_status=ImplementationStatus.PARTIAL,
-        allowed_tools=frozenset({"whatsapp.send_message"}),
-        status_notes="Mock Cloud API client by default; template catalogue sync with Meta pending.",
+        allowed_tools=frozenset({"whatsapp.send_message", "documents.search"}),
+        status_notes="Supplied-source replies quote approved own material inside the service window; "
+        "outside-window replies escalate. Mock Cloud API; template catalogue sync pending.",
     )
     input_model = WhatsAppAgentInput
     output_model = WhatsAppAgentOutput
@@ -65,13 +67,46 @@ class WhatsAppAgent(BaseAgent[WhatsAppAgentInput, WhatsAppAgentOutput]):
             )
 
         in_window = is_within_service_window(data.received_at, datetime.now(UTC))
+        citations: list[Citation] = []
+        reply_text = data.draft_reply
+        if self.deps.supplied_knowledge_only:
+            if not in_window or intent == CustomerIntent.COMPLAINT:
+                return WhatsAppAgentOutput(
+                    intent=intent,
+                    reply_mode=ReplyMode.NO_REPLY,
+                    escalate=True,
+                    notes=[
+                        "Staff review is required; approved WhatsApp provider templates are not "
+                        "configured for supplied-source replies."
+                        if not in_window
+                        else "Customer complaint requires staff review."
+                    ],
+                )
+            result = await self.use_tool(
+                ctx,
+                "documents.search",
+                {
+                    "query": data.text,
+                    "tenant_id": ctx.tenant_id,
+                    "audience": "customer",
+                    "k": 3,
+                },
+            )
+            if not result.data.get("has_stale"):
+                citations = [Citation.model_validate(c) for c in result.data.get("citations", [])]
+            if not citations:
+                return WhatsAppAgentOutput(
+                    intent=intent, reply_mode=ReplyMode.NO_REPLY, escalate=True, notes=[NO_ANSWER]
+                )
+            reply_text = "\n\n".join(c.excerpt for c in citations)
         mode = ReplyMode.FREE_TEXT if in_window else ReplyMode.TEMPLATE_REQUIRED
         output = WhatsAppAgentOutput(
             intent=intent,
             reply_mode=mode,
-            reply_text=data.draft_reply if mode == ReplyMode.FREE_TEXT else None,
+            reply_text=reply_text if mode == ReplyMode.FREE_TEXT else None,
             template_name=FALLBACK_TEMPLATE if mode == ReplyMode.TEMPLATE_REQUIRED else None,
             escalate=intent == CustomerIntent.COMPLAINT,
+            citations=citations,
         )
         if data.send_reply and (output.reply_text or output.template_name) and not output.escalate:
             payload = {

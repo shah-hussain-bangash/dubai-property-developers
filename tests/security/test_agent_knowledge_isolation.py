@@ -37,7 +37,9 @@ async def test_all_agent_knowledge_scopes_are_independent(
     assert [hit.chunk.title for hit in result.hits] == [f"Probe for {agent}"]
 
 
-@pytest.mark.parametrize("agent", ["documents", "sales_conversation", "marketing"])
+@pytest.mark.parametrize(
+    "agent", ["documents", "sales_conversation", "marketing", "email", "whatsapp"]
+)
 async def test_payload_cannot_select_another_agent_or_general_corpus(
     agent: str, runtime: PlatformRuntime, ctx: ExecutionContext
 ) -> None:

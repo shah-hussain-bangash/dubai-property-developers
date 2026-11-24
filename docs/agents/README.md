@@ -16,8 +16,8 @@ Result statuses: `succeeded`, `failed`, `timed_out`, `pending_approval`, `escala
 | 05 | `sales_conversation` | partial | `documents.search` | Intent → public-document retrieval → approved template draft (EN; basic AR) → always approval-gated; escalates when no current cited source exists |
 | 06 | `followup` | partial | `email.render_template`, `email.send`, `whatsapp.send_message` | Due/consent/status checks, max 3 attempts, 48h overdue escalation, approval-gated dispatch |
 | 07 | `crm` | functional | `crm.*`, `leads.save` | Local save + EspoCRM upsert (mock) + qualification note. Opportunities pending |
-| 08 | `email` | partial | `email.render_template`, `email.send` | Template drafts, approval-gated send, rule-based reply classification. No email provider configured |
-| 09 | `whatsapp` | partial | `whatsapp.send_message` | Opt-in, 24h window (free text vs template), opt-out handling, Meta webhook parser |
+| 08 | `email` | partial | `documents.search`, `email.render_template`, `email.send` | Own-source cited drafts in supplied mode, approval-gated send requests, reply classification. Mock sender |
+| 09 | `whatsapp` | partial | `documents.search`, `whatsapp.send_message` | Own-source cited replies, opt-in/opt-out and 24h-window checks. Supplied mode escalates outside window; mock client |
 | 10 | `voice` | interface_only | none | Audio raises `integration_not_configured`; a transcript-only path exists for contract tests; always escalates |
 | 11 | `marketing` | partial | `documents.search` | Consent-filtered segments; supplied-source drafts quote only approved own material, otherwise escalate. No sending |
 | 12 | `documents` | partial | `documents.search` | Extractive summaries; cited answers; low confidence or stale sources go to a human |
@@ -66,6 +66,19 @@ Marketing campaign drafts also search only the Marketing Agent's own customer-ap
 using the campaign goal as the query. The headline uses the source title and the body quotes cited
 passages without template claims. Missing, unrelated, removed or unapproved sources produce no
 draft and request human review. Marketing consent remains required; this agent cannot send.
+Email drafts in supplied-source mode require a `knowledge_query` (3–1,000 characters).
+They use the Email Agent's own customer-approved sources for the subject/title and cited body;
+an absent query or source requests human review without a template fallback. For example,
+`{"mode":"draft","knowledge_query":"approved garden policy"}` is a draft-only agent input.
+Inbound email classification remains independent of source retrieval. Existing send requests
+retain approval and marketing-consent checks.
+
+Inside the WhatsApp service window, supplied-source replies search the WhatsApp Agent's own
+customer-approved sources using the incoming message. An unverified `draft_reply` is ignored.
+Outside the service window, no generic provider template is substituted: the result requests
+staff review because approved template content/catalogue sync is not configured. Consent,
+opt-out, complaints and send-approval checks still apply. This does not configure live messaging
+providers or change the separate Follow-Up Agent's template workflow.
 Supplied-source mode also disables fictional corpus ingestion and the backend's seeded property
 catalog. PDF text is not silently converted into verified structured property listings; use the
 source-answer workspace to query it, and create reviewed property records separately.
