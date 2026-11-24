@@ -96,6 +96,11 @@ missing timestamps cannot authorize free text. Time-zone offsets are handled con
 legacy naive datetime values interpreted as UTC. See the
 [timestamp guard verification](../verification/whatsapp-timestamp-guards-local-2026-11-24.md).
 
+The send tool revalidates these rules immediately before the provider call, after execution-lock
+waits and asynchronous source verification. Passing an earlier check or having an approved draft
+does not preserve an expired window. See the
+[execution-window regressions](../verification/whatsapp-execution-window-local-2026-11-24.md).
+
 Source-only send requests retain their citation snapshot in the private approval payload.
 Immediately before a new provider call, the send tool rechecks the original agent and organization,
 current customer approval/review date, source title, passage reference and exact outgoing text.

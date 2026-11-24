@@ -76,6 +76,8 @@ class WhatsAppSendTool(BaseTool):
         return await self._send(payload)
 
     async def _send(self, payload: dict[str, Any]) -> dict[str, Any]:
+        # Queue/lock/source-check waits must not preserve an expired service window.
+        self.validate(payload)
         key = str(payload.get("idempotency_key") or payload["to_e164"] + str(payload.get("text")))
         if payload.get("text"):
             message_id = await self._client.send_text(
