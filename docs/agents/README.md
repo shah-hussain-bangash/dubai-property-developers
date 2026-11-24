@@ -20,7 +20,7 @@ Result statuses: `succeeded`, `failed`, `timed_out`, `pending_approval`, `escala
 | 09 | `whatsapp` | partial | `documents.search`, `whatsapp.send_message` | Own-source cited replies, opt-in/opt-out and 24h-window checks. Supplied mode escalates outside window; mock client |
 | 10 | `voice` | interface_only | none | Audio raises `integration_not_configured`; a transcript-only path exists for contract tests; always escalates |
 | 11 | `marketing` | partial | `documents.search` | Consent-filtered segments; supplied-source drafts quote only approved own material, otherwise escalate. No sending |
-| 12 | `documents` | partial | `documents.search` | Extractive summaries; cited answers; low confidence or stale sources go to a human |
+| 12 | `documents` | partial | `documents.search` | Supplied-source summaries and answers use cited own passages; missing/stale evidence goes to a human |
 | 13 | `analytics` | partial | `analytics.sales_summary` | Lead source/status/conversion + agent performance from execution records |
 
 ## Adding an agent
@@ -89,6 +89,15 @@ current service window; outside it they request staff review. Their action has `
 and source citations. Due/status/reply/consent/attempt checks and send approvals remain in place.
 The database task source and scheduled worker trigger remain partial; adding knowledge does not
 activate scheduling or live messaging. Developer fixture mode retains its template workflow.
+
+Document summaries in supplied-source mode require a `query`, just like document answers.
+For example, `{"action":"summarize","query":"garden policy","max_sentences":3}` summarizes
+matched passages from the Document Agent's own sources and retains their citations. Caller-supplied
+`text` is ignored in this mode; import that text as an assigned source first. Customer summaries
+require customer-approved sources; `audience: "staff"` can summarize that agent's own staff material.
+Missing or unavailable evidence requests human review without a summary. This is a summary of
+retrieved passages, not a full-document or whole-PDF synopsis. Developer fixture mode retains direct
+text summaries. See the [summary verification](../verification/document-summary-supplied-source-local-2026-11-24.md).
 Supplied-source mode also disables fictional corpus ingestion and the backend's seeded property
 catalog. PDF text is not silently converted into verified structured property listings; use the
 source-answer workspace to query it, and create reviewed property records separately.

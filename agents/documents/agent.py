@@ -42,16 +42,24 @@ class DocumentAgent(BaseAgent[DocumentAgentInput, DocumentAgentOutput]):
         ],
         implementation_status=ImplementationStatus.PARTIAL,
         allowed_tools=frozenset({"documents.search"}),
-        status_notes="Extractive summaries and cited passages; generative answers pending an LLM provider.",
+        status_notes="Supplied-source summaries and answers use cited own passages; "
+        "generative answers pending an LLM provider.",
     )
     input_model = DocumentAgentInput
     output_model = DocumentAgentOutput
 
     async def execute(self, data: DocumentAgentInput, ctx: ExecutionContext) -> DocumentAgentOutput:
-        if data.action == DocumentAction.SUMMARIZE:
+        summarize = data.action == DocumentAction.SUMMARIZE
+        if summarize and not self.deps.supplied_knowledge_only:
             if not data.text:
                 raise DomainValidationError("text is required to summarize")
             return DocumentAgentOutput(summary=extractive_summary(data.text, data.max_sentences))
+
+        if summarize and (not data.query or not data.query.strip()):
+            return DocumentAgentOutput(
+                needs_human=True,
+                notes=["Provide a query to summarize this agent's assigned sources."],
+            )
 
         if not data.query:
             raise DomainValidationError("query is required to answer")
@@ -67,18 +75,28 @@ class DocumentAgent(BaseAgent[DocumentAgentInput, DocumentAgentOutput]):
             },
         )
         confidence = float(result.data.get("top_score", 0.0))
+        citations = [Citation.model_validate(c) for c in result.data.get("citations", [])]
         notes: list[str] = []
         if result.data.get("has_stale"):
             notes.append("Some sources are past their review date; verify before relying on them.")
-        if confidence < CONFIDENCE_THRESHOLD or not result.data.get("passages"):
+        if (
+            confidence < CONFIDENCE_THRESHOLD
+            or not result.data.get("passages")
+            or (self.deps.supplied_knowledge_only and not citations)
+        ):
             return DocumentAgentOutput(
                 confidence=confidence,
                 needs_human=True,
                 notes=[*notes, "No sufficiently relevant authorized document found."],
             )
         return DocumentAgentOutput(
-            answer=result.data["passages"][0],
-            citations=[Citation.model_validate(c) for c in result.data["citations"]],
+            summary=extractive_summary(
+                "\n\n".join(c.excerpt for c in citations), data.max_sentences
+            )
+            if summarize
+            else None,
+            answer=None if summarize else result.data["passages"][0],
+            citations=citations,
             confidence=confidence,
             needs_human=bool(result.data.get("has_stale")),
             notes=notes,
