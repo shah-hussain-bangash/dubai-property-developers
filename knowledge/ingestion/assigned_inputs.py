@@ -21,20 +21,67 @@ MAX_IMPORT_BYTES = 2_000_000
 
 
 class PageText(HTMLParser):
+    _HIDDEN_TAGS = frozenset({"script", "style", "noscript", "svg", "template"})
+    _BLOCK_TAGS = frozenset(
+        {
+            "p",
+            "div",
+            "br",
+            "hr",
+            "li",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "section",
+            "article",
+            "header",
+            "footer",
+            "main",
+            "nav",
+            "aside",
+            "blockquote",
+            "pre",
+            "ul",
+            "ol",
+            "dl",
+            "dt",
+            "dd",
+            "table",
+            "tr",
+            "caption",
+            "address",
+            "figure",
+            "figcaption",
+            "details",
+            "summary",
+        }
+    )
+
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.hidden = 0
         self.parts: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag in {"script", "style", "noscript", "svg", "template"}:
+        if tag in self._HIDDEN_TAGS:
             self.hidden += 1
-        if not self.hidden and tag in {"p", "div", "br", "li", "h1", "h2", "h3"}:
-            self.parts.append("\n")
+        if not self.hidden:
+            if tag in self._BLOCK_TAGS:
+                self.parts.append("\n")
+            elif tag in {"td", "th"}:
+                self.parts.append(" ")
 
     def handle_endtag(self, tag: str) -> None:
-        if tag in {"script", "style", "noscript", "svg", "template"}:
+        if tag in self._HIDDEN_TAGS:
             self.hidden = max(0, self.hidden - 1)
+        if not self.hidden:
+            if tag in self._BLOCK_TAGS and tag not in {"br", "hr"}:
+                self.parts.append("\n")
+            elif tag in {"td", "th"}:
+                self.parts.append(" ")
 
     def handle_data(self, data: str) -> None:
         if not self.hidden:
@@ -89,7 +136,7 @@ def extract_input(data: bytes, mime: str) -> list[str]:
     if mime == "text/html":
         parser = PageText()
         parser.feed(text)
-        text = " ".join(parser.parts)
+        text = "".join(parser.parts)
     return [text]
 
 
