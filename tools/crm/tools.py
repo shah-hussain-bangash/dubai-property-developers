@@ -7,7 +7,7 @@ from typing import Any, ClassVar
 from core.exceptions.errors import AuthorizationError, DomainValidationError
 from core.policies.actions import ActionCategory
 from core.security.rbac import Permission
-from integrations.espocrm.client import CRMClient, validate_crm_record_id
+from integrations.espocrm.client import CRMClient, validate_crm_lead_fields, validate_crm_record_id
 from tools.base import BaseTool, ToolCallContext, ToolSpec
 
 
@@ -71,9 +71,7 @@ class CRMCreateLeadTool(OrganizationCRMTool):
         source_id = payload.get("local_lead_id")
         if not isinstance(source_id, str) or not source_id.strip():
             raise DomainValidationError("CRM creation requires a nonempty source enquiry ID")
-        data = payload.get("data")
-        if not isinstance(data, dict):
-            raise DomainValidationError("CRM lead data must be an object")
+        data = validate_crm_lead_fields(payload.get("data"))
         if not data.get("lastName") and not data.get("name"):
             raise DomainValidationError("CRM lead requires a name")
         if not data.get("emailAddress") and not data.get("phoneNumber"):
@@ -96,6 +94,7 @@ class CRMUpdateLeadTool(OrganizationCRMTool):
 
     def validate(self, payload: dict[str, Any]) -> None:
         validate_crm_record_id(payload.get("external_id"))
+        validate_crm_lead_fields(payload.get("data"))
 
     async def _execute(self, payload: dict[str, Any]) -> dict[str, Any]:
         await self._client.update_lead(payload["external_id"], payload["data"])

@@ -28,6 +28,15 @@ def validate_crm_record_id(value: object) -> None:
         )
 
 
+def validate_crm_lead_fields(value: object) -> dict[str, Any]:
+    """Lead fields cannot supply or replace the provider-owned record identity."""
+    if not isinstance(value, dict):
+        raise DomainValidationError("CRM lead data must be an object")
+    if "id" in value:
+        raise DomainValidationError("CRM record ID is read-only")
+    return value
+
+
 class EspoCRMConfig(IntegrationConfig):
     base_url: str | None = None
     api_key: SecretStr | None = None
@@ -74,6 +83,7 @@ class MockEspoCRMClient:
             raise NotFoundError(f"mock CRM lead {external_id} not found") from exc
 
     async def create_lead(self, data: dict[str, Any], *, idempotency_key: str) -> str:
+        validate_crm_lead_fields(data)
         if idempotency_key in self._idempotency:
             return self._idempotency[idempotency_key]
         external_id = f"mock-lead-{next(self._ids):05d}"
@@ -83,6 +93,7 @@ class MockEspoCRMClient:
 
     async def update_lead(self, external_id: str, data: dict[str, Any]) -> None:
         validate_crm_record_id(external_id)
+        validate_crm_lead_fields(data)
         if external_id not in self.leads:
             raise NotFoundError(f"mock CRM lead {external_id} not found")
         self.leads[external_id].update(deepcopy(data))
@@ -126,11 +137,13 @@ class HttpEspoCRMClient:
         return await self._http.request("GET", f"/Lead/{external_id}")  # type: ignore[no-any-return]
 
     async def create_lead(self, data: dict[str, Any], *, idempotency_key: str) -> str:
+        validate_crm_lead_fields(data)
         body = await self._http.request("POST", "/Lead", json=data, idempotency_key=idempotency_key)
         return str(body["id"])
 
     async def update_lead(self, external_id: str, data: dict[str, Any]) -> None:
         validate_crm_record_id(external_id)
+        validate_crm_lead_fields(data)
         await self._http.request("PUT", f"/Lead/{external_id}", json=data)
 
     async def add_note(self, *, parent_type: str, parent_id: str, text: str) -> str:
