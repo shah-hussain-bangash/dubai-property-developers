@@ -185,7 +185,7 @@ class ToolGateway:
     ) -> None:
         await self.audit.record(
             AuditEvent(
-                tenant_id=ctx.tenant_id,
+                tenant_id=ctx.principal.tenant_id,
                 actor=(
                     f"{ctx.principal.subject}" + (f"/agent:{ctx.agent_id}" if ctx.agent_id else "")
                 ),

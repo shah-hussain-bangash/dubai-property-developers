@@ -23,6 +23,11 @@
 | Retention policy configuration | `core/policies/retention.py` (enforcement job planned) |
 | Dependency review, pip-audit, Dependabot | `.github/` |
 
+`InMemoryAuditSink.events` returns detached diagnostic snapshots; record new events through
+`record()` so redaction is applied. Tool audit ownership comes from the authenticated principal,
+including rejected cross-organization calls. These records remain process-local, not a durable
+or tamper-evident journal. See the [audit integrity verification](../verification/audit-record-integrity-local-2026-11-25.md).
+
 ## Generic webhook replay semantics
 
 The generic verifier authenticates the exact `timestamp + "." + raw body` bytes. Its
