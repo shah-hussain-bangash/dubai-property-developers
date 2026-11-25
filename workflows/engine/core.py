@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 from agents.base.agent import AgentResult
 from agents.base.context import ExecutionContext
 from agents.registry import AgentRegistry
-from core.exceptions.errors import PlatformError, WorkflowError
+from core.exceptions.errors import AuthorizationError, ConflictError, PlatformError, WorkflowError
 from core.observability.logging import get_logger
 from schemas.agents.models import AgentRunStatus, ImplementationStatus
 
@@ -126,13 +126,24 @@ class WorkflowRunStore(Protocol):
 
 class InMemoryWorkflowRunStore:
     def __init__(self, max_runs: int = 500) -> None:
-        self.runs: dict[str, WorkflowRun] = {}
+        self._runs: dict[str, WorkflowRun] = {}
         self._max = max_runs
 
+    @property
+    def runs(self) -> dict[str, WorkflowRun]:
+        return {key: run.model_copy(deep=True) for key, run in self._runs.items()}
+
     async def save(self, run: WorkflowRun) -> None:
-        self.runs[run.execution_id] = run
-        while len(self.runs) > self._max:
-            self.runs.pop(next(iter(self.runs)))
+        saved = run.model_copy(deep=True)
+        existing = self._runs.get(saved.execution_id)
+        if existing is not None:
+            if existing.tenant_id != saved.tenant_id:
+                raise AuthorizationError("Workflow execution belongs to another organization")
+            if existing.workflow_id != saved.workflow_id:
+                raise ConflictError("Workflow identity cannot be changed")
+        self._runs[saved.execution_id] = saved
+        while len(self._runs) > self._max:
+            self._runs.pop(next(iter(self._runs)))
 
 
 _TERMINAL = {
@@ -153,6 +164,8 @@ class WorkflowRunner:
         initial: StateT | dict[str, Any],
         ctx: ExecutionContext,
     ) -> tuple[WorkflowRun, StateT]:
+        if ctx.principal.tenant_id != ctx.tenant_id:
+            raise AuthorizationError("Principal belongs to a different organization")
         state = (
             initial
             if isinstance(initial, definition.state_model)
