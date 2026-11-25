@@ -7,7 +7,7 @@ from typing import Any, ClassVar
 from core.exceptions.errors import AuthorizationError, DomainValidationError
 from core.policies.actions import ActionCategory
 from core.security.rbac import Permission
-from integrations.espocrm.client import CRMClient
+from integrations.espocrm.client import CRMClient, validate_crm_record_id
 from tools.base import BaseTool, ToolCallContext, ToolSpec
 
 
@@ -88,6 +88,9 @@ class CRMUpdateLeadTool(OrganizationCRMTool):
         category=ActionCategory.CRM_WRITE,
         permission=Permission.CRM_WRITE,
     )
+
+    def validate(self, payload: dict[str, Any]) -> None:
+        validate_crm_record_id(payload.get("external_id"))
 
     async def _execute(self, payload: dict[str, Any]) -> dict[str, Any]:
         await self._client.update_lead(payload["external_id"], payload["data"])

@@ -8,14 +8,23 @@ instance; verify field names against your EspoCRM version before enabling LIVE.
 from __future__ import annotations
 
 import itertools
+import re
 from typing import Any, Protocol
 
 import httpx
 from pydantic import SecretStr
 
-from core.exceptions.errors import NotFoundError
+from core.exceptions.errors import DomainValidationError, NotFoundError
 from integrations.base import ApiKeyHeaderAuth, HttpIntegrationClient, IntegrationConfig
 from schemas.integrations.models import ApiAccessStatus, IntegrationDescriptor
+
+
+def validate_crm_record_id(value: object) -> None:
+    """Accept one bounded, literal path segment; never normalize a record ID."""
+    if not isinstance(value, str) or re.fullmatch(r"[A-Za-z0-9_-]{1,128}", value) is None:
+        raise DomainValidationError(
+            "CRM record ID must be 1-128 ASCII letters, digits, underscores or hyphens"
+        )
 
 
 class EspoCRMConfig(IntegrationConfig):
@@ -57,6 +66,7 @@ class MockEspoCRMClient:
         ]
 
     async def get_lead(self, external_id: str) -> dict[str, Any]:
+        validate_crm_record_id(external_id)
         try:
             return dict(self.leads[external_id])
         except KeyError as exc:
@@ -71,6 +81,7 @@ class MockEspoCRMClient:
         return external_id
 
     async def update_lead(self, external_id: str, data: dict[str, Any]) -> None:
+        validate_crm_record_id(external_id)
         if external_id not in self.leads:
             raise NotFoundError(f"mock CRM lead {external_id} not found")
         self.leads[external_id].update(data)
@@ -110,6 +121,7 @@ class HttpEspoCRMClient:
         return list({r["id"]: r for r in results}.values())
 
     async def get_lead(self, external_id: str) -> dict[str, Any]:
+        validate_crm_record_id(external_id)
         return await self._http.request("GET", f"/Lead/{external_id}")  # type: ignore[no-any-return]
 
     async def create_lead(self, data: dict[str, Any], *, idempotency_key: str) -> str:
@@ -117,6 +129,7 @@ class HttpEspoCRMClient:
         return str(body["id"])
 
     async def update_lead(self, external_id: str, data: dict[str, Any]) -> None:
+        validate_crm_record_id(external_id)
         await self._http.request("PUT", f"/Lead/{external_id}", json=data)
 
     async def add_note(self, *, parent_type: str, parent_id: str, text: str) -> str:
