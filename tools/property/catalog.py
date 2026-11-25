@@ -10,6 +10,8 @@ from schemas.properties.models import PropertyListing
 
 
 class PropertyCatalog(Protocol):
+    """Read-only listing snapshots; edits to returned models do not update inventory."""
+
     async def all_listings(self) -> list[PropertyListing]: ...
 
     async def get(self, listing_id: str) -> PropertyListing | None: ...
@@ -17,10 +19,11 @@ class PropertyCatalog(Protocol):
 
 class InMemoryPropertyCatalog:
     def __init__(self, listings: Iterable[PropertyListing] = DEMO_LISTINGS) -> None:
-        self._listings = {listing.listing_id: listing for listing in listings}
+        self._listings = {listing.listing_id: listing.model_copy(deep=True) for listing in listings}
 
     async def all_listings(self) -> list[PropertyListing]:
-        return list(self._listings.values())
+        return [listing.model_copy(deep=True) for listing in self._listings.values()]
 
     async def get(self, listing_id: str) -> PropertyListing | None:
-        return self._listings.get(listing_id)
+        listing = self._listings.get(listing_id)
+        return listing.model_copy(deep=True) if listing is not None else None
