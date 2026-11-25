@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import codecs
 import http.client
 import ipaddress
 import json
@@ -72,7 +73,19 @@ def extract_input(data: bytes, mime: str) -> list[str]:
             ) from None
     if mime not in {"text/plain", "text/markdown", "text/html"}:
         raise DomainValidationError("Use a PDF, text, Markdown or readable HTML source.")
-    text = data.decode("utf-8", errors="replace")
+    # Check UTF-32 first: its little-endian BOM starts with the UTF-16 BOM.
+    if data.startswith((codecs.BOM_UTF32_LE, codecs.BOM_UTF32_BE)):
+        encoding = "utf-32"
+    elif data.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+        encoding = "utf-16"
+    else:
+        encoding = "utf-8-sig"
+    try:
+        text = data.decode(encoding)
+    except UnicodeError:
+        raise DomainValidationError(
+            "This text could not be read. Use UTF-8 or BOM-marked Unicode text, or paste its text."
+        ) from None
     if mime == "text/html":
         parser = PageText()
         parser.feed(text)

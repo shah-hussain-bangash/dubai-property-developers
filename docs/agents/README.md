@@ -68,6 +68,10 @@ organization only. Use **Test this agent's knowledge** to see exact matching exc
 and PDF page references. Missing or unrelated knowledge produces an explicit not-found response.
 Sources can be removed from future answers after confirmation.
 
+Text imports accept UTF-8 and BOM-marked UTF-16/UTF-32. Unreadable bytes are rejected rather than
+silently replaced. Save unsupported files as UTF-8 or paste their text; see the
+[text encoding verification](../verification/knowledge-text-encoding-local-2026-11-25.md).
+
 This workspace uses only supplied sources, with no model generation, demo facts or web-search
 fallback. It returns matching quoted passages rather than a synthesized answer. The lexical search
 can miss paraphrases; reword the question or add a clearer source. Instructions inside a document
