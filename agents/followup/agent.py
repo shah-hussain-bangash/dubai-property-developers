@@ -26,6 +26,13 @@ OVERDUE_ESCALATION = timedelta(hours=48)
 WHATSAPP_FOLLOWUP_TEMPLATE = "follow_up_generic"
 
 
+def _as_utc(stamp: datetime) -> datetime:
+    # Legacy backend timestamps without an offset use UTC, as in messaging policy.
+    if stamp.tzinfo is None or stamp.utcoffset() is None:
+        return stamp.replace(tzinfo=UTC)
+    return stamp.astimezone(UTC)
+
+
 class FollowUpAgent(BaseAgent[FollowUpInput, FollowUpPlan]):
     spec: ClassVar[AgentSpec] = AgentSpec(
         agent_id="followup",
@@ -53,7 +60,7 @@ class FollowUpAgent(BaseAgent[FollowUpInput, FollowUpPlan]):
             return SkippedTask(task_id=task.task_id, reason=f"status is {task.status}")
         if task.customer_replied_since:
             return SkippedTask(task_id=task.task_id, reason="customer already replied")
-        if task.due_at > now:
+        if _as_utc(task.due_at) > _as_utc(now):
             return SkippedTask(task_id=task.task_id, reason="not yet due")
         if task.channel == Channel.WHATSAPP and not (task.consent_whatsapp and task.to_e164):
             return SkippedTask(task_id=task.task_id, reason="no WhatsApp opt-in or number")
@@ -92,7 +99,7 @@ class FollowUpAgent(BaseAgent[FollowUpInput, FollowUpPlan]):
         }
 
     async def execute(self, data: FollowUpInput, ctx: ExecutionContext) -> FollowUpPlan:
-        now = data.now or datetime.now(UTC)
+        now = _as_utc(data.now or datetime.now(UTC))
         plan = FollowUpPlan()
         for task in data.tasks:
             skip = self._check(task, now)
@@ -104,7 +111,7 @@ class FollowUpAgent(BaseAgent[FollowUpInput, FollowUpPlan]):
                     SkippedTask(task_id=task.task_id, reason="max automated attempts reached")
                 )
                 continue
-            if now - task.due_at > OVERDUE_ESCALATION:
+            if now - _as_utc(task.due_at) > OVERDUE_ESCALATION:
                 plan.escalations.append(
                     SkippedTask(task_id=task.task_id, reason="overdue by more than 48h")
                 )

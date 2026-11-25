@@ -112,6 +112,10 @@ staff review because approved template content/catalogue sync is not configured.
 opt-out, complaints and send-approval checks still apply. This does not configure live messaging
 providers.
 
+Follow-Up schedules compare times in UTC. Legacy timestamps without an offset mean UTC, rather than the
+host's local timezone; new integrations should send explicit offsets. Supplied task models are
+not rewritten. See the [follow-up timezone verification](../verification/followup-schedule-timezones-local-2026-11-25.md).
+
 Follow-Up Agent tasks in supplied-source mode also require their own `knowledge_query`
 (3–1,000 characters). Follow-up drafts quote only customer-approved sources assigned to the
 Follow-Up Agent, without borrowing Email or WhatsApp sources. Missing queries or relevant
