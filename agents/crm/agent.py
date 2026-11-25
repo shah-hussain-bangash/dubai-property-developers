@@ -6,6 +6,7 @@ from agents.base.agent import AgentSpec, BaseAgent
 from agents.base.context import ExecutionContext
 from agents.crm.mapping import to_espocrm_lead
 from agents.crm.schemas import CRMUpsertInput, CRMUpsertResult
+from core.exceptions.errors import DomainValidationError
 from schemas.agents.models import AgentRunStatus, ImplementationStatus
 from tools.base import ToolResultStatus
 
@@ -40,6 +41,10 @@ class CRMAgent(BaseAgent[CRMUpsertInput, CRMUpsertResult]):
         )
         crm_data = to_espocrm_lead(lead, data.score)
         existing = found.data.get("leads", [])
+        if len(existing) > 1:
+            raise DomainValidationError(
+                "Enquiry matches multiple CRM records; review the matches before synchronizing"
+            )
         if existing:
             external_id: str | None = str(existing[0]["id"])
             write = await self.use_tool(
