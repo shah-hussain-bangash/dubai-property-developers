@@ -22,6 +22,24 @@ MAX_IMPORT_BYTES = 2_000_000
 
 class PageText(HTMLParser):
     _HIDDEN_TAGS = frozenset({"script", "style", "noscript", "svg", "template"})
+    _VOID_TAGS = frozenset(
+        {
+            "area",
+            "base",
+            "br",
+            "col",
+            "embed",
+            "hr",
+            "img",
+            "input",
+            "link",
+            "meta",
+            "param",
+            "source",
+            "track",
+            "wbr",
+        }
+    )
     _BLOCK_TAGS = frozenset(
         {
             "p",
@@ -63,25 +81,38 @@ class PageText(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.hidden = 0
+        self._hidden_tag: str | None = None
         self.parts: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag in self._HIDDEN_TAGS:
-            self.hidden += 1
-        if not self.hidden:
-            if tag in self._BLOCK_TAGS:
-                self.parts.append("\n")
-            elif tag in {"td", "th"}:
-                self.parts.append(" ")
+        if self.hidden:
+            if tag == self._hidden_tag:
+                self.hidden += 1
+            return
+        if tag in self._HIDDEN_TAGS or any(name == "hidden" for name, _ in attrs):
+            # Void elements have no descendants; they cannot suppress later text.
+            if tag not in self._VOID_TAGS:
+                self._hidden_tag = tag
+                self.hidden = 1
+            return
+        if tag in self._BLOCK_TAGS:
+            self.parts.append("\n")
+        elif tag in {"td", "th"}:
+            self.parts.append(" ")
 
     def handle_endtag(self, tag: str) -> None:
-        if tag in self._HIDDEN_TAGS:
-            self.hidden = max(0, self.hidden - 1)
-        if not self.hidden:
-            if tag in self._BLOCK_TAGS and tag not in {"br", "hr"}:
-                self.parts.append("\n")
-            elif tag in {"td", "th"}:
-                self.parts.append(" ")
+        if self.hidden:
+            # Only a matching outer element can end suppression. Count nested
+            # instances of that element without building an unbounded tag stack.
+            if tag == self._hidden_tag:
+                self.hidden -= 1
+                if not self.hidden:
+                    self._hidden_tag = None
+            return
+        if tag in self._BLOCK_TAGS and tag not in {"br", "hr"}:
+            self.parts.append("\n")
+        elif tag in {"td", "th"}:
+            self.parts.append(" ")
 
     def handle_data(self, data: str) -> None:
         if not self.hidden:
