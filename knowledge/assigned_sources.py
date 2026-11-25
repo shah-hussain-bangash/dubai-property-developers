@@ -119,8 +119,9 @@ class AssignedSources:
                     ),
                 )
             else:
+                # Re-importing identical content must not silently remove its review deadline.
                 db.execute(
-                    "UPDATE agent_sources SET title=?,review_by=?,customer_safe=? WHERE tenant=? AND agent=? AND id=?",
+                    "UPDATE agent_sources SET title=?,review_by=coalesce(?,review_by),customer_safe=? WHERE tenant=? AND agent=? AND id=?",
                     (
                         title,
                         review_by.isoformat() if review_by else None,

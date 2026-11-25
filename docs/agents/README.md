@@ -183,6 +183,9 @@ redirects and reject private-network targets. They import one readable page snap
 JavaScript rendering, sign-in, cookies or recursive crawling. Review web snapshots as they age;
 remove an obsolete source before importing its replacement so contradictory copies do not remain.
 The API also supports an optional source `review_by` date; expired sources cannot supply answers.
+Re-importing an identical source with an omitted or null date preserves its existing deadline.
+Renew a dated source with an explicit valid replacement date; a null value does not clear it.
+See the [review deadline verification](../verification/source-review-deadline-local-2026-11-25.md).
 
 Source endpoints are under `/api/v1/knowledge/agents`: list agents; list/import sources at
 `/{agent}/sources`; remove `/{agent}/sources/{source_id}`; and preview an answer at `/{agent}/answer`.
