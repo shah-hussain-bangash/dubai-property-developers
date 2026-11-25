@@ -19,8 +19,7 @@ def validated_webhook_path(value: object) -> str:
         path = value.strip("/")
         segments = path.split("/")
         if all(
-            segment not in {"", ".", ".."}
-            and re.fullmatch(r"[A-Za-z0-9_.-]+", segment) is not None
+            segment not in {"", ".", ".."} and re.fullmatch(r"[A-Za-z0-9_.-]+", segment) is not None
             for segment in segments
         ):
             return path
