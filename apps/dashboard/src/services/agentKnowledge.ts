@@ -15,7 +15,12 @@ export function parseSourceAnswer(value:SourceAnswer,agent:string):SourceAnswer{
  if(!value||typeof value!=='object')throw Error('The source answer could not be verified.');
  if(value.agent_id!==agent||value.supplied_sources_only!==true||value.method!=='source-excerpts'||value.sent!==false||typeof value.text!=='string'||!Array.isArray(value.sources)||value.sources.length>3||typeof value.answered!=='boolean'||value.answered!==(value.sources.length>0))throw Error('The source answer could not be verified.');
  if(!value.answered&&value.text!==NO_SOURCE_ANSWER)throw Error('The source answer could not be verified.');
- for(const [i,s] of value.sources.entries())if(s.label!==String(i+1)||typeof s.excerpt!=='string'||!s.excerpt.trim()||typeof s.title!=='string'||typeof s.source_id!=='string')throw Error('A source reference is invalid.');
+ for(const [i,s] of value.sources.entries()){
+  if(!s||typeof s!=='object')throw Error('A source reference is invalid.');
+  // Match the upload contract: PDFs have 1-100 pages; other sources use null.
+  const validPage=s.page===null||(Number.isInteger(s.page)&&s.page>=1&&s.page<=100);
+  if(s.label!==String(i+1)||typeof s.excerpt!=='string'||!s.excerpt.trim()||typeof s.title!=='string'||!s.title.trim()||typeof s.source_id!=='string'||!s.source_id.trim()||!validPage)throw Error('A source reference is invalid.');
+ }
  if(value.answered&&value.text!==value.sources.map((s,i)=>`[${i+1}] ${s.excerpt}`).join('\n\n'))throw Error('The answer contains text outside the supplied excerpts.');
  return value;
 }
