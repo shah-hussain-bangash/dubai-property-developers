@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import itertools
 import re
+from copy import deepcopy
 from typing import Any, Protocol
 
 import httpx
@@ -49,7 +50,7 @@ class CRMClient(Protocol):
 
 
 class MockEspoCRMClient:
-    """In-memory CRM with EspoCRM-shaped records (``emailAddress``, ``phoneNumber``)."""
+    """In-memory CRM with detached input/output records, like HTTP JSON payloads."""
 
     def __init__(self) -> None:
         self.leads: dict[str, dict[str, Any]] = {}
@@ -59,7 +60,7 @@ class MockEspoCRMClient:
 
     async def find_leads(self, *, email: str | None, phone: str | None) -> list[dict[str, Any]]:
         return [
-            lead
+            deepcopy(lead)
             for lead in self.leads.values()
             if (email and lead.get("emailAddress") == email)
             or (phone and lead.get("phoneNumber") == phone)
@@ -68,7 +69,7 @@ class MockEspoCRMClient:
     async def get_lead(self, external_id: str) -> dict[str, Any]:
         validate_crm_record_id(external_id)
         try:
-            return dict(self.leads[external_id])
+            return deepcopy(self.leads[external_id])
         except KeyError as exc:
             raise NotFoundError(f"mock CRM lead {external_id} not found") from exc
 
@@ -76,7 +77,7 @@ class MockEspoCRMClient:
         if idempotency_key in self._idempotency:
             return self._idempotency[idempotency_key]
         external_id = f"mock-lead-{next(self._ids):05d}"
-        self.leads[external_id] = {"id": external_id, **data}
+        self.leads[external_id] = {"id": external_id, **deepcopy(data)}
         self._idempotency[idempotency_key] = external_id
         return external_id
 
@@ -84,7 +85,7 @@ class MockEspoCRMClient:
         validate_crm_record_id(external_id)
         if external_id not in self.leads:
             raise NotFoundError(f"mock CRM lead {external_id} not found")
-        self.leads[external_id].update(data)
+        self.leads[external_id].update(deepcopy(data))
 
     async def add_note(self, *, parent_type: str, parent_id: str, text: str) -> str:
         note_id = f"mock-note-{next(self._ids):05d}"
