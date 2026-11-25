@@ -7,6 +7,11 @@ Agents reach external systems only through tools on their `allowed_tools` allowl
 
 Result statuses: `succeeded`, `failed`, `timed_out`, `pending_approval`, `escalated`.
 
+Execution records carry the authenticated principal's organization. Agent runs reject mismatched
+principal/context organizations before input validation or execution. Analytics reads only its
+organization's owned execution records and rejects foreign lead inputs. Legacy records without
+ownership are excluded. See the [analytics scope verification](../verification/analytics-organization-scope-local-2026-11-25.md).
+
 | # | agent_id | Status | Allowed tools | Notes |
 |---|---|---|---|---|
 | 01 | `supervisor` | functional | none | Routing table + keyword intent; escalates complaints, unsubscribes and suspected injection. Plans only; the workflow engine executes |

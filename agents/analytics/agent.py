@@ -53,5 +53,5 @@ class AnalyticsAgent(BaseAgent[AnalyticsInput, AnalyticsOutput]):
         performance: list[AgentPerformance] = []
         recorder = self.deps.executions
         if data.include_agent_performance and isinstance(recorder, InMemoryExecutionRecorder):
-            performance = summarize_executions(recorder.records)
+            performance = summarize_executions(recorder.records_for_tenant(ctx.tenant_id))
         return AnalyticsOutput(sales=sales.data, agent_performance=performance)

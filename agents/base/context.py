@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass, field, replace
 from typing import Any, Protocol
 
@@ -39,12 +40,22 @@ class ExecutionRecorder(Protocol):
 
 class InMemoryExecutionRecorder:
     def __init__(self, max_records: int = 1000) -> None:
-        self.records: list[dict[str, Any]] = []
+        self._records: list[dict[str, Any]] = []
         self._max = max_records
 
+    @property
+    def records(self) -> list[dict[str, Any]]:
+        return deepcopy(self._records)
+
+    def records_for_tenant(self, tenant_id: str) -> list[dict[str, Any]]:
+        # Legacy records without known ownership are not assigned by inference.
+        return deepcopy(
+            [record for record in self._records if record.get("tenant_id") == tenant_id]
+        )
+
     async def record(self, record: dict[str, Any]) -> None:
-        self.records.append(record)
-        del self.records[: -self._max]
+        self._records.append(deepcopy(record))
+        del self._records[: -self._max]
 
 
 @dataclass
