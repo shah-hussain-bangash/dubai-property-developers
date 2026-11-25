@@ -68,7 +68,12 @@ class CRMCreateLeadTool(OrganizationCRMTool):
     )
 
     def validate(self, payload: dict[str, Any]) -> None:
-        data = payload.get("data") or {}
+        source_id = payload.get("local_lead_id")
+        if not isinstance(source_id, str) or not source_id.strip():
+            raise DomainValidationError("CRM creation requires a nonempty source enquiry ID")
+        data = payload.get("data")
+        if not isinstance(data, dict):
+            raise DomainValidationError("CRM lead data must be an object")
         if not data.get("lastName") and not data.get("name"):
             raise DomainValidationError("CRM lead requires a name")
         if not data.get("emailAddress") and not data.get("phoneNumber"):
@@ -76,7 +81,7 @@ class CRMCreateLeadTool(OrganizationCRMTool):
 
     async def _execute(self, payload: dict[str, Any]) -> dict[str, Any]:
         external_id = await self._client.create_lead(
-            payload["data"], idempotency_key=str(payload["local_lead_id"])
+            payload["data"], idempotency_key=payload["local_lead_id"]
         )
         return {"external_id": external_id}
 
