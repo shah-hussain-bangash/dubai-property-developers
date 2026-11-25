@@ -7,7 +7,9 @@ instance; verify field names against your EspoCRM version before enabling LIVE.
 
 from __future__ import annotations
 
+import hashlib
 import itertools
+import json
 import re
 from copy import deepcopy
 from typing import Any, Protocol
@@ -15,7 +17,7 @@ from typing import Any, Protocol
 import httpx
 from pydantic import SecretStr
 
-from core.exceptions.errors import DomainValidationError, NotFoundError
+from core.exceptions.errors import ConflictError, DomainValidationError, NotFoundError
 from integrations.base import ApiKeyHeaderAuth, HttpIntegrationClient, IntegrationConfig
 from schemas.integrations.models import ApiAccessStatus, IntegrationDescriptor
 
@@ -66,6 +68,7 @@ class MockEspoCRMClient:
         self.notes: list[dict[str, Any]] = []
         self._ids = itertools.count(1)
         self._idempotency: dict[str, str] = {}
+        self._creation_fingerprints: dict[str, str] = {}
 
     async def find_leads(self, *, email: str | None, phone: str | None) -> list[dict[str, Any]]:
         return [
@@ -84,11 +87,21 @@ class MockEspoCRMClient:
 
     async def create_lead(self, data: dict[str, Any], *, idempotency_key: str) -> str:
         validate_crm_lead_fields(data)
+        try:
+            canonical = json.dumps(
+                data, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+            )
+            fingerprint = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        except (TypeError, ValueError, OverflowError, UnicodeError) as exc:
+            raise DomainValidationError("CRM creation data must contain only valid JSON") from exc
         if idempotency_key in self._idempotency:
+            if self._creation_fingerprints.get(idempotency_key) != fingerprint:
+                raise ConflictError("CRM retry key was already used with different creation data")
             return self._idempotency[idempotency_key]
         external_id = f"mock-lead-{next(self._ids):05d}"
         self.leads[external_id] = {"id": external_id, **deepcopy(data)}
         self._idempotency[idempotency_key] = external_id
+        self._creation_fingerprints[idempotency_key] = fingerprint
         return external_id
 
     async def update_lead(self, external_id: str, data: dict[str, Any]) -> None:
