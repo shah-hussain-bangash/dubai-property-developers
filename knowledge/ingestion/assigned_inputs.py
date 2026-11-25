@@ -136,11 +136,20 @@ class PinnedHTTPS(http.client.HTTPSConnection):
             raise
 
 
+def _check_fetch_deadline(deadline: float) -> None:
+    if time.monotonic() >= deadline:
+        raise DomainValidationError("The website took too long. Paste its text instead.")
+
+
 def import_website(url: str) -> tuple[list[str], str]:
+    deadline = time.monotonic() + 20
     for _ in range(4):
+        _check_fetch_deadline(deadline)
         host, address, path = public_target(url)
+        _check_fetch_deadline(deadline)
         connection = PinnedHTTPS(host, address)
         try:
+            _check_fetch_deadline(deadline)
             connection.request(
                 "GET",
                 path,
@@ -150,7 +159,9 @@ def import_website(url: str) -> tuple[list[str], str]:
                     "User-Agent": "DubaiPropertyKnowledgeImporter/1.0",
                 },
             )
+            _check_fetch_deadline(deadline)
             response = connection.getresponse()
+            _check_fetch_deadline(deadline)
             if response.status in {301, 302, 303, 307, 308}:
                 url = urljoin(url, response.getheader("Location", ""))
                 continue
@@ -162,16 +173,14 @@ def import_website(url: str) -> tuple[list[str], str]:
                     "The page could not be imported. Use a readable public page or paste its text."
                 )
             chunks = bytearray()
-            deadline = time.monotonic() + 20
             while len(chunks) <= MAX_IMPORT_BYTES:
+                _check_fetch_deadline(deadline)
                 chunk = response.read1(min(65536, MAX_IMPORT_BYTES + 1 - len(chunks)))
+                # EOF is still a network result and cannot bypass the fetch budget.
+                _check_fetch_deadline(deadline)
                 if not chunk:
                     break
                 chunks.extend(chunk)
-                if time.monotonic() > deadline:
-                    raise DomainValidationError(
-                        "The website took too long. Paste its text instead."
-                    )
             content = bytes(chunks)
             mime = response.getheader("Content-Type", "").split(";")[0].strip().lower()
             return extract_input(content, mime), url
