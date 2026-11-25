@@ -7,6 +7,7 @@ from agents.base.context import ExecutionContext
 from agents.crm.mapping import to_espocrm_lead
 from agents.crm.schemas import CRMUpsertInput, CRMUpsertResult
 from core.exceptions.errors import DomainValidationError
+from integrations.espocrm.client import validate_crm_record_id
 from schemas.agents.models import AgentRunStatus, ImplementationStatus
 from tools.base import ToolResultStatus
 
@@ -40,13 +41,19 @@ class CRMAgent(BaseAgent[CRMUpsertInput, CRMUpsertResult]):
             ctx, "crm.find_leads", {"email": lead.email, "phone": lead.phone_e164}
         )
         crm_data = to_espocrm_lead(lead, data.score)
-        existing = found.data.get("leads", [])
+        existing = found.data.get("leads")
+        if not isinstance(existing, list):
+            raise DomainValidationError("CRM lookup must return a list of lead records")
         if len(existing) > 1:
             raise DomainValidationError(
                 "Enquiry matches multiple CRM records; review the matches before synchronizing"
             )
         if existing:
-            external_id: str | None = str(existing[0]["id"])
+            record = existing[0]
+            if not isinstance(record, dict):
+                raise DomainValidationError("CRM lookup returned an invalid lead record")
+            external_id: str | None = record.get("id")
+            validate_crm_record_id(external_id)
             write = await self.use_tool(
                 ctx,
                 "crm.update_lead",
