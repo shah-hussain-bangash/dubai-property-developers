@@ -78,6 +78,11 @@ can miss paraphrases; reword the question or add a clearer source. Instructions 
 are quoted data and cannot grant tools or trigger actions. Answers are staff previews and send
 nothing to customers. Voice and other partial provider capabilities are unchanged.
 
+Supplied-source matching recognizes Unicode letters/numbers and canonical spellings while keeping
+the original excerpts unchanged. Punctuation alone cannot match a source. This adds no translation,
+stemming or CJK word segmentation; the legacy vector/hash tokenizer stays unchanged. See the
+[Unicode source matching verification](../verification/unicode-source-matching-local-2026-11-25.md).
+
 By default, sources are **staff only**. Check **Allow this source in customer-facing answers** only
 for approved public material. In supplied-source mode, document and sales-conversation agents search
 only their own assigned, customer-approved sources for customer replies; an empty corpus never

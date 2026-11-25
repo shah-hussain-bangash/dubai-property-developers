@@ -22,7 +22,7 @@ from core.exceptions.errors import (
     NotFoundError,
     PolicyViolationError,
 )
-from knowledge.embeddings.base import tokenize
+from knowledge.embeddings.base import tokenize_unicode
 from knowledge.ingestion.chunking import chunk_text
 from schemas.conversations.models import Citation
 
@@ -148,7 +148,7 @@ class AssignedSources:
     def search(
         self, tenant: str, agent: str, question: str, *, customer: bool = False
     ) -> list[dict[str, Any]]:
-        terms = set(tokenize(question))
+        terms = set(tokenize_unicode(question))
         if not terms:
             return []
         with closing(self._connect()) as db:
@@ -161,7 +161,7 @@ class AssignedSources:
         for row in rows:
             for page_number, page in enumerate(json.loads(row["pages"]), 1):
                 for index, passage in enumerate(chunk_text(page, chunk_size=700, overlap=80)):
-                    matched = len(terms & set(tokenize(passage)))
+                    matched = len(terms & set(tokenize_unicode(passage)))
                     score = matched / len(terms)
                     if matched < min(2, len(terms)) or score < 0.5:
                         continue
