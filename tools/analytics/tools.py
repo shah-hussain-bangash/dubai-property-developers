@@ -19,6 +19,16 @@ class LeadScoringTool(BaseTool):
         permission=Permission.LEADS_READ,
     )
 
+    async def execute_with_context(
+        self, payload: dict[str, Any], ctx: ToolCallContext
+    ) -> dict[str, Any]:
+        if ctx.principal.tenant_id != ctx.tenant_id:
+            raise AuthorizationError("Principal belongs to a different organization")
+        lead = NormalizedLead.model_validate(payload["lead"])
+        if lead.tenant_id != ctx.tenant_id:
+            raise AuthorizationError("Scored lead belongs to a different organization")
+        return score_lead(lead).model_dump(mode="json")
+
     async def execute(self, payload: dict[str, Any]) -> dict[str, Any]:
         lead = NormalizedLead.model_validate(payload["lead"])
         return score_lead(lead).model_dump(mode="json")

@@ -12,6 +12,10 @@ principal/context organizations before input validation or execution. Analytics 
 organization's owned execution records and rejects foreign lead inputs. Legacy records without
 ownership are excluded. See the [analytics scope verification](../verification/analytics-organization-scope-local-2026-11-25.md).
 
+Marketing batches and contextual qualification scoring also require supplied lead organizations to
+match the trusted caller. Mixed batches fail before segmentation or knowledge lookup, including
+foreign leads without marketing consent. See the [lead planning verification](../verification/lead-planning-ownership-local-2026-11-25.md).
+
 | # | agent_id | Status | Allowed tools | Notes |
 |---|---|---|---|---|
 | 01 | `supervisor` | functional | none | Routing table + keyword intent; escalates complaints, unsubscribes and suspected injection. Plans only; the workflow engine executes |

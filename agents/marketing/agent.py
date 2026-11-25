@@ -7,6 +7,7 @@ from typing import ClassVar
 from agents.base.agent import AgentSpec, BaseAgent
 from agents.base.context import ExecutionContext
 from agents.marketing.schemas import CampaignDraft, MarketingInput, MarketingOutput
+from core.exceptions.errors import AuthorizationError
 from knowledge.assigned_sources import NO_ANSWER
 from schemas.agents.models import AgentRunStatus, ImplementationStatus
 from schemas.conversations.models import Citation
@@ -48,6 +49,10 @@ class MarketingAgent(BaseAgent[MarketingInput, MarketingOutput]):
     output_model = MarketingOutput
 
     async def execute(self, data: MarketingInput, ctx: ExecutionContext) -> MarketingOutput:
+        if ctx.principal.tenant_id != ctx.tenant_id or any(
+            lead.tenant_id != ctx.tenant_id for lead in data.leads
+        ):
+            raise AuthorizationError("Campaign leads do not belong to this organization")
         consented = [lead for lead in data.leads if lead.consent_marketing]
         segments: dict[str, list[str]] = defaultdict(list)
         for lead in consented:
