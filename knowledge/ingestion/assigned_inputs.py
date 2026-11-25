@@ -12,7 +12,7 @@ import subprocess
 import sys
 import time
 from html.parser import HTMLParser
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import quote, urljoin, urlsplit
 
 from core.exceptions.errors import DomainValidationError
 
@@ -108,7 +108,9 @@ def public_target(url: str) -> tuple[str, str, str]:
         return (
             host,
             sorted(addresses)[0],
-            (parsed.path or "/") + ("?" + parsed.query if parsed.query else ""),
+            # Encode Unicode for the HTTP request line, retaining existing escapes.
+            quote(parsed.path or "/", safe="/%:@!$&'()*+,;=-._~")
+            + ("?" + quote(parsed.query, safe="/%?:@!$&'()*+,;=-._~[]") if parsed.query else ""),
         )
     except (ValueError, OSError, UnicodeError):
         raise DomainValidationError(
