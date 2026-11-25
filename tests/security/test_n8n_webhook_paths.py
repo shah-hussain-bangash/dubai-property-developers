@@ -84,7 +84,8 @@ async def test_valid_webhook_routes_preserve_payload_and_key(path, normalized):
     )
     payload = {"fictional_enquiry": "portfolio-only"}
     try:
-        assert await client.trigger(path, payload, idempotency_key="fictional") == {"accepted": True}
+        result = await client.trigger(path, payload, idempotency_key="fictional")
+        assert result == {"accepted": True}
         assert len(requests) == 1
         request = requests[0]
         assert request.method == "POST"
