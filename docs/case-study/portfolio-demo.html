@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dubai Property Developers portfolio walkthrough</title>
+<style>
+:root{color-scheme:dark;--navy:#081623;--panel:#102638;--gold:#e9c98b;--muted:#b3c8d7}*{box-sizing:border-box}body{margin:0;background:var(--navy);color:#f2f6fa;font:16px/1.6 system-ui,sans-serif}header,main,footer{max-width:1220px;margin:auto;padding:24px}header{display:flex;align-items:center;justify-content:space-between;gap:24px;border-bottom:1px solid #294051}.eyebrow{color:var(--gold);font-size:.8rem;letter-spacing:.12em;text-transform:uppercase}h1{font-size:clamp(1.5rem,3vw,2.4rem);margin:4px 0}h2{margin:0 0 8px;font-size:clamp(1.2rem,2vw,1.65rem)}p{margin:8px 0}.muted{color:var(--muted)}.badge{border:1px solid var(--gold);border-radius:30px;padding:6px 14px;white-space:nowrap;color:var(--gold)}nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}button,a{font:inherit}button{cursor:pointer;color:#edf4fa;background:#142e43;border:1px solid #3f596f;border-radius:8px;padding:10px 16px}button:hover,button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:3px}button[aria-current="step"]{background:var(--gold);color:#142537;border-color:var(--gold)}button:disabled{opacity:.4;cursor:default}a{color:var(--gold)}.summary{background:var(--panel);padding:24px;border:1px solid #29475e;border-radius:14px;margin-bottom:18px}.summary a{display:inline-block;margin-top:8px}figure{margin:0;background:#05101a;border:1px solid #29475e;border-radius:14px;padding:12px;text-align:center}img{display:block;width:100%;height:68vh;object-fit:contain;margin:auto}figcaption{font-size:.88rem;color:var(--muted);padding:12px 0}.controls{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:20px 0}.links{display:flex;flex-wrap:wrap;gap:20px}footer{font-size:.9rem;color:var(--muted);border-top:1px solid #294051}noscript{display:block;padding:24px}@media(max-width:650px){header{display:block}.badge{display:inline-block;margin-top:12px}header,main,footer{padding:18px}nav button{padding:8px 12px}.summary{padding:18px}img{height:56vh}}
+</style>
+</head>
+<body>
+<header><div><div class="eyebrow">Portfolio walkthrough</div><h1>Dubai Property Developers</h1><p class="muted">From a website enquiry to an owned brief and cited agent knowledge.</p></div><span class="badge">Verified local captures · 26 Nov 2026</span></header>
+<main>
+<nav aria-label="Walkthrough steps" id="steps"></nav>
+<section class="summary" aria-live="polite" aria-atomic="true"><div class="eyebrow" id="revision"></div><h2 id="title"></h2><p id="description"></p><a id="evidence">Read the verification record</a></section>
+<figure><img id="capture" alt=""><figcaption>Original synthetic test capture. <a id="full-image" target="_blank" rel="noopener noreferrer">Open the full-size screenshot</a></figcaption></figure>
+<div class="controls"><button id="previous" type="button">← Previous</button><span id="position" class="muted"></span><button id="next" type="button">Next →</button></div>
+<div class="links"><a href="PORTFOLIO_CAPABILITIES.md">Capability and reproduction guide</a><a href="DUBAI_PROPERTY_DEVELOPERS_CASE_STUDY.md">Project case study</a></div>
+<noscript>This walkthrough needs JavaScript for navigation. The capability guide and case study above provide the same evidence links.</noscript>
+</main>
+<footer>These are captured local acceptance results, with fictional records and mock providers. Hosted acceptance remains unverified. This walkthrough sends no enquiries or messages and does not connect to application APIs.</footer>
+<script>
+'use strict';
+const enquiry='../verification/assets/acceptance-2026-11-26/';
+const knowledge='../verification/assets/knowledge-acceptance-2026-11-26/';
+const steps=[
+ {title:'1. A receipt confirms the enquiry was saved',description:'The fictional visitor grants contact permission for this enquiry only. Receipt DPD-E-3C6AE92E gives the team a traceable reference; no email or message is sent.',image:enquiry+'01-receipt.jpg',alt:'Local enquiry receipt DPD-E-3C6AE92E',revision:'Enquiry acceptance · revision 0d6f4c4',evidence:'../verification/website-operations-local-2026-11-26.md'},
+ {title:'2. Admin reviews consent and assigns an owner',description:'The operations inbox retains website provenance and enquiry-only contact permission. Admin assigns approved fictional Operator Alpha using the current record.',image:enquiry+'02-assigned-enquiry.jpg',alt:'Admin enquiry details with consent, website source and Alpha assignment',revision:'Enquiry acceptance · revision 0d6f4c4',evidence:'../verification/website-operations-local-2026-11-26.md'},
+ {title:'3. The client brief retains its source',description:'Alpha creates a brief for the stated Dubai Marina requirement. The notes retain the receipt and original enquiry message. Persisted checks confirm that the brief owner equals the assigned operator.',image:enquiry+'03-owned-client-brief.jpg',alt:'Alpha-owned client brief retaining the original enquiry reference and message',revision:'Enquiry acceptance · revision 0d6f4c4',evidence:'../verification/website-operations-local-2026-11-26.md'},
+ {title:'4. Another operator sees an empty client desk',description:'Approved fictional Operator Beta sees neither Alpha’s assigned enquiry nor its client brief. The captured desk contains zero client records.',image:enquiry+'05-beta-no-clients.jpg',alt:'Beta’s client desk with zero records',revision:'Enquiry acceptance · revision 0d6f4c4',evidence:'../verification/website-operations-local-2026-11-26.md'},
+ {title:'5. An agent answers from its own supplied source',description:'The Document Agent quotes its fictional PDF passage with a page-2 citation. All 13 knowledge scopes passed PDF, Markdown, website snapshot and pasted-text checks.',image:knowledge+'01-document-citation.jpg',alt:'Document Agent exact source excerpt with PDF page-2 citation',revision:'Knowledge acceptance · revision 4477bec',evidence:'../verification/all-agent-knowledge-acceptance-local-2026-11-26.md'},
+ {title:'6. Another agent’s source cannot supply the answer',description:'The selected agent gives an explicit not-found response for a foreign source marker. API acceptance covered 624 cross-agent and 52 cross-organization questions.',image:knowledge+'02-foreign-source-not-found.jpg',alt:'Knowledge page declining a question about another agent’s source',revision:'Knowledge acceptance · revision 4477bec',evidence:'../verification/all-agent-knowledge-acceptance-local-2026-11-26.md'},
+ {title:'7. Removed sources stop supplying answers',description:'After source removal, the page shows zero saved sources and declines the previous question. API restart checks confirm that the deletion persists for every agent.',image:knowledge+'03-removed-source-not-found.jpg',alt:'Empty source list and no-answer response after removing the supplied sources',revision:'Knowledge acceptance · revision 4477bec',evidence:'../verification/all-agent-knowledge-acceptance-local-2026-11-26.md'}
+];
+let current=0;
+const buttons=steps.map((step,index)=>{const button=document.createElement('button');button.type='button';button.textContent=String(index+1);button.setAttribute('aria-label',step.title);button.addEventListener('click',()=>show(index));document.getElementById('steps').append(button);return button;});
+function show(index){current=index;const step=steps[index];document.getElementById('title').textContent=step.title;document.getElementById('description').textContent=step.description;document.getElementById('revision').textContent=step.revision;document.getElementById('evidence').href=step.evidence;const image=document.getElementById('capture');image.src=step.image;image.alt=step.alt;document.getElementById('full-image').href=step.image;document.getElementById('position').textContent=`Step ${index+1} of ${steps.length}`;document.getElementById('previous').disabled=index===0;document.getElementById('next').disabled=index===steps.length-1;buttons.forEach((button,i)=>{if(i===index)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current');});}
+document.getElementById('previous').addEventListener('click',()=>show(Math.max(0,current-1)));
+document.getElementById('next').addEventListener('click',()=>show(Math.min(steps.length-1,current+1)));
+document.addEventListener('keydown',event=>{if(event.key==='ArrowRight'){event.preventDefault();show(Math.min(steps.length-1,current+1));}if(event.key==='ArrowLeft'){event.preventDefault();show(Math.max(0,current-1));}});
+show(0);
+</script>
+</body>
+</html>

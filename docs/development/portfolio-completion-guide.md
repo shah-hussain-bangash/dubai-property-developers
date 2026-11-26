@@ -101,10 +101,13 @@ Phase exit: an evidence table for all agents with failures resolved or documente
 
 ## Phase 4 Prepare the portfolio demonstration
 
-Update the case study and screenshots to the verified revision. Record a short
-demonstration of enquiry ownership and separate agent knowledge. Distinguish
-functional, partial and interface-only capabilities. Keep setup instructions
-reproducible with fictional fixtures.
+The [guided screenshot demonstration](../case-study/portfolio-demo.html), updated
+case study and [capability guide](../case-study/PORTFOLIO_CAPABILITIES.md) package
+the verified local evidence. The seven steps cover enquiry ownership, operator
+separation, source citations, foreign-source abstention and source removal.
+The guide includes reproduction commands and functional/partial/interface-only
+capabilities. This is a captured-image presentation; a live video recording is
+not included. Hosted acceptance and release approval remain outstanding.
 
 Phase exit: a reviewer can reproduce the demonstrated behavior from the guide.
 

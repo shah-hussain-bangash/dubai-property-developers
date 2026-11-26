@@ -1,5 +1,7 @@
 # Dubai Property Developers
 
+**Portfolio demonstration:** [Capability guide and local walkthrough instructions](docs/case-study/PORTFOLIO_CAPABILITIES.md) · [Seven-step screenshot walkthrough](docs/case-study/portfolio-demo.html).
+
 **Latest candidate acceptance:** [Local browser journey on 26 November 2026](docs/verification/website-operations-local-2026-11-26.md) at revision `0d6f4c4`: one fictional enquiry through consent, assignment and an owned client brief, with cross-operator isolation. All 36 focused checks passed. Hosted staging acceptance remains unverified.
 
 
