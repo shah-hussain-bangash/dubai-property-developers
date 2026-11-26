@@ -60,18 +60,27 @@ development identity; authenticated tenant/role boundaries were tested separatel
   viewer read access, missing-source/foreign-source abstention, expected-text
   non-ingestion, source changes, title-only mismatch, authentication, invalid
   ownership, duplicate IDs, field/count/body limits and unknown-agent rejection.
-- **18 new dashboard cases pass**: actual quotes/PDF references, agent switching,
+- **19 new dashboard cases pass**: actual quotes/PDF references, agent switching,
   editing, adding/removing questions, loading/saving, failed file validation,
   in-flight locking and rejection of forged counts, outcomes or citations.
 - Full local backend: **2,293 passed**, 156 skipped, four existing expected
   failures, 662 passing subtests; three warnings. Database integration prerequisites
   and Unix-only mode checks account for local skips. Recovery/fencing expected
   failures remain documented limitations.
-- Full dashboard: **973 tests in 96 files passed**. Type checking and production
+- Full dashboard: **974 tests in 96 files passed**. Type checking and production
   compilation pass. Lint has zero errors and 27 existing warnings. The existing
   Windows standalone packaging symlink warning remains; use a verified release
   artifact rather than this local standalone output.
 - Ruff, Python formatting and focused mypy pass for changed Python files.
+
+The initial GitHub frontend run exposed a readiness race in the existing website
+link test: actions could become enabled between agent selection and the source
+loading effect. The panel now also requires the source list's loaded agent to
+match the selected agent. A delayed-list regression covers this guard. The
+existing source-link/switching tests and the new evaluation tests pass together
+in a 43-case focused run. The final frontend totals above include this correction.
+The browser capture predates this readiness-only correction; the evaluation API,
+question-file contract, actual outcomes and displayed form are unchanged.
 
 From the source root with the project environment:
 
