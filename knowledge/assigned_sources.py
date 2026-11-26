@@ -57,6 +57,26 @@ class AssignedSources:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def read_source(self, tenant: str, agent: str, source_id: str) -> dict[str, Any]:
+        """Return a saved text snapshot for staff review, including expired material."""
+        with closing(self._connect()) as db:
+            row = db.execute(
+                "SELECT id,title,kind,uri,chars,created,review_by,customer_safe,pages "
+                "FROM agent_sources WHERE tenant=? AND agent=? AND id=?",
+                (tenant, agent, source_id),
+            ).fetchone()
+        if row is None:
+            raise NotFoundError("Source not found in this agent's knowledge.")
+        source = dict(row)
+        pages = json.loads(source.pop("pages"))
+        return {
+            "source": source,
+            "pages": [
+                {"page": index if source["kind"] == "pdf" else None, "text": text}
+                for index, text in enumerate(pages, 1)
+            ],
+        }
+
     def add(
         self,
         tenant: str,

@@ -318,3 +318,8 @@ afterward. Re-import with an explicitly reviewed new date to renew material; lea
 blank preserves the existing deadline for identical content. Editing the draft date clears
 customer approval. Undated sources have no automatic date cutoff. See the
 [review-date verification](../verification/source-review-dates-local-2026-11-26.md).
+
+Use View saved text on a source to read its saved extraction and PDF page numbers before
+reviewing it. This staff preview includes overdue material but changes neither deadlines
+nor customer approval. It does not open the original file or refresh a website snapshot.
+See the [saved text verification](../verification/saved-source-preview-local-2026-11-26.md).

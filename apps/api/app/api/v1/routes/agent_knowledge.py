@@ -110,6 +110,18 @@ async def list_sources(
     }
 
 
+@router.get("/{agent}/sources/{source_id}")
+async def read_source(
+    agent: str,
+    source_id: str,
+    runtime: PlatformRuntime = Depends(get_runtime),
+    principal: Principal = Depends(require_permission(Permission.KNOWLEDGE_READ)),
+) -> dict[str, Any]:
+    store = source_store(runtime, agent)
+    saved = await asyncio.to_thread(store.read_source, principal.tenant_id, agent, source_id)
+    return {"agent_id": agent, **saved}
+
+
 @router.post("/{agent}/sources")
 async def add_source(
     agent: str,

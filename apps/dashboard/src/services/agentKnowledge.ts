@@ -4,6 +4,17 @@ const NO_SOURCE_ANSWER="I could not find an answer in this agent's supplied sour
 
 export type KnowledgeAgent={id:string;name:string;status:string};
 export type AssignedSource={id:string;title:string;kind:string;uri:string|null;chars:number;created:string;review_by:string|null;customer_safe:number};
+export type SourcePreview={agent_id:string;source:AssignedSource;pages:{page:number|null;text:string}[]};
+export function parseSourcePreview(value:SourcePreview,agent:string,sourceId:string):SourcePreview{
+ const invalid=()=>Error('The saved source text could not be verified.');
+ if(!value||value.agent_id!==agent||!value.source||value.source.id!==sourceId||typeof value.source.title!=='string'||!value.source.title.trim()||!['pdf','text','markdown','website'].includes(value.source.kind)||!validSourceUri(value.source.uri)||!Array.isArray(value.pages)||!value.pages.length||value.pages.length>100)throw invalid();
+ let chars=0;
+ value.pages.forEach((p,i)=>{if(!p||typeof p.text!=='string'||p.page!==(value.source.kind==='pdf'?i+1:null))throw invalid();chars+=p.text.length;});
+ // Python stores Unicode code points; JavaScript string length counts UTF-16 units.
+ const codePoints=value.pages.reduce((n,p)=>n+[...p.text].length,0);
+ if(!chars||codePoints>200000||codePoints!==value.source.chars)throw invalid();
+ return value;
+}
 export type SourceAnswer={agent_id:string;answered:boolean;supplied_sources_only:true;method:'source-excerpts';sent:false;text:string;sources:{source_id:string;label:string;title:string;uri:string|null;page:number|null;excerpt:string}[]};
 function validSourceUri(value:unknown):boolean{
  if(value===null)return true;

@@ -136,6 +136,11 @@ pass locally for all 13 agents. See the
 [review-date lifecycle record](../verification/source-review-dates-local-2026-11-26.md).
 Review reminders and direct editing of existing dates remain future work.
 
+Saved source text can now be read in the Knowledge page before review, with PDF page
+numbers and organization/agent-scoped access. Previewing overdue material does not
+restore it to answers. See the
+[saved text preview record](../verification/saved-source-preview-local-2026-11-26.md).
+
 Plan separate work for durable runtime storage and consent, scheduled follow-ups,
 production authentication, sandbox provider validation, monitoring and recovery.
 Voice/telephony, live calendar and partner property APIs require additional
