@@ -50,6 +50,7 @@ measured business conversion improvements.
 | Container storage | Prepared non-root dashboard directory and persistent Compose volume | [Storage review](../verification/phase1-deployment-compatibility-local-2026-11-26.md); real CI write/read across replacement containers |
 | Optional conversation persistence | SQLite history/state retains scoped WhatsApp opt-outs across runtime restart; API/worker share a dedicated Compose volume | [Durable memory verification](../verification/durable-agent-memory-local-2026-11-26.md); configuration requires a writable private path |
 | Question wording | Supplied-source retrieval supports listed English question wrappers, singular/plural forms and spelling variants while preserving quoted excerpts | [Wording verification](../verification/supplied-question-wording-local-2026-11-26.md); this is bounded lexical matching |
+| Separate evaluation data | Agent-bound question files, expected passage/no-answer checks and downloadable actual citations; examples never enter knowledge | [Local evaluation workspace](../verification/agent-knowledge-evaluation-local-2026-11-26.md); 29 API and 18 dashboard regressions, fictional browser save/reload journey |
 | Automated validation | Backend/frontend tests, database integration, image builds, Windows setup and security/configuration checks | [PR 87 checks](https://github.com/shah-hussain-bangash/dubai-property-developers/pull/87/checks); 12 checks passed at evidence revision `8ea55a8` |
 
 Acceptance revisions identify the source used for each run. Later documentation

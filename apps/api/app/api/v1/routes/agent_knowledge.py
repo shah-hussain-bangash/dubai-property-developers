@@ -12,6 +12,7 @@ from apps.api.app.dependencies.runtime import get_runtime
 from core.exceptions.errors import DomainValidationError
 from core.security.rbac import Permission, Principal
 from knowledge.assigned_sources import AssignedSources
+from knowledge.evaluation.supplied_sources import EvaluationSet, evaluate_sources
 from knowledge.ingestion.assigned_inputs import MAX_IMPORT_BYTES, extract_input, import_website
 from workflows.runtime import PlatformRuntime
 
@@ -38,6 +39,25 @@ class SourceInput(BaseModel):
 class Question(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     question: str = Field(min_length=3, max_length=1000)
+
+
+@router.post("/{agent}/evaluate")
+async def evaluate_agent_sources(
+    agent: str,
+    request: Request,
+    runtime: PlatformRuntime = Depends(get_runtime),
+    principal: Principal = Depends(require_permission(Permission.KNOWLEDGE_READ)),
+) -> dict[str, Any]:
+    store = source_store(runtime, agent)
+    try:
+        checks = EvaluationSet.model_validate_json(await bounded_body(request))
+    except ValidationError:
+        raise DomainValidationError(
+            "Check the question set: use 1-20 unique, valid questions."
+        ) from None
+    if checks.agent_id != agent:
+        raise DomainValidationError("Choose a question set saved for this agent.")
+    return await asyncio.to_thread(evaluate_sources, store, principal.tenant_id, agent, checks)
 
 
 def source_store(runtime: PlatformRuntime, agent: str) -> AssignedSources:

@@ -303,3 +303,11 @@ of identical content without removing another owner's copy. See the
 When adding an agent, add its dataset and update the registry together. Keep input examples fictional,
 make expected outcomes independent of current outputs, retain source provenance and review dates,
 and add held-out cases when fixing an observed failure. Never add customer records or credentials.
+
+The Knowledge page's Saved checks section supports a separate local question file for each
+agent. Save the set before switching agents; load it later to rerun up to 20 expected-passage
+or no-answer checks. Questions and expected passages are never added to source knowledge.
+Results include actual source quotes and citations. This is a staff retrieval check, not
+customer delivery or model training. See the
+[evaluation workspace verification](../verification/agent-knowledge-evaluation-local-2026-11-26.md)
+for a complete fictional reproduction, limits and downloadable evidence.

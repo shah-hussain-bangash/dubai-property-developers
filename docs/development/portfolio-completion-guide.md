@@ -125,6 +125,11 @@ wrappers and listed inflection/spelling variants match without rewriting the quo
 source. See [verification and limits](../verification/supplied-question-wording-local-2026-11-26.md).
 General semantic retrieval and translation remain future work.
 
+The Knowledge page now adds agent-bound question sets, passage/no-answer checks,
+local save/load and downloadable cited results. Expected answers never become
+knowledge. See the [local evaluation record](../verification/agent-knowledge-evaluation-local-2026-11-26.md).
+Shared server-side datasets and evaluation history remain future work.
+
 Plan separate work for durable runtime storage and consent, scheduled follow-ups,
 production authentication, sandbox provider validation, monitoring and recovery.
 Voice/telephony, live calendar and partner property APIs require additional
