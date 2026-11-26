@@ -155,6 +155,12 @@ using the server calendar and opening the existing review flow. See the
 [queue verification](../verification/source-review-queue-local-2026-11-26.md).
 It does not schedule notifications or change sources merely by checking dates.
 
+Manual knowledge questions now support staff and customer audiences. Customer mode
+quotes only current, approved own sources and explicitly abstains after approval
+withdrawal; the dashboard verifies the result's audience. See the
+[customer preview record](../verification/customer-knowledge-preview-local-2026-11-26.md).
+Saved evaluation sets remain staff checks and no customer delivery is added.
+
 Plan separate work for durable runtime storage and consent, scheduled follow-ups,
 production authentication, sandbox provider validation, monitoring and recovery.
 Voice/telephony, live calendar and partner property APIs require additional

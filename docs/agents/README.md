@@ -341,3 +341,10 @@ The server classifies overdue sources and those due today through seven days ahe
 current and undated sources are counted separately. Review source opens the saved
 text and existing review form. Recheck after changes; this is not a scheduled
 notification. See the [queue verification](../verification/source-review-queue-local-2026-11-26.md).
+
+The manual question test also offers Preview audience. Staff includes all current assigned
+sources; Customer includes only current, explicitly customer-approved own sources. The page
+verifies the customer audience marker and exact citations before showing the result. Both
+modes are previews and send nothing. Audience changes clear the old answer; agent changes
+reset to staff. Saved evaluation sets remain staff checks. See the
+[customer preview verification](../verification/customer-knowledge-preview-local-2026-11-26.md).

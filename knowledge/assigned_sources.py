@@ -344,8 +344,10 @@ class AssignedSources:
                 break
         return selected
 
-    def answer(self, tenant: str, agent: str, question: str) -> dict[str, Any]:
-        sources = self.search(tenant, agent, question)
+    def answer(
+        self, tenant: str, agent: str, question: str, *, customer: bool = False
+    ) -> dict[str, Any]:
+        sources = self.search(tenant, agent, question, customer=customer)
         return {
             "agent_id": agent,
             "answered": bool(sources),
@@ -355,6 +357,7 @@ class AssignedSources:
             "text": "\n\n".join(f"[{i + 1}] {s['excerpt']}" for i, s in enumerate(sources))
             or NO_ANSWER,
             "sources": [{**s, "label": str(i + 1)} for i, s in enumerate(sources)],
+            **({"audience": "customer"} if customer else {}),
         }
 
     def tool_search(

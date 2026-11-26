@@ -19,7 +19,7 @@ export function parseSourcePreview(value:SourcePreview,agent:string,sourceId:str
  if(!chars||codePoints>200000||codePoints!==value.source.chars)throw invalid();
  return value;
 }
-export type SourceAnswer={agent_id:string;answered:boolean;supplied_sources_only:true;method:'source-excerpts';sent:false;text:string;sources:{source_id:string;label:string;title:string;uri:string|null;page:number|null;excerpt:string}[]};
+export type SourceAnswer={agent_id:string;audience?:'staff'|'customer';answered:boolean;supplied_sources_only:true;method:'source-excerpts';sent:false;text:string;sources:{source_id:string;label:string;title:string;uri:string|null;page:number|null;excerpt:string}[]};
 function validSourceUri(value:unknown):boolean{
  if(value===null)return true;
  if(typeof value!=='string'||!/^https:\/\//i.test(value)||[...value].some(c=>c.charCodeAt(0)<=32||c.charCodeAt(0)===127))return false;
@@ -34,8 +34,9 @@ export async function knowledgeRequest<T>(path:string,init:RequestInit={},signal
  if(!response.ok)throw Error(typeof data.detail==='string'?data.detail:data.error?.message||'Knowledge request could not finish. Try again.');
  return data as T;
 }
-export function parseSourceAnswer(value:SourceAnswer,agent:string):SourceAnswer{
+export function parseSourceAnswer(value:SourceAnswer,agent:string,audience:'staff'|'customer'='staff'):SourceAnswer{
  if(!value||typeof value!=='object')throw Error('The source answer could not be verified.');
+ if((value.audience===undefined?'staff':value.audience)!==audience)throw Error('The answer audience could not be verified.');
  if(value.agent_id!==agent||value.supplied_sources_only!==true||value.method!=='source-excerpts'||value.sent!==false||typeof value.text!=='string'||!Array.isArray(value.sources)||value.sources.length>3||typeof value.answered!=='boolean'||value.answered!==(value.sources.length>0))throw Error('The source answer could not be verified.');
  if(!value.answered&&value.text!==NO_SOURCE_ANSWER)throw Error('The source answer could not be verified.');
  for(const [i,s] of value.sources.entries()){

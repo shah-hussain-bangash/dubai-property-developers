@@ -40,6 +40,7 @@ class SourceInput(BaseModel):
 class Question(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     question: str = Field(min_length=3, max_length=1000)
+    audience: Literal["staff", "customer"] = "staff"
 
 
 class SourceReview(BaseModel):
@@ -265,4 +266,10 @@ async def answer_from_sources(
     principal: Principal = Depends(require_permission(Permission.KNOWLEDGE_READ)),
 ) -> dict[str, Any]:
     store = source_store(runtime, agent)
-    return await asyncio.to_thread(store.answer, principal.tenant_id, agent, body.question)
+    return await asyncio.to_thread(
+        store.answer,
+        principal.tenant_id,
+        agent,
+        body.question,
+        customer=body.audience == "customer",
+    )
