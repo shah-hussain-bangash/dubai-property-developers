@@ -1,0 +1,68 @@
+{
+  "date": "2026-11-26",
+  "timezone": "Asia/Dubai",
+  "environment": "disposable-local",
+  "tested_revision": "0d6f4c49d8fa49b75a81a81e33f40343b187f814",
+  "result": "pass",
+  "reference": "DPD-E-3C6AE92E",
+  "enquiry_id": "3c6ae92e89030590bccd0d2c44a8bdeb",
+  "client_brief_id": "a37524cbd54bdbe392ac8a328ffc44e4",
+  "owner_id": "70f1bc63936ec312faa9a7c3bf8c5a99",
+  "owner_label": "Fictional Operator Alpha",
+  "consent": "enquiry",
+  "source": "website",
+  "page": "home",
+  "enquiry_version": 3,
+  "client_version": 1,
+  "source_reference_and_message_retained": true,
+  "owner_matches_assignment": true,
+  "other_operator": {
+    "id": "bcd022f1dc03861c580c867033595791",
+    "visible_enquiries": 0,
+    "visible_client_briefs": 0,
+    "evidence": "browser observations"
+  },
+  "record_counts": {
+    "enquiries": 1,
+    "client_briefs": 1,
+    "connectors": 0,
+    "followup_tasks": 0
+  },
+  "source_verification": {
+    "tracked_dashboard_files": 406,
+    "runtime_generated_differences": [
+      "apps/dashboard/next-env.d.ts"
+    ],
+    "source_files_match_candidate": true
+  },
+  "screenshots": [
+    {
+      "file": "01-receipt.jpg",
+      "sha256": "e28187282e4c7fc5d0788beb85c2cdcd87a5462d0bdebf9daaa80fa186b635e7"
+    },
+    {
+      "file": "02-assigned-enquiry.jpg",
+      "sha256": "74086d82a7a5fe17d5f2fbd679ee20fe440e4e16b956f413284010e433084dc4"
+    },
+    {
+      "file": "03-owned-client-brief.jpg",
+      "sha256": "565f3e85ebbfe5f037a40dc625158eccb7fce435b5d772359265754cbca07e60"
+    },
+    {
+      "file": "04-beta-no-enquiries.jpg",
+      "sha256": "0017a70f39b52a1a68bc7a6e6c7125729b0e325ea7206df3167f39b9b95e358d"
+    },
+    {
+      "file": "05-beta-no-clients.jpg",
+      "sha256": "9f479138e92297d8f34c4a5fd76074d9aeaa5934a70d96638457745df54d09fd"
+    }
+  ],
+  "hosted_acceptance_verified": false,
+  "external_delivery_configured": false,
+  "runtime_stopped": true,
+  "focused_tests": {
+    "passed": 36,
+    "failed": 0,
+    "files": 2
+  }
+}

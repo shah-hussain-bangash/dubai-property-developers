@@ -61,6 +61,11 @@ full PR sign-off and environment-specific release conditions remain pending.
 
 ## Phase 2 Verify the selected environment
 
+Candidate revision `0d6f4c4` passed the local browser journey on 26 November 2026,
+with one consented enquiry, an Alpha-owned brief and no Beta visibility. All 36
+focused tests pass. See the [candidate acceptance evidence](../verification/website-operations-local-2026-11-26.md).
+Hosted acceptance remains pending the dependencies below.
+
 First identify the actual running revision and use isolated synthetic Admin and
 approved operator accounts. The hosted revision and eligible operator access are
 unconfirmed. If unavailable, use a disposable local environment and label all
