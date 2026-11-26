@@ -92,12 +92,15 @@ services:
       context: ./apps/dashboard
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+    volumes:
+      - portal-data:/app/portal-data
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
       - api
 
 volumes:
+  portal-data:
   agent-knowledge-data:
   postgres-data:
   redis-data:

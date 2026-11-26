@@ -38,6 +38,10 @@ Review the complete diff in these groups before calling this phase complete:
    failed list refresh. Seven new cases pass within 77 focused checks. See the
    [dashboard recovery record](../verification/phase1-dashboard-recovery-local-2026-11-26.md).
 5. Compatibility: existing configuration, saved data and outstanding approvals.
+   Initial review found missing writable/persistent dashboard storage. The image
+   and Compose fix add a real container-replacement check; 95 local tests and a
+   separate synthetic knowledge backup/restore rehearsal pass. See the
+   [compatibility record](../verification/phase1-deployment-compatibility-local-2026-11-26.md).
 
 Important release conditions:
 
@@ -52,7 +56,8 @@ Important release conditions:
   Use a verified build artifact; do not deploy the local standalone folder.
 
 Phase exit: record reviewed revision, unresolved findings and compatibility decisions.
-Passing CI establishes a baseline; the complete diff review is still pending.
+Passing CI establishes a baseline. All five initial review groups have records;
+full PR sign-off and environment-specific release conditions remain pending.
 
 ## Phase 2 Verify the selected environment
 
