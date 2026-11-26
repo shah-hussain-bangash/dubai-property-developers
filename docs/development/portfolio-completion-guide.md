@@ -130,6 +130,12 @@ local save/load and downloadable cited results. Expected answers never become
 knowledge. See the [local evaluation record](../verification/agent-knowledge-evaluation-local-2026-11-26.md).
 Shared server-side datasets and evaluation history remain future work.
 
+All source import methods now expose optional review deadlines, including raw file
+uploads. The page displays stored deadlines; expiry and explicit re-import renewal
+pass locally for all 13 agents. See the
+[review-date lifecycle record](../verification/source-review-dates-local-2026-11-26.md).
+Review reminders and direct editing of existing dates remain future work.
+
 Plan separate work for durable runtime storage and consent, scheduled follow-ups,
 production authentication, sandbox provider validation, monitoring and recovery.
 Voice/telephony, live calendar and partner property APIs require additional

@@ -311,3 +311,10 @@ Results include actual source quotes and citations. This is a staff retrieval ch
 customer delivery or model training. See the
 [evaluation workspace verification](../verification/agent-knowledge-evaluation-local-2026-11-26.md)
 for a complete fictional reproduction, limits and downloadable evidence.
+
+Every Knowledge import method also accepts an optional Review by date. Saved sources show
+their deadlines. They remain eligible through that server calendar day and stop contributing
+afterward. Re-import with an explicitly reviewed new date to renew material; leaving the date
+blank preserves the existing deadline for identical content. Editing the draft date clears
+customer approval. Undated sources have no automatic date cutoff. See the
+[review-date verification](../verification/source-review-dates-local-2026-11-26.md).

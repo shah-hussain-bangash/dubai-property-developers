@@ -142,6 +142,16 @@ async def add_source(
     else:
         title = request.query_params.get("title", "Uploaded source")
         customer_safe = request.query_params.get("customer_safe") == "true"
+        raw_review = request.query_params.get("review_by")
+        if raw_review:
+            try:
+                review_by = date.fromisoformat(raw_review)
+                if review_by.isoformat() != raw_review:
+                    raise ValueError("Use a complete ISO calendar date.")
+            except ValueError:
+                raise DomainValidationError(
+                    "Choose a valid review date in YYYY-MM-DD format."
+                ) from None
         kind = {"application/pdf": "pdf", "text/plain": "text", "text/markdown": "markdown"}.get(
             mime, ""
         )
