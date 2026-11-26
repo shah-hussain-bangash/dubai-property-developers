@@ -136,6 +136,16 @@ async def list_sources(
     }
 
 
+@router.get("/{agent}/export")
+async def export_sources(
+    agent: str,
+    runtime: PlatformRuntime = Depends(get_runtime),
+    principal: Principal = Depends(require_permission(Permission.KNOWLEDGE_READ)),
+) -> dict[str, Any]:
+    store = source_store(runtime, agent)
+    return await asyncio.to_thread(store.export_sources, principal.tenant_id, agent)
+
+
 @router.get("/{agent}/review-queue")
 async def source_review_queue(
     agent: str,

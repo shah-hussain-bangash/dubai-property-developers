@@ -144,6 +144,34 @@ class AssignedSources:
             ],
         }
 
+    def export_sources(self, tenant: str, agent: str) -> dict[str, Any]:
+        """Portable saved-text copy; not an original-file or database backup."""
+        with closing(self._connect()) as db:
+            rows = db.execute(
+                "SELECT id,title,kind,uri,chars,created,review_by,customer_safe,pages "
+                "FROM agent_sources WHERE tenant=? AND agent=? ORDER BY created DESC,id",
+                (tenant, agent),
+            ).fetchall()
+        sources = []
+        for row in rows:
+            source = dict(row)
+            pages = json.loads(source.pop("pages"))
+            sources.append(
+                {
+                    "source": source,
+                    "pages": [
+                        {"page": index if source["kind"] == "pdf" else None, "text": text}
+                        for index, text in enumerate(pages, 1)
+                    ],
+                }
+            )
+        return {
+            "format": "agent-source-text-v1",
+            "agent_id": agent,
+            "exported_at": datetime.now(UTC).isoformat(),
+            "sources": sources,
+        }
+
     def review_source(
         self,
         tenant: str,

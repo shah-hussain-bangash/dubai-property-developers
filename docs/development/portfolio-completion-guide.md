@@ -177,3 +177,10 @@ due counts, with navigation to each agent's existing editor. Counts measure sour
 availability, not answer quality or live feature readiness. Recheck after changes;
 no scheduled notification is added. See the
 [coverage verification](../verification/agent-knowledge-coverage-local-2026-11-26.md).
+
+Saved sources also supports Download saved knowledge for one selected agent. The
+private JSON copy preserves extracted text, PDF pages and source metadata, including
+staff-only and overdue material. It excludes original files, review history and
+question sets, changes no saved source state and is not an automatic restore or
+complete database backup. See the
+[saved-text export record](../verification/agent-source-export-local-2026-11-26.md).

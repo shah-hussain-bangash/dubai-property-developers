@@ -1,0 +1,99 @@
+{
+  "environment": "disposable local mock-provider API; fictional data only",
+  "base_revision": "5fe0faff72999e6b6dfc6485f036c822108b3298",
+  "source_calendar": "2030-01-03; machine clock unchanged",
+  "export": {
+    "format": "agent-source-text-v1",
+    "agent_id": "documents",
+    "exported_at": "2026-11-26T12:16:42.196820+00:00",
+    "sources": [
+      {
+        "source": {
+          "id": "b22eb35af1489c26bc006d06e27b04341bd226417f4f1e94ff6dffc24f5969da",
+          "title": "Fictional pasted text",
+          "kind": "text",
+          "uri": null,
+          "chars": 24,
+          "created": "2026-11-26T12:16:42.102618+00:00",
+          "review_by": null,
+          "customer_safe": 0
+        },
+        "pages": [
+          {
+            "page": null,
+            "text": "Fictional pasted source."
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "918a314fa222c347df08db10fe2305083b3ecebb59ba783d7b2fac005d1b9acf",
+          "title": "Fictional web snapshot",
+          "kind": "website",
+          "uri": "https://example.test/fictional",
+          "chars": 24,
+          "created": "2026-11-26T12:16:42.085558+00:00",
+          "review_by": null,
+          "customer_safe": 1
+        },
+        "pages": [
+          {
+            "page": null,
+            "text": "Fictional approved page."
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "fbc92389f0edcd5b9f3e471c232a26b737fb06be7331e9aa9235f0b0131f61e0",
+          "title": "Fictional Markdown",
+          "kind": "markdown",
+          "uri": null,
+          "chars": 29,
+          "created": "2026-11-26T12:16:42.068342+00:00",
+          "review_by": null,
+          "customer_safe": 0
+        },
+        "pages": [
+          {
+            "page": null,
+            "text": "# Fictional staff-only policy"
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "e7ceb995d37d854a2c686b701ad7f459f71649a88e2487951d1dcfd179c76616",
+          "title": "Fictional overdue PDF",
+          "kind": "pdf",
+          "uri": null,
+          "chars": 25,
+          "created": "2026-11-26T12:16:42.054676+00:00",
+          "review_by": "2030-01-02",
+          "customer_safe": 1
+        },
+        "pages": [
+          {
+            "page": 1,
+            "text": ""
+          },
+          {
+            "page": 2,
+            "text": "Fictional page two 🌴 دبي."
+          }
+        ]
+      }
+    ]
+  },
+  "verified": {
+    "four_formats": true,
+    "pdf_blank_first_page_and_unicode_second_page_retained": true,
+    "foreign_agent_and_organization_excluded": true,
+    "source_metadata_unchanged": true,
+    "review_history_unchanged": true,
+    "rejected_as_evaluation_file": true,
+    "rejected_as_source_import": true,
+    "overdue_source_not_revived_for_customer_answers": true
+  },
+  "customer_messages_sent": 0
+}
