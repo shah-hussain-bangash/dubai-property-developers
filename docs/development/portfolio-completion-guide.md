@@ -34,6 +34,9 @@ Review the complete diff in these groups before calling this phase complete:
    and eight new cases pass within 124 focused checks. See the
    [knowledge import record](../verification/phase1-knowledge-imports-local-2026-11-26.md).
 4. Dashboard: agent switching, source approval resets and citation rendering.
+   Initial review found misleading recovery after a successful save/removal and
+   failed list refresh. Seven new cases pass within 77 focused checks. See the
+   [dashboard recovery record](../verification/phase1-dashboard-recovery-local-2026-11-26.md).
 5. Compatibility: existing configuration, saved data and outstanding approvals.
 
 Important release conditions:
