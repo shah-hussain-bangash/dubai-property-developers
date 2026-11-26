@@ -184,3 +184,9 @@ staff-only and overdue material. It excludes original files, review history and
 question sets, changes no saved source state and is not an automatic restore or
 complete database backup. See the
 [saved-text export record](../verification/agent-source-export-local-2026-11-26.md).
+
+Saved question files now preserve their original check IDs through load, edits,
+runs and result downloads. Added questions receive a currently unused reference;
+other checks are not renumbered. To recover references lost in an older download, load the original question
+file again. See the
+[traceability fix and reproduction](../verification/stable-knowledge-check-ids-local-2026-11-26.md).
