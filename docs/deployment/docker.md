@@ -50,8 +50,19 @@ Before adopting this Compose change in an existing environment:
    a fresh Docker volume; existing volumes and host bind mounts may have different
    ownership and require environment-specific preparation.
 5. Reconcile pending/completed external actions before any live rollout. Runtime
-   approvals, replay cache and conversation memory remain process-local by default;
-   PostgreSQL/Redis services alone do not make those runtime stores durable.
+   approvals and replay cache remain process-local; PostgreSQL/Redis services alone
+   do not make them durable. Conversation memory has its own optional SQLite setting.
+
+Compose enables durable scoped conversation memory at `/app/agent-memory/memory.sqlite3`
+through `AGENT_MEMORY_PATH`. API and worker mount the separate `agent-memory-data`
+volume; their images prepare it for the non-root user. Back it up separately from
+sources and portal data. Existing process-local history and consent cannot be
+recovered automatically after shutdown: review active conversations and existing
+opt-outs before switching stores. Do not treat an empty new store as affirmative
+customer consent. Without the setting, standalone runtimes retain in-memory behavior.
+Use SQLite's backup API or stop writers before copying; this file contains private
+conversation text/state and is not encrypted by the application. Automatic retention,
+contact-wide consent and durable approvals/replay remain separate work.
 
 For rollback, stop new writes and retain the candidate's data. Restore the previous
 image/configuration only after checking data compatibility; use a separately

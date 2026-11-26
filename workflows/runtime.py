@@ -16,6 +16,7 @@ Workflow execution history is configurable:
 When either PostgreSQL backend is selected, the runtime creates
 one shared SQLAlchemy AsyncEngine and session factory.
 
+Conversation memory can use a separate SQLite file via AGENT_MEMORY_PATH.
 Other foundation stores remain in-memory until their persistent
 implementations are ready.
 """
@@ -51,6 +52,7 @@ from database.repositories.postgres_lead_store import (
 from database.repositories.postgres_workflow_run_store import (
     PostgresWorkflowRunStore,
 )
+from database.repositories.sqlite_conversation_memory import SqliteConversationMemory
 from database.sessions.engine import (
     create_engine,
     create_session_factory,
@@ -145,6 +147,9 @@ class PlatformRuntime:
 
         if self._initialized:
             return
+
+        if isinstance(self.deps.memory, SqliteConversationMemory):
+            await self.deps.memory.initialize()
 
         if self.settings.is_dev_like and self.assigned_sources is None:
             for doc in [
@@ -255,7 +260,11 @@ def build_runtime(settings: Settings) -> PlatformRuntime:
     assigned_sources = (
         AssignedSources(settings.agent_knowledge_path) if settings.agent_knowledge_path else None
     )
-    memory = InMemoryConversationMemory()
+    memory = (
+        SqliteConversationMemory(settings.agent_memory_path)
+        if settings.agent_memory_path
+        else InMemoryConversationMemory()
+    )
 
     for tool in (
         CRMFindLeadsTool(integrations.crm, tenant_id=settings.default_tenant_id),

@@ -241,10 +241,13 @@ Sales Conversation and WhatsApp use this view for their history/state. Matching 
 in different organizations or agents cannot select the same memory; matching operators within
 one organization/agent retain that conversation's state, including a WhatsApp opt-out.
 
-The current runtime still uses process-local in-memory storage. Its scoped keys encode the full
-organization/agent/conversation tuple unambiguously. Old unscoped entries are not borrowed or
-deleted, and there is no unscoped fallback. This does not make conversation memory or consent
-durable across restarts, or write consent changes to CRM.
+Without `AGENT_MEMORY_PATH`, runtime memory is process-local. Set a writable private SQLite file
+path to retain conversation history/state, including WhatsApp conversation opt-outs, across runtime
+restarts. The example environment uses `.data/agent-memory/memory.sqlite3`; Compose API and worker
+share a separate `agent-memory-data` volume. Scoped keys encode the full organization/agent/
+conversation tuple unambiguously. SQLite patches serialize read/merge/write transactions across
+connections. Existing in-memory state is not migrated, and there is no unscoped fallback or CRM
+consent synchronization. See [durable memory verification](../verification/durable-agent-memory-local-2026-11-26.md).
 
 The optional SQL adapter also supports scoped views without changing conversation UUIDs or adding
 tables. It filters message history by organization and trusted agent ownership, ignores caller
@@ -258,7 +261,8 @@ The SQL adapter is not newly wired into runtime configuration by this change. Se
 WhatsApp changes conversation state with `update_state`, an atomic top-level patch rather than
 a read/replace cycle. Ordinary messages update their inbound/contact/consent fields without
 clearing an existing `opted_out` flag. In-memory patches are atomic on the local event loop;
-SQL patches lock the conversation row and preserve other fields and agent partitions.
+SQL patches lock the conversation row; SQLite patches use an immediate transaction. Both preserve
+other state fields within their scope.
 
 WhatsApp Agent send approvals also carry their conversation reference. Before a new provider call,
 the configured send tool checks that this organization's WhatsApp conversation still permits

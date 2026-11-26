@@ -15,6 +15,7 @@ x-app-env: &app-env
   INTEGRATIONS_MODE: ${INTEGRATIONS_MODE:-mock}
   LLM_PROVIDER: ${LLM_PROVIDER:-mock}
   AGENT_KNOWLEDGE_PATH: /app/agent-knowledge/sources.sqlite3
+  AGENT_MEMORY_PATH: /app/agent-memory/memory.sqlite3
 
 services:
   postgres:
@@ -66,6 +67,7 @@ services:
     environment: *app-env
     volumes:
       - agent-knowledge-data:/app/agent-knowledge
+      - agent-memory-data:/app/agent-memory
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -81,6 +83,7 @@ services:
     environment: *app-env
     volumes:
       - agent-knowledge-data:/app/agent-knowledge
+      - agent-memory-data:/app/agent-memory
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -100,6 +103,7 @@ services:
       - api
 
 volumes:
+  agent-memory-data:
   portal-data:
   agent-knowledge-data:
   postgres-data:

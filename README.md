@@ -184,7 +184,7 @@ docker compose up --build      # postgres+pgvector, redis, migrate, api, worker,
 
 
 
-The API works without PostgreSQL or Redis: the agent runtime uses in-memory stores, and `/ready` reports
+The API works without PostgreSQL or Redis: the default runtime uses in-memory stores with optional SQLite conversation memory, and `/ready` reports
 
 `degraded`. The database is needed for migrations, seeding and the integration tests.
 
@@ -276,7 +276,7 @@ docs/             architecture, api, agents, deployment, security, development
 
 | Embeddings | Offline hashing embedder (lexical, not semantic) |
 
-| Persistence | In-memory defaults; PostgreSQL lead and workflow stores are wired through runtime settings |
+| Persistence | PostgreSQL lead/workflow stores and optional SQLite scoped conversation memory; other runtime stores default to memory |
 
 | Auth | API dev principal + RBAC; token mode requires an explicitly registered verifier and fails closed without one. Browser account/OIDC components require separate configuration |
 

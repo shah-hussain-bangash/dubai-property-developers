@@ -48,6 +48,7 @@ measured business conversion improvements.
 | Agent knowledge | PDF, Markdown, one-page website snapshots and pasted text; exact excerpts/citations or explicit no-answer | [All-agent acceptance](../verification/all-agent-knowledge-acceptance-local-2026-11-26.md), revision `4477bec`; 52 sources and 91 browser questions |
 | Knowledge boundaries | Separate agent/organization ownership, customer approval, persistence and deletion | Same acceptance: 624 cross-agent and 52 cross-organization abstentions; removal survives app restart |
 | Container storage | Prepared non-root dashboard directory and persistent Compose volume | [Storage review](../verification/phase1-deployment-compatibility-local-2026-11-26.md); real CI write/read across replacement containers |
+| Optional conversation persistence | SQLite history/state retains scoped WhatsApp opt-outs across runtime restart; API/worker share a dedicated Compose volume | [Durable memory verification](../verification/durable-agent-memory-local-2026-11-26.md); configuration requires a writable private path |
 | Automated validation | Backend/frontend tests, database integration, image builds, Windows setup and security/configuration checks | [PR 87 checks](https://github.com/shah-hussain-bangash/dubai-property-developers/pull/87/checks); 12 checks passed at evidence revision `8ea55a8` |
 
 Acceptance revisions identify the source used for each run. Later documentation

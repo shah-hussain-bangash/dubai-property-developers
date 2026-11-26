@@ -23,7 +23,8 @@ RUN pip install /wheels/*.whl && rm -rf /wheels
 # Alembic needs the migration scripts and config on disk.
 COPY alembic.ini ./
 COPY database/migrations ./database/migrations
-RUN mkdir -p /app/agent-knowledge && chown app:app /app/agent-knowledge
+RUN mkdir -p /app/agent-knowledge /app/agent-memory && chown app:app /app/agent-knowledge /app/agent-memory
+RUN chmod 700 /app/agent-memory
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

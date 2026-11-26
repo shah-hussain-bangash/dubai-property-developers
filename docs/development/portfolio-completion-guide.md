@@ -48,8 +48,10 @@ Important release conditions:
 - Agent-scoped action keys changed. Reconcile persisted pending/completed actions
   before rollout; do not replay an old delivery ledger blindly. See
   [action isolation](../verification/agent-action-isolation-local-2026-11-24.md).
-- Conversation memory remains process-local by default. SQL legacy state needs an
-  ownership review; this candidate does not migrate it automatically.
+- Conversation memory remains process-local when `AGENT_MEMORY_PATH` is unset.
+  Optional SQLite memory now retains scoped history/state and conversation opt-outs.
+  Existing memory and SQL legacy state require an ownership/cutover review; they
+  are not migrated automatically.
 - Back up the private source SQLite volume separately from portal/PostgreSQL data.
   Confirm a writable persistent `AGENT_KNOWLEDGE_PATH` for the chosen environment.
 - Local Windows compilation passes with a standalone symlink packaging warning.
@@ -112,6 +114,11 @@ not included. Hosted acceptance and release approval remain outstanding.
 Phase exit: a reviewer can reproduce the demonstrated behavior from the guide.
 
 ## Later development for live business use
+
+The next local development increment implements optional durable agent memory and
+conversation consent using `AGENT_MEMORY_PATH`; see the
+[verification and configuration record](../verification/durable-agent-memory-local-2026-11-26.md).
+It does not add contact-wide consent, automatic migration, durable approvals or replay.
 
 Plan separate work for durable runtime storage and consent, scheduled follow-ups,
 production authentication, sandbox provider validation, monitoring and recovery.

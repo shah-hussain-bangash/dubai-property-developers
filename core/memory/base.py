@@ -3,6 +3,7 @@
 ``InMemoryConversationMemory`` serves tests and local demos. The database-backed
 implementation lives in ``database/repositories/conversation_memory.py`` to keep
 ``core`` free of persistence dependencies.
+An optional SQLite adapter lives in ``database/repositories/sqlite_conversation_memory.py``.
 """
 
 from __future__ import annotations

@@ -183,6 +183,16 @@ jobs:
         run: |
           docker run --rm --network none --entrypoint python dubai-api-ci -c "import os, sys; assert sys.version_info[:2] == (3, 15); assert os.getuid() != 0"
           docker run --rm --network none --entrypoint python dubai-api-ci -m pip check
+      - name: Verify durable memory across API containers
+        run: |
+          volume=$(docker volume create)
+          trap 'docker volume rm "$volume"' EXIT
+          docker run --rm --network none \
+            --mount "type=volume,source=$volume,target=/app/agent-memory" \
+            --entrypoint python dubai-api-ci -c "import asyncio; from database.repositories.sqlite_conversation_memory import SqliteConversationMemory; asyncio.run(SqliteConversationMemory('/app/agent-memory/memory.sqlite3').scoped('fictional-org','whatsapp').update_state('fixture',{'opted_out':True}))"
+          docker run --rm --network none \
+            --mount "type=volume,source=$volume,target=/app/agent-memory" \
+            --entrypoint python dubai-api-ci -c "import asyncio, os, stat; from database.repositories.sqlite_conversation_memory import SqliteConversationMemory; state = asyncio.run(SqliteConversationMemory('/app/agent-memory/memory.sqlite3').scoped('fictional-org','whatsapp').get_state('fixture')); assert state == {'opted_out':True}; assert stat.S_IMODE(os.stat('/app/agent-memory/memory.sqlite3').st_mode) == 0o600; print('Durable scoped opt-out survived API container replacement')"
       - name: Verify container startup and health
         run: |
           docker run --detach --name api-smoke --network none --env ENVIRONMENT=test dubai-api-ci
