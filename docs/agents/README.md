@@ -329,3 +329,9 @@ Record a source review requires a new date and explicit review confirmation. Cus
 starts unchecked on every review; saving resets the source to staff-only unless customer use is
 explicitly selected. Source content and ownership are preserved. See the
 [existing-source renewal record](../verification/saved-source-review-local-2026-11-26.md).
+
+Load Source review history from the saved-text preview to see authenticated reviewers,
+recording times and previous/new date and approval values. Older pages contain up to 20
+reviews each. Review updates and history commit together. This covers explicit reviews,
+not imports or all source mutations; deleting a source also deletes its history, as the
+confirmation explains. See the [history verification](../verification/source-review-history-local-2026-11-26.md).

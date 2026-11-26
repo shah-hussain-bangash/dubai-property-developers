@@ -144,7 +144,11 @@ restore it to answers. See the
 The saved-text preview now supports explicit source review without re-upload. It
 changes only the deadline and a fresh customer-approval choice, preserving content
 and ownership. See the [renewal verification](../verification/saved-source-review-local-2026-11-26.md).
-Historical review logs and reminders remain future work.
+Source review history now records authenticated reviewers and previous/new values
+atomically, with scoped older-page navigation. See the
+[review-history verification](../verification/source-review-history-local-2026-11-26.md).
+It covers explicit review actions and is removed with its source. Reminders and a
+broader immutable audit/retention policy remain future work.
 
 Plan separate work for durable runtime storage and consent, scheduled follow-ups,
 production authentication, sandbox provider validation, monitoring and recovery.

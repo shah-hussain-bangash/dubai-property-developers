@@ -1,0 +1,13 @@
+'use client';
+import {useEffect,useRef,useState} from 'react';
+import {knowledgeRequest} from '@/services/agentKnowledge';
+import {parseSourceReviewHistory,type SourceReviewHistory as History} from '@/services/sourceReviewHistory';
+import s from './AgentKnowledgePanel.module.css';
+
+export function SourceReviewHistory({agent,sourceId,disabled}:{agent:string;sourceId:string;disabled:boolean}){
+ const [history,setHistory]=useState<History|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const active=useRef<AbortController|null>(null),mounted=useRef(true);
+ useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;active.current?.abort();};},[]);
+ async function load(cursor?:string){if(active.current)return;const controller=new AbortController();active.current=controller;setBusy(true);setError('');setHistory(null);const timeout=setTimeout(()=>controller.abort(),45000);try{const result=await knowledgeRequest<History>('/'+agent+'/sources/'+sourceId+'/reviews'+(cursor?'?before_event='+encodeURIComponent(cursor):''),{},controller.signal);if(mounted.current&&!controller.signal.aborted)setHistory(parseSourceReviewHistory(result,agent,sourceId));}catch(e){if(mounted.current)setError(controller.signal.aborted?'Review history did not finish loading. Try refreshing it.':(e as Error).message);}finally{clearTimeout(timeout);active.current=null;if(mounted.current)setBusy(false);}}
+ return <section className={s.box} aria-labelledby="review-history-title"><h4 id="review-history-title">Source review history</h4><p>Explicit reviews saved here are recorded with the signed-in reviewer. Imports and earlier reviews are not backfilled. Removing a source also removes its review history.</p><button className="btn" type="button" disabled={disabled||busy} onClick={()=>void load()}>{busy?'Loading review history…':history?'Refresh latest reviews':'Load review history'}</button>{error&&<p role="alert" className={s.error}>{error}</p>}{history&&<div aria-live="polite">{!history.events.length?<p>No reviews recorded yet.</p>:<ol>{history.events.map(event=><li key={event.event_id}><p><strong>Reviewed by {event.reviewed_by}</strong><br/><time dateTime={event.reviewed_at}>{new Date(event.reviewed_at).toLocaleString('en-GB',{timeZone:'Asia/Dubai'})} GST</time></p><p>Review date: {event.previous_review_by??'No deadline'} → {event.review_by}<br/>Customer use: {event.previous_customer_safe?'Approved':'Staff only'} → {event.customer_safe?'Approved':'Staff only'}</p></li>)}</ol>}{history.has_more&&<button className="btn" type="button" disabled={disabled||busy} onClick={()=>void load(history.next_cursor!)}>Load older reviews</button>}</div>}</section>;
+}

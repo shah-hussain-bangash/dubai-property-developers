@@ -3,6 +3,7 @@
 import asyncio
 from datetime import date
 from typing import Any, Literal
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, ValidationError, model_validator
@@ -135,6 +136,25 @@ async def read_source(
     return {"agent_id": agent, **saved}
 
 
+@router.get("/{agent}/sources/{source_id}/reviews")
+async def source_review_history(
+    agent: str,
+    source_id: str,
+    before_event: UUID | None = None,
+    runtime: PlatformRuntime = Depends(get_runtime),
+    principal: Principal = Depends(require_permission(Permission.KNOWLEDGE_READ)),
+) -> dict[str, Any]:
+    store = source_store(runtime, agent)
+    history = await asyncio.to_thread(
+        store.review_history,
+        principal.tenant_id,
+        agent,
+        source_id,
+        str(before_event) if before_event is not None else None,
+    )
+    return {"agent_id": agent, "source_id": source_id, **history}
+
+
 @router.patch("/{agent}/sources/{source_id}/review")
 async def review_source(
     agent: str,
@@ -155,6 +175,7 @@ async def review_source(
         source_id,
         body.review_by,
         body.customer_safe,
+        principal.subject,
     )
     return {"agent_id": agent, "source": source}
 

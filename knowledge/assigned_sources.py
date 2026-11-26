@@ -13,6 +13,7 @@ from contextlib import closing
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from pydantic import ValidationError
 
@@ -46,6 +47,18 @@ class AssignedSources:
             "kind TEXT NOT NULL, uri TEXT, pages TEXT NOT NULL, chars INTEGER NOT NULL, "
             "created TEXT NOT NULL, review_by TEXT, customer_safe INTEGER NOT NULL, PRIMARY KEY(tenant, agent, id))"
         )
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS agent_source_reviews ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT NOT NULL UNIQUE, "
+            "tenant TEXT NOT NULL, agent TEXT NOT NULL, source_id TEXT NOT NULL, "
+            "reviewed_at TEXT NOT NULL, reviewed_by TEXT NOT NULL, "
+            "previous_review_by TEXT, review_by TEXT NOT NULL, "
+            "previous_customer_safe INTEGER NOT NULL, customer_safe INTEGER NOT NULL)"
+        )
+        db.execute(
+            "CREATE INDEX IF NOT EXISTS source_reviews_scope "
+            "ON agent_source_reviews(tenant,agent,source_id,id DESC)"
+        )
         return db
 
     def list_sources(self, tenant: str, agent: str) -> list[dict[str, Any]]:
@@ -78,13 +91,32 @@ class AssignedSources:
         }
 
     def review_source(
-        self, tenant: str, agent: str, source_id: str, review_by: date, customer_safe: bool
+        self,
+        tenant: str,
+        agent: str,
+        source_id: str,
+        review_by: date,
+        customer_safe: bool,
+        reviewed_by: str,
     ) -> dict[str, Any]:
         """Apply an explicit staff review without replacing source content or ownership."""
         if review_by < date.today():
             raise DomainValidationError("Choose a review date that is today or later.")
+        if (
+            not reviewed_by.strip()
+            or len(reviewed_by) > 500
+            or re.search(r"[\x00-\x1f\x7f]", reviewed_by)
+        ):
+            raise DomainValidationError("A verified reviewer identity is required.")
         with closing(self._connect()) as db, db:
             db.execute("BEGIN IMMEDIATE")
+            previous = db.execute(
+                "SELECT review_by,customer_safe FROM agent_sources "
+                "WHERE tenant=? AND agent=? AND id=?",
+                (tenant, agent, source_id),
+            ).fetchone()
+            if previous is None:
+                raise NotFoundError("Source not found in this agent's knowledge.")
             result = db.execute(
                 "UPDATE agent_sources SET review_by=?,customer_safe=? "
                 "WHERE tenant=? AND agent=? AND id=?",
@@ -92,12 +124,67 @@ class AssignedSources:
             )
             if result.rowcount != 1:
                 raise NotFoundError("Source not found in this agent's knowledge.")
+            db.execute(
+                "INSERT INTO agent_source_reviews "
+                "(event_id,tenant,agent,source_id,reviewed_at,reviewed_by,previous_review_by,"
+                "review_by,previous_customer_safe,customer_safe) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (
+                    str(uuid4()),
+                    tenant,
+                    agent,
+                    source_id,
+                    datetime.now(UTC).isoformat(),
+                    reviewed_by,
+                    previous["review_by"],
+                    review_by.isoformat(),
+                    previous["customer_safe"],
+                    int(customer_safe),
+                ),
+            )
             row = db.execute(
                 "SELECT id,title,kind,uri,chars,created,review_by,customer_safe "
                 "FROM agent_sources WHERE tenant=? AND agent=? AND id=?",
                 (tenant, agent, source_id),
             ).fetchone()
             return dict(row)
+
+    def review_history(
+        self, tenant: str, agent: str, source_id: str, before_event: str | None = None
+    ) -> dict[str, Any]:
+        with closing(self._connect()) as db:
+            db.execute("BEGIN")
+            source = db.execute(
+                "SELECT id FROM agent_sources WHERE tenant=? AND agent=? AND id=?",
+                (tenant, agent, source_id),
+            ).fetchone()
+            if source is None:
+                raise NotFoundError("Source not found in this agent's knowledge.")
+            before_id = None
+            if before_event is not None:
+                cursor = db.execute(
+                    "SELECT id FROM agent_source_reviews "
+                    "WHERE tenant=? AND agent=? AND source_id=? AND event_id=?",
+                    (tenant, agent, source_id, before_event),
+                ).fetchone()
+                if cursor is None:
+                    raise NotFoundError("Review page not found in this source's history.")
+                before_id = cursor["id"]
+            rows = db.execute(
+                "SELECT event_id,reviewed_at,reviewed_by,previous_review_by,review_by,"
+                "previous_customer_safe,customer_safe FROM agent_source_reviews "
+                "WHERE tenant=? AND agent=? AND source_id=? AND (? IS NULL OR id < ?) "
+                "ORDER BY id DESC LIMIT 21",
+                (tenant, agent, source_id, before_id, before_id),
+            ).fetchall()
+        events = [dict(row) for row in rows[:20]]
+        for event in events:
+            event["previous_customer_safe"] = bool(event["previous_customer_safe"])
+            event["customer_safe"] = bool(event["customer_safe"])
+        return {
+            "events": events,
+            "has_more": len(rows) > 20,
+            "next_cursor": events[-1]["event_id"] if len(rows) > 20 else None,
+        }
 
     def add(
         self,
@@ -181,12 +268,17 @@ class AssignedSources:
 
     def remove(self, tenant: str, agent: str, source_id: str) -> None:
         with closing(self._connect()) as db, db:
+            db.execute("BEGIN IMMEDIATE")
             result = db.execute(
                 "DELETE FROM agent_sources WHERE tenant=? AND agent=? AND id=?",
                 (tenant, agent, source_id),
             )
             if result.rowcount != 1:
                 raise NotFoundError("Source not found in this agent's knowledge.")
+            db.execute(
+                "DELETE FROM agent_source_reviews WHERE tenant=? AND agent=? AND source_id=?",
+                (tenant, agent, source_id),
+            )
 
     def search(
         self, tenant: str, agent: str, question: str, *, customer: bool = False
