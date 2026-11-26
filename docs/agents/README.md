@@ -314,7 +314,8 @@ for a complete fictional reproduction, limits and downloadable evidence.
 
 Every Knowledge import method also accepts an optional Review by date. Saved sources show
 their deadlines. They remain eligible through that server calendar day and stop contributing
-afterward. Re-import with an explicitly reviewed new date to renew material; leaving the date
+afterward. Record a review from the saved-text preview or re-import with an explicitly reviewed
+new date to renew material; leaving the import date
 blank preserves the existing deadline for identical content. Editing the draft date clears
 customer approval. Undated sources have no automatic date cutoff. See the
 [review-date verification](../verification/source-review-dates-local-2026-11-26.md).
@@ -323,3 +324,8 @@ Use View saved text on a source to read its saved extraction and PDF page number
 reviewing it. This staff preview includes overdue material but changes neither deadlines
 nor customer approval. It does not open the original file or refresh a website snapshot.
 See the [saved text verification](../verification/saved-source-preview-local-2026-11-26.md).
+
+Record a source review requires a new date and explicit review confirmation. Customer approval
+starts unchecked on every review; saving resets the source to staff-only unless customer use is
+explicitly selected. Source content and ownership are preserved. See the
+[existing-source renewal record](../verification/saved-source-review-local-2026-11-26.md).

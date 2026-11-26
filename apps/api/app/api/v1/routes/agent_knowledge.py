@@ -5,7 +5,7 @@ from datetime import date
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, ValidationError, model_validator
 
 from apps.api.app.dependencies.auth import require_permission
 from apps.api.app.dependencies.runtime import get_runtime
@@ -39,6 +39,19 @@ class SourceInput(BaseModel):
 class Question(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     question: str = Field(min_length=3, max_length=1000)
+
+
+class SourceReview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    review_by: date = Field(strict=True)
+    reviewed: StrictBool
+    customer_safe: StrictBool = False
+
+    @model_validator(mode="after")
+    def confirmed(self) -> "SourceReview":
+        if not self.reviewed:
+            raise ValueError("Confirm that you reviewed this saved source.")
+        return self
 
 
 @router.post("/{agent}/evaluate")
@@ -120,6 +133,30 @@ async def read_source(
     store = source_store(runtime, agent)
     saved = await asyncio.to_thread(store.read_source, principal.tenant_id, agent, source_id)
     return {"agent_id": agent, **saved}
+
+
+@router.patch("/{agent}/sources/{source_id}/review")
+async def review_source(
+    agent: str,
+    source_id: str,
+    request: Request,
+    runtime: PlatformRuntime = Depends(get_runtime),
+    principal: Principal = Depends(require_permission(Permission.WORKFLOWS_EXECUTE)),
+) -> dict[str, Any]:
+    store = source_store(runtime, agent)
+    try:
+        body = SourceReview.model_validate_json(await bounded_body(request))
+    except ValidationError:
+        raise DomainValidationError("Choose a review date and confirm the source review.") from None
+    source = await asyncio.to_thread(
+        store.review_source,
+        principal.tenant_id,
+        agent,
+        source_id,
+        body.review_by,
+        body.customer_safe,
+    )
+    return {"agent_id": agent, "source": source}
 
 
 @router.post("/{agent}/sources")

@@ -77,6 +77,28 @@ class AssignedSources:
             ],
         }
 
+    def review_source(
+        self, tenant: str, agent: str, source_id: str, review_by: date, customer_safe: bool
+    ) -> dict[str, Any]:
+        """Apply an explicit staff review without replacing source content or ownership."""
+        if review_by < date.today():
+            raise DomainValidationError("Choose a review date that is today or later.")
+        with closing(self._connect()) as db, db:
+            db.execute("BEGIN IMMEDIATE")
+            result = db.execute(
+                "UPDATE agent_sources SET review_by=?,customer_safe=? "
+                "WHERE tenant=? AND agent=? AND id=?",
+                (review_by.isoformat(), int(customer_safe), tenant, agent, source_id),
+            )
+            if result.rowcount != 1:
+                raise NotFoundError("Source not found in this agent's knowledge.")
+            row = db.execute(
+                "SELECT id,title,kind,uri,chars,created,review_by,customer_safe "
+                "FROM agent_sources WHERE tenant=? AND agent=? AND id=?",
+                (tenant, agent, source_id),
+            ).fetchone()
+            return dict(row)
+
     def add(
         self,
         tenant: str,

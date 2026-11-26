@@ -5,6 +5,10 @@ const NO_SOURCE_ANSWER="I could not find an answer in this agent's supplied sour
 export type KnowledgeAgent={id:string;name:string;status:string};
 export type AssignedSource={id:string;title:string;kind:string;uri:string|null;chars:number;created:string;review_by:string|null;customer_safe:number};
 export type SourcePreview={agent_id:string;source:AssignedSource;pages:{page:number|null;text:string}[]};
+export function parseReviewedSource(value:{agent_id:string;source:AssignedSource},agent:string,before:AssignedSource,date:string,customerSafe:boolean):AssignedSource{
+ if(!value||value.agent_id!==agent||!value.source||(['id','title','kind','uri','chars','created'] as const).some(key=>value.source[key]!==before[key])||value.source.review_by!==date||value.source.customer_safe!==(customerSafe?1:0))throw Error('The saved review could not be verified. Refresh sources before retrying.');
+ return value.source;
+}
 export function parseSourcePreview(value:SourcePreview,agent:string,sourceId:string):SourcePreview{
  const invalid=()=>Error('The saved source text could not be verified.');
  if(!value||value.agent_id!==agent||!value.source||value.source.id!==sourceId||typeof value.source.title!=='string'||!value.source.title.trim()||!['pdf','text','markdown','website'].includes(value.source.kind)||!validSourceUri(value.source.uri)||!Array.isArray(value.pages)||!value.pages.length||value.pages.length>100)throw invalid();

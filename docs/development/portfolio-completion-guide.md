@@ -134,12 +134,17 @@ All source import methods now expose optional review deadlines, including raw fi
 uploads. The page displays stored deadlines; expiry and explicit re-import renewal
 pass locally for all 13 agents. See the
 [review-date lifecycle record](../verification/source-review-dates-local-2026-11-26.md).
-Review reminders and direct editing of existing dates remain future work.
+Review reminders remain future work.
 
 Saved source text can now be read in the Knowledge page before review, with PDF page
 numbers and organization/agent-scoped access. Previewing overdue material does not
 restore it to answers. See the
 [saved text preview record](../verification/saved-source-preview-local-2026-11-26.md).
+
+The saved-text preview now supports explicit source review without re-upload. It
+changes only the deadline and a fresh customer-approval choice, preserving content
+and ownership. See the [renewal verification](../verification/saved-source-review-local-2026-11-26.md).
+Historical review logs and reminders remain future work.
 
 Plan separate work for durable runtime storage and consent, scheduled follow-ups,
 production authentication, sandbox provider validation, monitoring and recovery.
