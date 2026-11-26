@@ -81,6 +81,7 @@ class CRMCreateLeadTool(OrganizationCRMTool):
         external_id = await self._client.create_lead(
             payload["data"], idempotency_key=payload["local_lead_id"]
         )
+        validate_crm_record_id(external_id)
         return {"external_id": external_id}
 
 
@@ -115,4 +116,5 @@ class CRMAddNoteTool(OrganizationCRMTool):
             parent_id=payload["parent_id"],
             text=payload["text"],
         )
+        validate_crm_record_id(note_id)
         return {"note_id": note_id}

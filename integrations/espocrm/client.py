@@ -39,6 +39,15 @@ def validate_crm_lead_fields(value: object) -> dict[str, Any]:
     return value
 
 
+def created_record_id(body: Any) -> str:
+    """Accept a provider acknowledgement without coercing its record identity."""
+    identifier = body.get("id") if isinstance(body, dict) else None
+    if not isinstance(identifier, str):
+        raise DomainValidationError("CRM creation response requires a string record ID")
+    validate_crm_record_id(identifier)
+    return identifier
+
+
 class EspoCRMConfig(IntegrationConfig):
     base_url: str | None = None
     api_key: SecretStr | None = None
@@ -152,7 +161,7 @@ class HttpEspoCRMClient:
     async def create_lead(self, data: dict[str, Any], *, idempotency_key: str) -> str:
         validate_crm_lead_fields(data)
         body = await self._http.request("POST", "/Lead", json=data, idempotency_key=idempotency_key)
-        return str(body["id"])
+        return created_record_id(body)
 
     async def update_lead(self, external_id: str, data: dict[str, Any]) -> None:
         validate_crm_record_id(external_id)
@@ -165,7 +174,7 @@ class HttpEspoCRMClient:
             "/Note",
             json={"type": "Post", "parentType": parent_type, "parentId": parent_id, "post": text},
         )
-        return str(body["id"])
+        return created_record_id(body)
 
     async def aclose(self) -> None:
         """Release the HTTP connection pool owned by this adapter."""
