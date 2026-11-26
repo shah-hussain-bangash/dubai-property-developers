@@ -120,6 +120,11 @@ conversation consent using `AGENT_MEMORY_PATH`; see the
 [verification and configuration record](../verification/durable-agent-memory-local-2026-11-26.md).
 It does not add contact-wide consent, automatic migration, durable approvals or replay.
 
+The following increment improves supplied-source question wording: bounded English
+wrappers and listed inflection/spelling variants match without rewriting the quoted
+source. See [verification and limits](../verification/supplied-question-wording-local-2026-11-26.md).
+General semantic retrieval and translation remain future work.
+
 Plan separate work for durable runtime storage and consent, scheduled follow-ups,
 production authentication, sandbox provider validation, monitoring and recovery.
 Voice/telephony, live calendar and partner property APIs require additional

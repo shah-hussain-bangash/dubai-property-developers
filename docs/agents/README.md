@@ -82,6 +82,13 @@ can miss paraphrases; reword the question or add a clearer source. Instructions 
 are quoted data and cannot grant tools or trigger actions. Answers are staff previews and send
 nothing to customers. Voice and other partial provider capabilities are unchanged.
 
+Supplied-source matching now ignores a small set of leading English question wrappers such as
+“Please tell me about” and “Could you explain”, and recognizes explicitly listed domain word forms
+such as payment/payments, booking/bookings and instalment/installment. This is bounded lexical
+normalization, not general paraphrase understanding or translation. The overlap thresholds remain
+the same, and answers/citations retain the original wording. No source re-import or hashing-vector
+rebuild is needed. See the [question wording verification](../verification/supplied-question-wording-local-2026-11-26.md).
+
 Supplied-source matching recognizes Unicode letters/numbers and canonical spellings while keeping
 the original excerpts unchanged. Punctuation alone cannot match a source. This adds no translation,
 stemming or CJK word segmentation; the legacy vector/hash tokenizer stays unchanged. See the
