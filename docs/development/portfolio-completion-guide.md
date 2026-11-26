@@ -81,14 +81,20 @@ no CRM writes or outbound messages.
 
 ## Phase 3 Accept each agent's knowledge behavior
 
+Local acceptance passed for all 13 agents at revision `4477bec` on 26 November
+2026: 52 four-format sources, 91 browser questions, scoped abstention, approval
+boundaries and removal/restart checks. Existing evaluation/regression runs pass
+112 tests. See the [acceptance matrix and evidence](../verification/all-agent-knowledge-acceptance-local-2026-11-26.md).
+Hosted acceptance remains pending; live provider capabilities are unchanged.
+
 For each of the 13 agents, use a distinct fictional fact and independent expected
 answers. Exercise PDF, website snapshot and pasted text; keep evaluation questions
 separate from source material. Verify correct citations, unrelated-question
 abstention, cross-agent exclusion, restart persistence and source removal.
 Customer use must require explicit source approval. Staff previews send nothing.
 
-Automated all-agent source-format coverage already exists; repeat the visible
-acceptance checks on the selected release revision. Sources support excerpt-based
+Automated and visible checks above cover the recorded local revision. Repeat
+acceptance on a later selected release revision. Sources support excerpt-based
 answers, not model training, voice calls or automatic changes to routing rules.
 
 Phase exit: an evidence table for all agents with failures resolved or documented.
