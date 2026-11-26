@@ -124,6 +124,17 @@ async def list_sources(
     }
 
 
+@router.get("/{agent}/review-queue")
+async def source_review_queue(
+    agent: str,
+    runtime: PlatformRuntime = Depends(get_runtime),
+    principal: Principal = Depends(require_permission(Permission.KNOWLEDGE_READ)),
+) -> dict[str, Any]:
+    store = source_store(runtime, agent)
+    queue = await asyncio.to_thread(store.review_queue, principal.tenant_id, agent)
+    return {"agent_id": agent, **queue}
+
+
 @router.get("/{agent}/sources/{source_id}")
 async def read_source(
     agent: str,

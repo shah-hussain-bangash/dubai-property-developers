@@ -1,0 +1,12 @@
+'use client';
+import {useEffect,useRef,useState} from 'react';
+import {knowledgeRequest} from '@/services/agentKnowledge';
+import {parseReviewQueue,type ReviewQueue} from '@/services/sourceReviewQueue';
+import s from './AgentKnowledgePanel.module.css';
+export function SourceReviewQueue({agent,disabled,onReview}:{agent:string;disabled:boolean;onReview:(id:string)=>Promise<void>}){
+ const [queue,setQueue]=useState<ReviewQueue|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const active=useRef<AbortController|null>(null),mounted=useRef(true);
+ useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;active.current?.abort();};},[]);
+ async function load(){if(active.current)return;const controller=new AbortController();active.current=controller;setBusy(true);setError('');setQueue(null);const timeout=setTimeout(()=>controller.abort(),45000);try{const value=await knowledgeRequest<ReviewQueue>('/'+agent+'/review-queue',{},controller.signal);if(mounted.current&&!controller.signal.aborted)setQueue(parseReviewQueue(value,agent));}catch(e){if(mounted.current)setError(controller.signal.aborted?'The review-date check did not finish. Try again.':(e as Error).message);}finally{clearTimeout(timeout);active.current=null;if(mounted.current)setBusy(false);}}
+ return <section className={s.box} aria-labelledby="review-queue-title"><h3 id="review-queue-title">Sources needing review</h3><p>Check this agent’s overdue sources and those due today or within seven days. A source remains available through its review date; overdue sources are excluded from answers. Undated sources have no automatic cutoff.</p><button type="button" className="btn" disabled={disabled||busy} onClick={()=>void load()}>{busy?'Checking review dates…':queue?'Refresh review dates':'Check review dates'}</button>{error&&<p className={s.error} role="alert">{error}</p>}{queue&&<div aria-live="polite"><p>Checked for {queue.as_of} · Server calendar day</p><p>{queue.summary.overdue} overdue · {queue.summary.due_soon} due soon · {queue.summary.current} current · {queue.summary.undated} without a review date</p>{!queue.items.length?<p>No dated sources need review in this window.</p>:<ul className={s.sources}>{queue.items.map(item=><li key={item.id}><div><strong>{item.title}</strong><p>{item.review_status==='overdue'?'Overdue':'Due soon'} · Review by {item.review_by}</p></div><button type="button" className="btn" disabled={disabled||busy} onClick={()=>void onReview(item.id)}>Review source: {item.title}</button></li>)}</ul>}</div>}</section>;
+}

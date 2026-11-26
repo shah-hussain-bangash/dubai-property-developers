@@ -70,6 +70,27 @@ class AssignedSources:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def review_queue(self, tenant: str, agent: str) -> dict[str, Any]:
+        """Classify this owner's deadlines using the same calendar as retrieval."""
+        today = date.today()
+        summary = {"overdue": 0, "due_soon": 0, "current": 0, "undated": 0}
+        items = []
+        for source in self.list_sources(tenant, agent):
+            deadline = date.fromisoformat(source["review_by"]) if source["review_by"] else None
+            if deadline is None:
+                status = "undated"
+            elif deadline < today:
+                status = "overdue"
+            elif (deadline - today).days <= 7:
+                status = "due_soon"
+            else:
+                status = "current"
+            summary[status] += 1
+            if status in {"overdue", "due_soon"}:
+                items.append({**source, "review_status": status})
+        items.sort(key=lambda item: (item["review_by"], item["id"]))
+        return {"as_of": today.isoformat(), "window_days": 7, "summary": summary, "items": items}
+
     def read_source(self, tenant: str, agent: str, source_id: str) -> dict[str, Any]:
         """Return a saved text snapshot for staff review, including expired material."""
         with closing(self._connect()) as db:

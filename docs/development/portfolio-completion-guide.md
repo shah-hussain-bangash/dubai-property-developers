@@ -134,7 +134,7 @@ All source import methods now expose optional review deadlines, including raw fi
 uploads. The page displays stored deadlines; expiry and explicit re-import renewal
 pass locally for all 13 agents. See the
 [review-date lifecycle record](../verification/source-review-dates-local-2026-11-26.md).
-Review reminders remain future work.
+Scheduled review reminders remain future work.
 
 Saved source text can now be read in the Knowledge page before review, with PDF page
 numbers and organization/agent-scoped access. Previewing overdue material does not
@@ -147,8 +147,13 @@ and ownership. See the [renewal verification](../verification/saved-source-revie
 Source review history now records authenticated reviewers and previous/new values
 atomically, with scoped older-page navigation. See the
 [review-history verification](../verification/source-review-history-local-2026-11-26.md).
-It covers explicit review actions and is removed with its source. Reminders and a
+It covers explicit review actions and is removed with its source. Scheduled reminders and a
 broader immutable audit/retention policy remain future work.
+
+A manual selected-agent review queue now shows overdue and seven-day due sources,
+using the server calendar and opening the existing review flow. See the
+[queue verification](../verification/source-review-queue-local-2026-11-26.md).
+It does not schedule notifications or change sources merely by checking dates.
 
 Plan separate work for durable runtime storage and consent, scheduled follow-ups,
 production authentication, sandbox provider validation, monitoring and recovery.

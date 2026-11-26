@@ -1,0 +1,87 @@
+{
+  "environment": "local, mock providers",
+  "parent_revision": "ec7fb45969a16951fec655e0c8ea60facf5ad335",
+  "agent_id": "documents",
+  "fixture_day": "2030-01-03",
+  "before": {
+    "as_of": "2030-01-03",
+    "window_days": 7,
+    "summary": {
+      "overdue": 1,
+      "due_soon": 2,
+      "current": 1,
+      "undated": 1
+    },
+    "items": [
+      {
+        "id": "08638a5f1cdf724e472c4fd4cd11b4d70370827d2e518f50c8949719bf6f9268",
+        "title": "Fictional overdue policy",
+        "kind": "text",
+        "uri": null,
+        "chars": 45,
+        "created": "2026-11-26T11:00:31.883626+00:00",
+        "review_by": "2030-01-02",
+        "customer_safe": 0,
+        "review_status": "overdue"
+      },
+      {
+        "id": "8e662bddeb7a30bf0a654654980dd963cd4421c95b82fdde2f489dcd149ee4ae",
+        "title": "Fictional review today",
+        "kind": "text",
+        "uri": null,
+        "chars": 43,
+        "created": "2026-11-26T11:00:31.897539+00:00",
+        "review_by": "2030-01-03",
+        "customer_safe": 0,
+        "review_status": "due_soon"
+      },
+      {
+        "id": "cc93ee222025511ea47d2df7862bcb60192d80dfe0b2b19c26d118b8fe710f27",
+        "title": "Fictional review next week",
+        "kind": "text",
+        "uri": null,
+        "chars": 42,
+        "created": "2026-11-26T11:00:31.908395+00:00",
+        "review_by": "2030-01-10",
+        "customer_safe": 0,
+        "review_status": "due_soon"
+      }
+    ]
+  },
+  "after": {
+    "as_of": "2030-01-03",
+    "window_days": 7,
+    "summary": {
+      "overdue": 0,
+      "due_soon": 2,
+      "current": 2,
+      "undated": 1
+    },
+    "items": [
+      {
+        "id": "8e662bddeb7a30bf0a654654980dd963cd4421c95b82fdde2f489dcd149ee4ae",
+        "title": "Fictional review today",
+        "kind": "text",
+        "uri": null,
+        "chars": 43,
+        "created": "2026-11-26T11:00:31.897539+00:00",
+        "review_by": "2030-01-03",
+        "customer_safe": 0,
+        "review_status": "due_soon"
+      },
+      {
+        "id": "cc93ee222025511ea47d2df7862bcb60192d80dfe0b2b19c26d118b8fe710f27",
+        "title": "Fictional review next week",
+        "kind": "text",
+        "uri": null,
+        "chars": 42,
+        "created": "2026-11-26T11:00:31.908395+00:00",
+        "review_by": "2030-01-10",
+        "customer_safe": 0,
+        "review_status": "due_soon"
+      }
+    ]
+  },
+  "final_source_count": 5,
+  "review_events_created_by_explicit_renewal": 1
+}

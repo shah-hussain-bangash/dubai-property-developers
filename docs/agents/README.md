@@ -335,3 +335,9 @@ recording times and previous/new date and approval values. Older pages contain u
 reviews each. Review updates and history commit together. This covers explicit reviews,
 not imports or all source mutations; deleting a source also deletes its history, as the
 confirmation explains. See the [history verification](../verification/source-review-history-local-2026-11-26.md).
+
+Use Sources needing review → Check review dates for a manual, selected-agent queue.
+The server classifies overdue sources and those due today through seven days ahead;
+current and undated sources are counted separately. Review source opens the saved
+text and existing review form. Recheck after changes; this is not a scheduled
+notification. See the [queue verification](../verification/source-review-queue-local-2026-11-26.md).
