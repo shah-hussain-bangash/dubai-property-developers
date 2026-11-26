@@ -3,6 +3,16 @@ import {getApiBaseUrl,getApiCredentials} from '@/lib/config';
 const NO_SOURCE_ANSWER="I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.";
 
 export type KnowledgeAgent={id:string;name:string;status:string};
+export type KnowledgeWorkspace={configured:boolean;agents:KnowledgeAgent[]};
+export function parseKnowledgeWorkspace(value:unknown):KnowledgeWorkspace{
+ const invalid=()=>Error('The knowledge workspace response could not be verified. Retry loading it.');
+ if(!value||typeof value!=='object')throw invalid();
+ const workspace=value as KnowledgeWorkspace;
+ if(typeof workspace.configured!=='boolean'||!Array.isArray(workspace.agents))throw invalid();
+ const ids=new Set<string>();
+ for(const agent of workspace.agents){if(!agent||typeof agent.id!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(agent.id)||ids.has(agent.id)||typeof agent.name!=='string'||!agent.name.trim()||agent.name.length>200)throw invalid();ids.add(agent.id);}
+ return workspace;
+}
 export type AssignedSource={id:string;title:string;kind:string;uri:string|null;chars:number;created:string;review_by:string|null;customer_safe:number};
 export type SourcePreview={agent_id:string;source:AssignedSource;pages:{page:number|null;text:string}[]};
 export function parseReviewedSource(value:{agent_id:string;source:AssignedSource},agent:string,before:AssignedSource,date:string,customerSafe:boolean):AssignedSource{

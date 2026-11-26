@@ -380,3 +380,9 @@ If an agent's initial source list fails or times out, use Refresh sources. Knowl
 actions stay disabled until a successful owned list is loaded; a 45-second initial
 load deadline makes the read retry available, and stale responses are discarded.
 See the [loading recovery record](../verification/knowledge-source-load-recovery-local-2026-11-26.md).
+
+If the workspace agent list fails or stalls, Retry knowledge workspace reloads that
+read in place after an error or 45-second deadline. Invalid or stale registry
+responses are not applied, and a valid empty registry has its own status. Source
+readiness still gates all knowledge actions. See the
+[workspace loading record](../verification/knowledge-workspace-load-recovery-local-2026-11-26.md).
