@@ -190,3 +190,8 @@ runs and result downloads. Added questions receive a currently unused reference;
 other checks are not renumbered. To recover references lost in an older download, load the original question
 file again. See the
 [traceability fix and reproduction](../verification/stable-knowledge-check-ids-local-2026-11-26.md).
+
+If an agent's initial source list fails or times out, use Refresh sources. Knowledge
+actions stay disabled until a successful owned list is loaded; a 45-second initial
+load deadline makes the read retry available, and stale responses are discarded.
+See the [loading recovery record](../verification/knowledge-source-load-recovery-local-2026-11-26.md).
