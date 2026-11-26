@@ -70,6 +70,39 @@ class AssignedSources:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def coverage(self, tenant: str, agents: list[str]) -> dict[str, Any]:
+        """Count registered agents' sources without loading source content."""
+        today = date.today()
+        fields = ("total", "staff_eligible", "customer_eligible", "overdue", "due_soon", "undated")
+        counts = {agent: dict.fromkeys(fields, 0) for agent in agents}
+        if agents:
+            with closing(self._connect()) as db:
+                rows = db.execute(
+                    "SELECT agent,review_by,customer_safe FROM agent_sources WHERE tenant=?",
+                    (tenant,),
+                ).fetchall()
+            for row in rows:
+                if row["agent"] not in counts:
+                    continue
+                item = counts[row["agent"]]
+                item["total"] += 1
+                deadline = date.fromisoformat(row["review_by"]) if row["review_by"] else None
+                if deadline is None:
+                    item["undated"] += 1
+                if deadline is not None and deadline < today:
+                    item["overdue"] += 1
+                    continue
+                item["staff_eligible"] += 1
+                item["customer_eligible"] += int(bool(row["customer_safe"]))
+                if deadline is not None and (deadline - today).days <= 7:
+                    item["due_soon"] += 1
+        return {
+            "as_of": today.isoformat(),
+            "window_days": 7,
+            "agents": [{"agent_id": agent, **counts[agent]} for agent in agents],
+            "summary": {field: sum(item[field] for item in counts.values()) for field in fields},
+        }
+
     def review_queue(self, tenant: str, agent: str) -> dict[str, Any]:
         """Classify this owner's deadlines using the same calendar as retrieval."""
         today = date.today()

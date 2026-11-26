@@ -170,3 +170,10 @@ Voice/telephony, live calendar and partner property APIs require additional
 implementation or authorized access. Better paraphrase retrieval needs independent
 quality evaluations. These are not prerequisites for an accurately labelled
 portfolio demonstration.
+
+The Knowledge page now offers an on-demand organization-wide agent source overview,
+including empty agents, current staff/customer-approved counts, overdue and seven-day
+due counts, with navigation to each agent's existing editor. Counts measure source
+availability, not answer quality or live feature readiness. Recheck after changes;
+no scheduled notification is added. See the
+[coverage verification](../verification/agent-knowledge-coverage-local-2026-11-26.md).

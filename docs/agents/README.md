@@ -355,3 +355,10 @@ answer must identify the customer audience before the page shows the results. Ol
 files load as staff; changing audience clears results, and agent changes reset to
 staff. Re-run after approval or deadline changes. See the
 [customer evaluation record](../verification/customer-knowledge-evaluation-local-2026-11-26.md).
+
+The Knowledge page now offers an on-demand organization-wide agent source overview,
+including empty agents, current staff/customer-approved counts, overdue and seven-day
+due counts, with navigation to each agent's existing editor. Counts measure source
+availability, not answer quality or live feature readiness. Recheck after changes;
+no scheduled notification is added. See the
+[coverage verification](../verification/agent-knowledge-coverage-local-2026-11-26.md).

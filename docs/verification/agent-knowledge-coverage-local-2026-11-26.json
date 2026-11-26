@@ -1,0 +1,662 @@
+{
+  "environment": "disposable local mock-provider API; fictional data only",
+  "base_revision": "c94094573353560b9d45dad755485784ec74f09a",
+  "source_calendar": "2030-01-03 then 2030-01-04; machine clock unchanged",
+  "initial": {
+    "as_of": "2030-01-03",
+    "window_days": 7,
+    "agents": [
+      {
+        "agent_id": "supervisor",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "lead_intake",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "qualification",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "property_recommendation",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "sales_conversation",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "followup",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "crm",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "email",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "whatsapp",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "voice",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "marketing",
+        "total": 1,
+        "staff_eligible": 1,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 1
+      },
+      {
+        "agent_id": "documents",
+        "total": 2,
+        "staff_eligible": 1,
+        "customer_eligible": 1,
+        "overdue": 1,
+        "due_soon": 1,
+        "undated": 0
+      },
+      {
+        "agent_id": "analytics",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      }
+    ],
+    "summary": {
+      "total": 3,
+      "staff_eligible": 2,
+      "customer_eligible": 1,
+      "overdue": 1,
+      "due_soon": 1,
+      "undated": 1
+    }
+  },
+  "other_organization": {
+    "as_of": "2030-01-03",
+    "window_days": 7,
+    "agents": [
+      {
+        "agent_id": "supervisor",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "lead_intake",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "qualification",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "property_recommendation",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "sales_conversation",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "followup",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "crm",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "email",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "whatsapp",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "voice",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "marketing",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "documents",
+        "total": 1,
+        "staff_eligible": 1,
+        "customer_eligible": 1,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 1
+      },
+      {
+        "agent_id": "analytics",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      }
+    ],
+    "summary": {
+      "total": 1,
+      "staff_eligible": 1,
+      "customer_eligible": 1,
+      "overdue": 0,
+      "due_soon": 0,
+      "undated": 1
+    }
+  },
+  "after_explicit_review": {
+    "as_of": "2030-01-03",
+    "window_days": 7,
+    "agents": [
+      {
+        "agent_id": "supervisor",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "lead_intake",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "qualification",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "property_recommendation",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "sales_conversation",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "followup",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "crm",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "email",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "whatsapp",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "voice",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "marketing",
+        "total": 1,
+        "staff_eligible": 1,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 1
+      },
+      {
+        "agent_id": "documents",
+        "total": 2,
+        "staff_eligible": 2,
+        "customer_eligible": 2,
+        "overdue": 0,
+        "due_soon": 2,
+        "undated": 0
+      },
+      {
+        "agent_id": "analytics",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      }
+    ],
+    "summary": {
+      "total": 3,
+      "staff_eligible": 3,
+      "customer_eligible": 2,
+      "overdue": 0,
+      "due_soon": 2,
+      "undated": 1
+    }
+  },
+  "after_explicit_removal": {
+    "as_of": "2030-01-03",
+    "window_days": 7,
+    "agents": [
+      {
+        "agent_id": "supervisor",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "lead_intake",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "qualification",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "property_recommendation",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "sales_conversation",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "followup",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "crm",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "email",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "whatsapp",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "voice",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "marketing",
+        "total": 1,
+        "staff_eligible": 1,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 1
+      },
+      {
+        "agent_id": "documents",
+        "total": 1,
+        "staff_eligible": 1,
+        "customer_eligible": 1,
+        "overdue": 0,
+        "due_soon": 1,
+        "undated": 0
+      },
+      {
+        "agent_id": "analytics",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      }
+    ],
+    "summary": {
+      "total": 2,
+      "staff_eligible": 2,
+      "customer_eligible": 1,
+      "overdue": 0,
+      "due_soon": 1,
+      "undated": 1
+    }
+  },
+  "next_day_after_restart": {
+    "as_of": "2030-01-04",
+    "window_days": 7,
+    "agents": [
+      {
+        "agent_id": "supervisor",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "lead_intake",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "qualification",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "property_recommendation",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "sales_conversation",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "followup",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "crm",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "email",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "whatsapp",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "voice",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "marketing",
+        "total": 1,
+        "staff_eligible": 1,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 1
+      },
+      {
+        "agent_id": "documents",
+        "total": 1,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 1,
+        "due_soon": 0,
+        "undated": 0
+      },
+      {
+        "agent_id": "analytics",
+        "total": 0,
+        "staff_eligible": 0,
+        "customer_eligible": 0,
+        "overdue": 0,
+        "due_soon": 0,
+        "undated": 0
+      }
+    ],
+    "summary": {
+      "total": 2,
+      "staff_eligible": 1,
+      "customer_eligible": 0,
+      "overdue": 1,
+      "due_soon": 0,
+      "undated": 1
+    }
+  },
+  "source_mutations_during_coverage_requests": 0,
+  "customer_messages_sent": 0
+}

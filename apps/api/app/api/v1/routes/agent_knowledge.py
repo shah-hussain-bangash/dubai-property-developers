@@ -112,6 +112,17 @@ async def agent_sources_index(
     }
 
 
+@router.get("/coverage")
+async def source_coverage(
+    runtime: PlatformRuntime = Depends(get_runtime),
+    principal: Principal = Depends(require_permission(Permission.KNOWLEDGE_READ)),
+) -> dict[str, Any]:
+    agents = list(runtime.agents.ids())
+    if runtime.assigned_sources is None:
+        raise HTTPException(503, "Knowledge storage is not enabled.")
+    return await asyncio.to_thread(runtime.assigned_sources.coverage, principal.tenant_id, agents)
+
+
 @router.get("/{agent}/sources")
 async def list_sources(
     agent: str,
