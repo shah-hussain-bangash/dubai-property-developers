@@ -307,8 +307,8 @@ and add held-out cases when fixing an observed failure. Never add customer recor
 The Knowledge page's Saved checks section supports a separate local question file for each
 agent. Save the set before switching agents; load it later to rerun up to 20 expected-passage
 or no-answer checks. Questions and expected passages are never added to source knowledge.
-Results include actual source quotes and citations. This is a staff retrieval check, not
-customer delivery or model training. See the
+Results include actual source quotes and citations. These are staff-controlled retrieval checks, with staff and customer audiences;
+no customer delivery or model training occurs. See the
 [evaluation workspace verification](../verification/agent-knowledge-evaluation-local-2026-11-26.md)
 for a complete fictional reproduction, limits and downloadable evidence.
 
@@ -346,5 +346,12 @@ The manual question test also offers Preview audience. Staff includes all curren
 sources; Customer includes only current, explicitly customer-approved own sources. The page
 verifies the customer audience marker and exact citations before showing the result. Both
 modes are previews and send nothing. Audience changes clear the old answer; agent changes
-reset to staff. Saved evaluation sets remain staff checks. See the
+reset to staff. Saved checks have an independent audience selector. See the
 [customer preview verification](../verification/customer-knowledge-preview-local-2026-11-26.md).
+
+Saved checks now also support Customer mode and retain that choice in local question
+files. Customer runs use only current approved own sources. Both the report and every
+answer must identify the customer audience before the page shows the results. Older
+files load as staff; changing audience clears results, and agent changes reset to
+staff. Re-run after approval or deadline changes. See the
+[customer evaluation record](../verification/customer-knowledge-evaluation-local-2026-11-26.md).

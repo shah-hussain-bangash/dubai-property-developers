@@ -1,0 +1,357 @@
+{
+  "environment": "disposable local mock-provider API; synthetic data only",
+  "source_calendar": "2030-01-03 (only source-store test clock)",
+  "base_revision": "a9384d0aef2d05913cedc347a44f3199dcfa3f0c",
+  "customer_questions": {
+    "agent_id": "documents",
+    "audience": "customer",
+    "cases": [
+      {
+        "id": "approved",
+        "question": "publicmarker gardens",
+        "expectation": "answer",
+        "expected_excerpt": "two visits"
+      },
+      {
+        "id": "staff",
+        "question": "internalmarker balcony",
+        "expectation": "no_answer"
+      },
+      {
+        "id": "expired",
+        "question": "expiredmarker parking",
+        "expectation": "no_answer"
+      },
+      {
+        "id": "foreign",
+        "question": "foreignmarker astronomy",
+        "expectation": "no_answer"
+      }
+    ]
+  },
+  "before_withdrawal": {
+    "agent_id": "documents",
+    "audience": "customer",
+    "supplied_sources_only": true,
+    "sent": false,
+    "evaluated": 4,
+    "passed": 4,
+    "failed": 0,
+    "cases": [
+      {
+        "id": "approved",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": true,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "[1] Fictional publicmarker gardens allow two visits.",
+          "sources": [
+            {
+              "source_id": "ceb309e53e9c43f6ad4f1b1e2781da0ae7c461e2713ef0ceb0377921467b3af5",
+              "title": "Fictional evaluation policy",
+              "uri": null,
+              "page": null,
+              "excerpt": "Fictional publicmarker gardens allow two visits.",
+              "score": 1.0,
+              "chunk": 0,
+              "label": "1"
+            }
+          ],
+          "audience": "customer"
+        }
+      },
+      {
+        "id": "staff",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": false,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+          "sources": [],
+          "audience": "customer"
+        }
+      },
+      {
+        "id": "expired",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": false,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+          "sources": [],
+          "audience": "customer"
+        }
+      },
+      {
+        "id": "foreign",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": false,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+          "sources": [],
+          "audience": "customer"
+        }
+      }
+    ]
+  },
+  "staff_comparison": {
+    "agent_id": "documents",
+    "supplied_sources_only": true,
+    "sent": false,
+    "evaluated": 4,
+    "passed": 3,
+    "failed": 1,
+    "cases": [
+      {
+        "id": "approved",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": true,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "[1] Fictional publicmarker gardens allow two visits.",
+          "sources": [
+            {
+              "source_id": "ceb309e53e9c43f6ad4f1b1e2781da0ae7c461e2713ef0ceb0377921467b3af5",
+              "title": "Fictional evaluation policy",
+              "uri": null,
+              "page": null,
+              "excerpt": "Fictional publicmarker gardens allow two visits.",
+              "score": 1.0,
+              "chunk": 0,
+              "label": "1"
+            }
+          ]
+        }
+      },
+      {
+        "id": "staff",
+        "passed": false,
+        "answer": {
+          "agent_id": "documents",
+          "answered": true,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "[1] Fictional internalmarker balcony contains staff details.",
+          "sources": [
+            {
+              "source_id": "50ecd2cdab25f5c6a7ac79df22a8e7fa6dec273c334b7a2bc4ae0b1b8731aeb6",
+              "title": "Fictional evaluation policy",
+              "uri": null,
+              "page": null,
+              "excerpt": "Fictional internalmarker balcony contains staff details.",
+              "score": 1.0,
+              "chunk": 0,
+              "label": "1"
+            }
+          ]
+        }
+      },
+      {
+        "id": "expired",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": false,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+          "sources": []
+        }
+      },
+      {
+        "id": "foreign",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": false,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+          "sources": []
+        }
+      }
+    ]
+  },
+  "after_withdrawal_same_questions": {
+    "agent_id": "documents",
+    "audience": "customer",
+    "supplied_sources_only": true,
+    "sent": false,
+    "evaluated": 4,
+    "passed": 3,
+    "failed": 1,
+    "cases": [
+      {
+        "id": "approved",
+        "passed": false,
+        "answer": {
+          "agent_id": "documents",
+          "answered": false,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+          "sources": [],
+          "audience": "customer"
+        }
+      },
+      {
+        "id": "staff",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": false,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+          "sources": [],
+          "audience": "customer"
+        }
+      },
+      {
+        "id": "expired",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": false,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+          "sources": [],
+          "audience": "customer"
+        }
+      },
+      {
+        "id": "foreign",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": false,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+          "sources": [],
+          "audience": "customer"
+        }
+      }
+    ]
+  },
+  "updated_no_answer_questions": {
+    "agent_id": "documents",
+    "audience": "customer",
+    "cases": [
+      {
+        "id": "approved",
+        "question": "publicmarker gardens",
+        "expectation": "no_answer",
+        "expected_excerpt": null
+      },
+      {
+        "id": "staff",
+        "question": "internalmarker balcony",
+        "expectation": "no_answer"
+      },
+      {
+        "id": "expired",
+        "question": "expiredmarker parking",
+        "expectation": "no_answer"
+      },
+      {
+        "id": "foreign",
+        "question": "foreignmarker astronomy",
+        "expectation": "no_answer"
+      }
+    ]
+  },
+  "after_withdrawal_no_answer_checks": {
+    "agent_id": "documents",
+    "audience": "customer",
+    "supplied_sources_only": true,
+    "sent": false,
+    "evaluated": 4,
+    "passed": 4,
+    "failed": 0,
+    "cases": [
+      {
+        "id": "approved",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": false,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+          "sources": [],
+          "audience": "customer"
+        }
+      },
+      {
+        "id": "staff",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": false,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+          "sources": [],
+          "audience": "customer"
+        }
+      },
+      {
+        "id": "expired",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": false,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+          "sources": [],
+          "audience": "customer"
+        }
+      },
+      {
+        "id": "foreign",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": false,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+          "sources": [],
+          "audience": "customer"
+        }
+      }
+    ]
+  },
+  "source_count": 2,
+  "customer_messages_sent": 0
+}

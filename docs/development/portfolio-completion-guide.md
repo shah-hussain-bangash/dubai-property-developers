@@ -159,7 +159,10 @@ Manual knowledge questions now support staff and customer audiences. Customer mo
 quotes only current, approved own sources and explicitly abstains after approval
 withdrawal; the dashboard verifies the result's audience. See the
 [customer preview record](../verification/customer-knowledge-preview-local-2026-11-26.md).
-Saved evaluation sets remain staff checks and no customer delivery is added.
+Saved checks now also support an independent customer audience, retained in local
+question files and verified in every reported answer. Legacy files remain staff
+checks. See the [customer evaluation record](../verification/customer-knowledge-evaluation-local-2026-11-26.md).
+No customer delivery is added.
 
 Plan separate work for durable runtime storage and consent, scheduled follow-ups,
 production authentication, sandbox provider validation, monitoring and recovery.

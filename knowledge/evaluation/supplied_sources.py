@@ -24,6 +24,7 @@ class EvaluationCase(BaseModel):
 class EvaluationSet(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     agent_id: str = Field(min_length=1, max_length=100)
+    audience: Literal["staff", "customer"] = "staff"
     cases: list[EvaluationCase] = Field(min_length=1, max_length=20)
 
     @model_validator(mode="after")
@@ -39,7 +40,7 @@ def evaluate_sources(
     results: list[dict[str, Any]] = []
     for case in checks.cases:
         # Expected passages never enter retrieval or the source store.
-        answer = store.answer(tenant, agent, case.question)
+        answer = store.answer(tenant, agent, case.question, customer=checks.audience == "customer")
         passed = (
             not answer["answered"]
             if case.expectation == "no_answer"
@@ -49,6 +50,7 @@ def evaluate_sources(
     passed_count = sum(result["passed"] for result in results)
     return {
         "agent_id": agent,
+        **({"audience": "customer"} if checks.audience == "customer" else {}),
         "supplied_sources_only": True,
         "sent": False,
         "evaluated": len(results),
