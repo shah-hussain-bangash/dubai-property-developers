@@ -30,6 +30,9 @@ Review the complete diff in these groups before calling this phase complete:
    [external action record](../verification/phase1-external-actions-local-2026-11-26.md).
    Live provider behavior and reconciliation remain separate release conditions.
 3. Knowledge import: files, HTML, Unicode links, deadlines and source review dates.
+   Initial review found that truncated website responses could be saved. The fix
+   and eight new cases pass within 124 focused checks. See the
+   [knowledge import record](../verification/phase1-knowledge-imports-local-2026-11-26.md).
 4. Dashboard: agent switching, source approval resets and citation rendering.
 5. Compatibility: existing configuration, saved data and outstanding approvals.
 

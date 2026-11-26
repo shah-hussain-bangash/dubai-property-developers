@@ -270,6 +270,12 @@ def import_website(url: str) -> tuple[list[str], str]:
                 # EOF is still a network result and cannot bypass the fetch budget.
                 _check_fetch_deadline(deadline)
                 if not chunk:
+                    # read1() can reach EOF without raising IncompleteRead when
+                    # Content-Length still promises more bytes. Do not save it.
+                    if getattr(response, "length", None) not in {None, 0}:
+                        raise DomainValidationError(
+                            "The website response was incomplete. Try again or paste its text."
+                        )
                     break
                 chunks.extend(chunk)
             content = bytes(chunks)
