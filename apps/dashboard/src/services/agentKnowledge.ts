@@ -37,6 +37,9 @@ export function parseSavedSource(value:unknown,agent:string):AssignedSource{
   return parseSourceList({agent_id:data.agent_id,sources:[data.source]},agent)[0];
  }catch{throw Error('The source save could not be confirmed. Refresh sources before importing again.');}
 }
+export function parseSourceRemoval(value:unknown):void{
+ if(!value||typeof value!=='object'||Array.isArray(value)||(value as {removed:unknown}).removed!==true)throw Error('The source removal could not be confirmed. Refresh sources before trying again.');
+}
 export type SourcePreview={agent_id:string;source:AssignedSource;pages:{page:number|null;text:string}[]};
 export function parseReviewedSource(value:{agent_id:string;source:AssignedSource},agent:string,before:AssignedSource,date:string,customerSafe:boolean):AssignedSource{
  if(!value||value.agent_id!==agent||!value.source||(['id','title','kind','uri','chars','created'] as const).some(key=>value.source[key]!==before[key])||value.source.review_by!==date||value.source.customer_safe!==(customerSafe?1:0))throw Error('The saved review could not be verified. Refresh sources before retrying.');

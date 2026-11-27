@@ -398,3 +398,9 @@ before clearing drafts or showing success. Unconfirmed outcomes retain the draft
 and request a source-list refresh before another import; a save may already have
 committed. See the
 [save acknowledgement record](../verification/knowledge-save-acknowledgement-local-2026-11-27.md).
+
+Source removal now requires the existing boolean removed acknowledgement before the
+page claims success. Unconfirmed outcomes retain the last known list, close the
+confirmation and request read-only refresh before another attempt; the deletion may
+already have committed. See the
+[removal acknowledgement record](../verification/knowledge-removal-acknowledgement-local-2026-11-27.md).
