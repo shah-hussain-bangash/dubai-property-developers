@@ -414,3 +414,9 @@ Saved evaluation question files now share a 256 KB save/load budget, so a valid
 20-case multilingual set can reload its own download. The existing case/field and
 ownership/audience checks remain; source-upload limits are unchanged. See the
 [question-file size record](../verification/knowledge-question-file-size-local-2026-11-27.md).
+
+Main knowledge operations now release their UI wait at the 45-second deadline even
+when a read ignores cancellation. Refresh sources before retrying; late abandoned
+results cannot alter the recovered view. Server processing may still finish and
+writes are not automatically repeated. See the
+[operation timeout record](../verification/knowledge-operation-timeout-local-2026-11-27.md).
