@@ -9,9 +9,23 @@ vi.mock('@/services/agentKnowledge', async importOriginal => ({
 const request = vi.mocked(knowledgeRequest);
 beforeEach(() => {
   request.mockReset();
-  request.mockImplementation(async path => path === '' ? { configured: true,
-    agents: [{ id: 'documents', name: 'Document Agent', status: 'partial' }] }
-    : { agent_id: 'documents', sources: [] });
+  request.mockImplementation(async (path, init) => {
+    if (path === '') return { configured: true,
+      agents: [{ id: 'documents', name: 'Document Agent', status: 'partial' }] };
+    if (init?.method === 'POST') {
+      const body = typeof init.body === 'string' ? JSON.parse(init.body) : {};
+      const query = new URLSearchParams(path.split('?')[1] ?? '');
+      const mime = (init.headers as Record<string,string>)?.['Content-Type'];
+      return { agent_id: path.split('/')[1], source: {
+        id: 'fixture', title: body.title ?? query.get('title') ?? 'Fictional source',
+        kind: body.kind ?? (mime === 'application/pdf' ? 'pdf' : mime === 'text/markdown' ? 'markdown' : 'text'),
+        uri: body.kind === 'website' ? body.url : null, chars: 40,
+        created: '2026-11-26T00:00:00Z', review_by: body.review_by ?? query.get('review_by') ?? null,
+        customer_safe: (body.customer_safe ?? (query.get('customer_safe') === 'true')) ? 1 : 0,
+      } };
+    }
+    return { agent_id: 'documents', sources: [] };
+  });
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 async function ready() {

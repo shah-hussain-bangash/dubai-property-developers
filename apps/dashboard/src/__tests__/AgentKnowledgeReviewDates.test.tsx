@@ -5,7 +5,18 @@ import {knowledgeRequest,type AssignedSource} from '@/services/agentKnowledge';
 vi.mock('@/services/agentKnowledge',async original=>({...await original<typeof import('@/services/agentKnowledge')>(),knowledgeRequest:vi.fn()}));
 const request=vi.mocked(knowledgeRequest);
 let sources:AssignedSource[];
-beforeEach(()=>{sources=[];request.mockReset();request.mockImplementation(async(path,init)=>{if(path==='')return {configured:true,agents:[{id:'documents',name:'Document Agent'},{id:'marketing',name:'Marketing Agent'}]};if(init?.method==='POST')return {agent_id:'documents',source:{}};return {agent_id:path.split('/')[1],sources};});});
+beforeEach(()=>{sources=[];request.mockReset();request.mockImplementation(async(path,init)=>{if(path==='')return {configured:true,agents:[{id:'documents',name:'Document Agent'},{id:'marketing',name:'Marketing Agent'}]};if (init?.method === 'POST') {
+      const body = typeof init.body === 'string' ? JSON.parse(init.body) : {};
+      const query = new URLSearchParams(path.split('?')[1] ?? '');
+      const mime = (init.headers as Record<string,string>)?.['Content-Type'];
+      return { agent_id: path.split('/')[1], source: {
+        id: 'fixture', title: body.title ?? query.get('title') ?? 'Fictional source',
+        kind: body.kind ?? (mime === 'application/pdf' ? 'pdf' : mime === 'text/markdown' ? 'markdown' : 'text'),
+        uri: body.kind === 'website' ? body.url : null, chars: 40,
+        created: '2026-11-26T00:00:00Z', review_by: body.review_by ?? query.get('review_by') ?? null,
+        customer_safe: (body.customer_safe ?? (query.get('customer_safe') === 'true')) ? 1 : 0,
+      } };
+    }return {agent_id:path.split('/')[1],sources};});});
 afterEach(cleanup);
 async function ready(){render(<AgentKnowledgePanel/>);await waitFor(()=>expect(screen.getByRole('button',{name:'Save source for this agent'})).toBeEnabled());}
 function setDate(value='2030-01-02'){fireEvent.change(screen.getByLabelText('Review by (optional)'),{target:{value}});}

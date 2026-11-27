@@ -30,6 +30,13 @@ export function parseSourceList(value:unknown,agent:string):AssignedSource[]{
  if(chars>2000000)throw invalid();
  return data.sources;
 }
+export function parseSavedSource(value:unknown,agent:string):AssignedSource{
+ try{
+  if(!value||typeof value!=='object')throw Error('Missing save result.');
+  const data=value as {agent_id:unknown;source:unknown};
+  return parseSourceList({agent_id:data.agent_id,sources:[data.source]},agent)[0];
+ }catch{throw Error('The source save could not be confirmed. Refresh sources before importing again.');}
+}
 export type SourcePreview={agent_id:string;source:AssignedSource;pages:{page:number|null;text:string}[]};
 export function parseReviewedSource(value:{agent_id:string;source:AssignedSource},agent:string,before:AssignedSource,date:string,customerSafe:boolean):AssignedSource{
  if(!value||value.agent_id!==agent||!value.source||(['id','title','kind','uri','chars','created'] as const).some(key=>value.source[key]!==before[key])||value.source.review_by!==date||value.source.customer_safe!==(customerSafe?1:0))throw Error('The saved review could not be verified. Refresh sources before retrying.');

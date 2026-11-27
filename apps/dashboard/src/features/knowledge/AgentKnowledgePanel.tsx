@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useRef,useState,type FormEvent} from 'react';
-import {knowledgeRequest,parseSourceList,parseKnowledgeWorkspace,parseSourceAnswer,parseReviewedSource,parseSourcePreview,type SourcePreview,type KnowledgeAgent,type AssignedSource,type SourceAnswer} from '@/services/agentKnowledge';
+import {knowledgeRequest,parseSavedSource,parseSourceList,parseKnowledgeWorkspace,parseSourceAnswer,parseReviewedSource,parseSourcePreview,type SourcePreview,type KnowledgeAgent,type AssignedSource,type SourceAnswer} from '@/services/agentKnowledge';
 import s from './AgentKnowledgePanel.module.css';
 import {SourceReviewForm} from './SourceReviewForm';
 import {SourceReviewHistory} from './SourceReviewHistory';
@@ -40,10 +40,11 @@ export function AgentKnowledgePanel(){
  function chooseAgent(id:string){setAgent(id);setTitle('');setText('');setUrl('');setFile(null);setCustomerSafe(false);setReviewDate('');if(input.current)input.current.value='';}
  async function perform(action:(signal:AbortSignal)=>Promise<void>){if(active.current)return;const controller=new AbortController();active.current=controller;setBusy(true);setPreview(null);setError('');setNotice('');setAnswer(null);const timeout=setTimeout(()=>controller.abort(),45000);try{await action(controller.signal);}catch(e){if(!controller.signal.aborted)setError((e as Error).message);else setError('The request did not finish. Refresh the source list before retrying an import.');}finally{clearTimeout(timeout);active.current=null;setBusy(false);}}
  async function refresh(signal?:AbortSignal){const data=await knowledgeRequest<{agent_id:string;sources:AssignedSource[]}>('/'+agent+'/sources',{},signal);if(signal?.aborted)throw Error('Source refresh cancelled.');setSources(parseSourceList(data,agent));setLoadedAgent(agent);}
- async function add(event:FormEvent){event.preventDefault();await perform(async signal=>{let options:RequestInit;if(kind==='file'){
+ async function add(event:FormEvent){event.preventDefault();await perform(async signal=>{let options:RequestInit;let result:unknown;if(kind==='file'){
    if(!file)throw Error('Choose a PDF, text or Markdown file.');if(file.size>2000000)throw Error('Choose a file smaller than 2 MB.');const extension=file.name.toLowerCase().split('.').pop();const mime=extension==='pdf'?'application/pdf':extension==='md'?'text/markdown':extension==='txt'?'text/plain':'';if(!mime)throw Error('Choose a PDF, .txt or .md file.');
-   options={method:'POST',headers:{'Content-Type':mime},body:file};await knowledgeRequest('/'+agent+'/sources?title='+encodeURIComponent(title.trim()||file.name)+'&customer_safe='+customerSafe+(reviewDate?'&review_by='+encodeURIComponent(reviewDate):''),options,signal);
-  }else{options={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,kind,customer_safe:customerSafe,...(reviewDate?{review_by:reviewDate}:{}),...(kind==='text'?{text}:{url})})};await knowledgeRequest('/'+agent+'/sources',options,signal);}
+   options={method:'POST',headers:{'Content-Type':mime},body:file};result=await knowledgeRequest('/'+agent+'/sources?title='+encodeURIComponent(title.trim()||file.name)+'&customer_safe='+customerSafe+(reviewDate?'&review_by='+encodeURIComponent(reviewDate):''),options,signal);
+  }else{options={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,kind,customer_safe:customerSafe,...(reviewDate?{review_by:reviewDate}:{}),...(kind==='text'?{text}:{url})})};result=await knowledgeRequest('/'+agent+'/sources',options,signal);}
+  parseSavedSource(result,agent);
   setTitle('');setText('');setUrl('');setFile(null);setCustomerSafe(false);setReviewDate('');if(input.current)input.current.value='';setNotice('Source saved for '+agents.find(a=>a.id===agent)?.name+'. It is not added to other agents.');try{await refresh(signal);}catch{throw Error('Source was saved, but the list could not be refreshed. Refresh sources before importing again.');}
  });}
  async function exportKnowledge(){await perform(async signal=>{const value=await knowledgeRequest<SourceExport>('/'+agent+'/export',{},signal);if(signal.aborted)return;downloadSourceExport(parseSourceExport(value,agent));setNotice('Saved knowledge download prepared. Keep this file private: it includes staff-only and overdue sources.');});}

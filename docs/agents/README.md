@@ -392,3 +392,9 @@ cannot replace the last valid list or crash the editor. Initial failures keep
 knowledge actions disabled; an invalid refresh after an acknowledged save retains
 its success notice and permits a read retry. See the
 [source-list recovery record](../verification/knowledge-source-list-validation-local-2026-11-27.md).
+
+Source saves now require the existing selected-agent saved-source acknowledgement
+before clearing drafts or showing success. Unconfirmed outcomes retain the draft
+and request a source-list refresh before another import; a save may already have
+committed. See the
+[save acknowledgement record](../verification/knowledge-save-acknowledgement-local-2026-11-27.md).
