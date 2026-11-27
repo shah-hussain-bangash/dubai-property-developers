@@ -235,3 +235,8 @@ when a read ignores cancellation. Refresh sources before retrying; late abandone
 results cannot alter the recovered view. Server processing may still finish and
 writes are not automatically repeated. See the
 [operation timeout record](../verification/knowledge-operation-timeout-local-2026-11-27.md).
+
+The independent source overview, review queue and review history now also release
+their UI wait at the existing 45-second deadline if a read ignores cancellation.
+Manual retry remains available and expired results cannot replace the newer read.
+See the [panel timeout record](../verification/knowledge-panel-read-timeout-local-2026-11-27.md).
