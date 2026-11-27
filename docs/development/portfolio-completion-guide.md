@@ -201,3 +201,9 @@ read in place after an error or 45-second deadline. Invalid or stale registry
 responses are not applied, and a valid empty registry has its own status. Source
 readiness still gates all knowledge actions. See the
 [workspace loading record](../verification/knowledge-workspace-load-recovery-local-2026-11-26.md).
+
+Source lists are now checked before application, so malformed successful responses
+cannot replace the last valid list or crash the editor. Initial failures keep
+knowledge actions disabled; an invalid refresh after an acknowledged save retains
+its success notice and permits a read retry. See the
+[source-list recovery record](../verification/knowledge-source-list-validation-local-2026-11-27.md).

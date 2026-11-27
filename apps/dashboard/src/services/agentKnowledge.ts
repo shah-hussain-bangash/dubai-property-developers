@@ -14,6 +14,22 @@ export function parseKnowledgeWorkspace(value:unknown):KnowledgeWorkspace{
  return workspace;
 }
 export type AssignedSource={id:string;title:string;kind:string;uri:string|null;chars:number;created:string;review_by:string|null;customer_safe:number};
+export function parseSourceList(value:unknown,agent:string):AssignedSource[]{
+ const invalid=()=>Error('The source list could not be verified. Refresh sources to retry.');
+ if(!value||typeof value!=='object')throw invalid();
+ const data=value as {agent_id:string;sources:AssignedSource[]};
+ if(data.agent_id!==agent)throw Error('Source owner mismatch.');
+ if(!Array.isArray(data.sources)||data.sources.length>100)throw invalid();
+ const ids=new Set<string>();let chars=0;
+ for(const source of data.sources){
+  if(!source||typeof source.id!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(source.id)||ids.has(source.id)||typeof source.title!=='string'||!source.title.trim()||source.title.length>200||!['pdf','text','markdown','website'].includes(source.kind)||!validSourceUri(source.uri)||!Number.isSafeInteger(source.chars)||source.chars<1||source.chars>200000||typeof source.created!=='string'||source.created.length>100||!Number.isFinite(Date.parse(source.created))||![0,1].includes(source.customer_safe))throw invalid();
+  const review=source.review_by;
+  if(review!==null&&(typeof review!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(review)||Number(review.slice(0,4))<1||!Number.isFinite(Date.parse(review))||new Date(review).toISOString().slice(0,10)!==review))throw invalid();
+  ids.add(source.id);chars+=source.chars;
+ }
+ if(chars>2000000)throw invalid();
+ return data.sources;
+}
 export type SourcePreview={agent_id:string;source:AssignedSource;pages:{page:number|null;text:string}[]};
 export function parseReviewedSource(value:{agent_id:string;source:AssignedSource},agent:string,before:AssignedSource,date:string,customerSafe:boolean):AssignedSource{
  if(!value||value.agent_id!==agent||!value.source||(['id','title','kind','uri','chars','created'] as const).some(key=>value.source[key]!==before[key])||value.source.review_by!==date||value.source.customer_safe!==(customerSafe?1:0))throw Error('The saved review could not be verified. Refresh sources before retrying.');

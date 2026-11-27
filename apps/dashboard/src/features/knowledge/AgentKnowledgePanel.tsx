@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useRef,useState,type FormEvent} from 'react';
-import {knowledgeRequest,parseKnowledgeWorkspace,parseSourceAnswer,parseReviewedSource,parseSourcePreview,type SourcePreview,type KnowledgeAgent,type AssignedSource,type SourceAnswer} from '@/services/agentKnowledge';
+import {knowledgeRequest,parseSourceList,parseKnowledgeWorkspace,parseSourceAnswer,parseReviewedSource,parseSourcePreview,type SourcePreview,type KnowledgeAgent,type AssignedSource,type SourceAnswer} from '@/services/agentKnowledge';
 import s from './AgentKnowledgePanel.module.css';
 import {SourceReviewForm} from './SourceReviewForm';
 import {SourceReviewHistory} from './SourceReviewHistory';
@@ -33,14 +33,13 @@ export function AgentKnowledgePanel(){
   const timeout=setTimeout(()=>{controller.abort();setLoading(false);setError('Sources took too long to load. Use Refresh sources to retry.');},45000);
   knowledgeRequest<{agent_id:string;sources:AssignedSource[]}>('/'+agent+'/sources',{},controller.signal).then(data=>{
    if(controller.signal.aborted)return;
-   if(data.agent_id!==agent)throw Error('Source owner mismatch.');
-   setSources(data.sources);setLoadedAgent(agent);
+   setSources(parseSourceList(data,agent));setLoadedAgent(agent);
   }).catch(()=>{if(!controller.signal.aborted)setError('Sources could not be loaded. Use Refresh sources to retry.');}).finally(()=>{clearTimeout(timeout);if(!controller.signal.aborted)setLoading(false);});
   return()=>{clearTimeout(timeout);controller.abort();};
  },[agent,configured]);
  function chooseAgent(id:string){setAgent(id);setTitle('');setText('');setUrl('');setFile(null);setCustomerSafe(false);setReviewDate('');if(input.current)input.current.value='';}
  async function perform(action:(signal:AbortSignal)=>Promise<void>){if(active.current)return;const controller=new AbortController();active.current=controller;setBusy(true);setPreview(null);setError('');setNotice('');setAnswer(null);const timeout=setTimeout(()=>controller.abort(),45000);try{await action(controller.signal);}catch(e){if(!controller.signal.aborted)setError((e as Error).message);else setError('The request did not finish. Refresh the source list before retrying an import.');}finally{clearTimeout(timeout);active.current=null;setBusy(false);}}
- async function refresh(signal?:AbortSignal){const data=await knowledgeRequest<{agent_id:string;sources:AssignedSource[]}>('/'+agent+'/sources',{},signal);if(signal?.aborted)throw Error('Source refresh cancelled.');if(data.agent_id!==agent)throw Error('Source owner mismatch.');setSources(data.sources);setLoadedAgent(agent);}
+ async function refresh(signal?:AbortSignal){const data=await knowledgeRequest<{agent_id:string;sources:AssignedSource[]}>('/'+agent+'/sources',{},signal);if(signal?.aborted)throw Error('Source refresh cancelled.');setSources(parseSourceList(data,agent));setLoadedAgent(agent);}
  async function add(event:FormEvent){event.preventDefault();await perform(async signal=>{let options:RequestInit;if(kind==='file'){
    if(!file)throw Error('Choose a PDF, text or Markdown file.');if(file.size>2000000)throw Error('Choose a file smaller than 2 MB.');const extension=file.name.toLowerCase().split('.').pop();const mime=extension==='pdf'?'application/pdf':extension==='md'?'text/markdown':extension==='txt'?'text/plain':'';if(!mime)throw Error('Choose a PDF, .txt or .md file.');
    options={method:'POST',headers:{'Content-Type':mime},body:file};await knowledgeRequest('/'+agent+'/sources?title='+encodeURIComponent(title.trim()||file.name)+'&customer_safe='+customerSafe+(reviewDate?'&review_by='+encodeURIComponent(reviewDate):''),options,signal);
