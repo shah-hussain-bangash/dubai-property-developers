@@ -219,3 +219,8 @@ page claims success. Unconfirmed outcomes retain the last known list, close the
 confirmation and request read-only refresh before another attempt; the deletion may
 already have committed. See the
 [removal acknowledgement record](../verification/knowledge-removal-acknowledgement-local-2026-11-27.md).
+
+In a saved-source review, withdrawing review confirmation now clears the draft's
+customer approval. Reconfirm review and explicitly select customer use again if
+needed; toggling the form alone does not revoke an existing stored approval. See the
+[review confirmation record](../verification/knowledge-review-confirmation-local-2026-11-27.md).
