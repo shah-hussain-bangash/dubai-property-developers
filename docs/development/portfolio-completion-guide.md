@@ -240,3 +240,9 @@ The independent source overview, review queue and review history now also releas
 their UI wait at the existing 45-second deadline if a read ignores cancellation.
 Manual retry remains available and expired results cannot replace the newer read.
 See the [panel timeout record](../verification/knowledge-panel-read-timeout-local-2026-11-27.md).
+
+JSON source imports now require actual boolean customer approval, matching explicit
+source reviews. Non-boolean flags are rejected before persistence or website fetch;
+omission remains staff-only. Existing raw-upload query parameters and stored sources
+are unchanged. See the
+[strict JSON approval record](../verification/knowledge-json-approval-local-2026-11-27.md).

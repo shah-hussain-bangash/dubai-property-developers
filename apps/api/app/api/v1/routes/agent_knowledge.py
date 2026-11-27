@@ -34,7 +34,7 @@ class SourceInput(BaseModel):
     text: str | None = Field(default=None, max_length=200_000)
     url: str | None = Field(default=None, max_length=2048)
     review_by: date | None = None
-    customer_safe: bool = False
+    customer_safe: StrictBool = False
 
 
 class Question(BaseModel):
