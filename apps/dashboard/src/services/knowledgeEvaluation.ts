@@ -3,6 +3,13 @@ import {parseSourceAnswer,type SourceAnswer} from './agentKnowledge';
 export type EvaluationCase={id:string;question:string;expectation:'answer'|'no_answer';expected_excerpt:string|null};
 export type EvaluationSet={agent_id:string;audience?:'staff'|'customer';cases:EvaluationCase[]};
 export type EvaluationReport={agent_id:string;audience?:'staff'|'customer';supplied_sources_only:true;sent:false;evaluated:number;passed:number;failed:number;cases:{id:string;passed:boolean;answer:SourceAnswer}[]};
+export const MAX_QUESTION_SET_BYTES=256000;
+export const QUESTION_SET_SIZE_MESSAGE='Choose a question set no larger than 256 KB.';
+export function serializeEvaluationSet(value:EvaluationSet):string{
+ const text=JSON.stringify(parseEvaluationSet(value,value.agent_id),null,2);
+ if(new Blob([text]).size>MAX_QUESTION_SET_BYTES)throw Error(QUESTION_SET_SIZE_MESSAGE);
+ return text;
+}
 const invalid=()=>Error('This question set or result could not be verified for the selected agent.');
 export function parseEvaluationSet(value:unknown,agent:string):EvaluationSet{
  if(!value||typeof value!=='object')throw invalid();

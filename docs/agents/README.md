@@ -409,3 +409,8 @@ In a saved-source review, withdrawing review confirmation now clears the draft's
 customer approval. Reconfirm review and explicitly select customer use again if
 needed; toggling the form alone does not revoke an existing stored approval. See the
 [review confirmation record](../verification/knowledge-review-confirmation-local-2026-11-27.md).
+
+Saved evaluation question files now share a 256 KB save/load budget, so a valid
+20-case multilingual set can reload its own download. The existing case/field and
+ownership/audience checks remain; source-upload limits are unchanged. See the
+[question-file size record](../verification/knowledge-question-file-size-local-2026-11-27.md).
