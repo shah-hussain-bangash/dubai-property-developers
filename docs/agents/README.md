@@ -431,3 +431,8 @@ source reviews. Non-boolean flags are rejected before persistence or website fet
 omission remains staff-only. Existing raw-upload query parameters and stored sources
 are unchanged. See the
 [strict JSON approval record](../verification/knowledge-json-approval-local-2026-11-27.md).
+
+JSON source-import review dates now require calendar strings (YYYY-MM-DD), matching
+explicit review operations. Timestamp/datetime aliases are rejected; omitted/null
+dates still preserve an existing deadline and cannot revive expired material. See
+the [calendar-date import record](../verification/knowledge-json-review-dates-local-2026-11-28.md).

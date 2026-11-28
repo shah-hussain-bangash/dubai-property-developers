@@ -33,7 +33,7 @@ class SourceInput(BaseModel):
     kind: Literal["text", "website"]
     text: str | None = Field(default=None, max_length=200_000)
     url: str | None = Field(default=None, max_length=2048)
-    review_by: date | None = None
+    review_by: date | None = Field(default=None, strict=True)
     customer_safe: StrictBool = False
 
 
