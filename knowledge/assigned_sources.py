@@ -33,6 +33,11 @@ MAX_AGENT_SOURCES = 100
 NO_ANSWER = "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question."
 
 
+def validate_import_review_date(review_by: date | None) -> None:
+    if review_by and review_by < date.today():
+        raise DomainValidationError("Choose a review date that is today or later.")
+
+
 class AssignedSources:
     def __init__(self, path: str) -> None:
         self.path = Path(path)
@@ -292,8 +297,7 @@ class AssignedSources:
             raise DomainValidationError(
                 "A source can contain up to 200,000 characters and 100 pages."
             )
-        if review_by and review_by < date.today():
-            raise DomainValidationError("Choose a review date that is today or later.")
+        validate_import_review_date(review_by)
         encoded = json.dumps(pages, ensure_ascii=False)
         source_id = hashlib.sha256(
             (kind + "\0" + (uri or "") + "\0" + encoded).encode()

@@ -12,7 +12,7 @@ from apps.api.app.dependencies.auth import require_permission
 from apps.api.app.dependencies.runtime import get_runtime
 from core.exceptions.errors import DomainValidationError
 from core.security.rbac import Permission, Principal
-from knowledge.assigned_sources import AssignedSources
+from knowledge.assigned_sources import AssignedSources, validate_import_review_date
 from knowledge.evaluation.supplied_sources import EvaluationSet, evaluate_sources
 from knowledge.ingestion.assigned_inputs import MAX_IMPORT_BYTES, extract_input, import_website
 from workflows.runtime import PlatformRuntime
@@ -234,6 +234,7 @@ async def add_source(
             raise DomainValidationError("Check the source title, text or website link.") from None
         title, kind, review_by = body.title, body.kind, body.review_by
         customer_safe = body.customer_safe
+        validate_import_review_date(review_by)
         if kind == "website":
             if not body.url or body.text is not None:
                 raise DomainValidationError("Provide one public website URL for this source.")
@@ -260,6 +261,7 @@ async def add_source(
         )
         if not kind:
             raise HTTPException(415, "Upload a PDF, text or Markdown file.")
+        validate_import_review_date(review_by)
         pages = await asyncio.to_thread(extract_input, data, mime)
     saved = await asyncio.to_thread(
         store.add, principal.tenant_id, agent, title, kind, pages, uri, review_by, customer_safe
