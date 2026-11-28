@@ -1,5 +1,9 @@
 # Dubai Property Developers
 
+**Portfolio demonstration:** [Capability guide and local walkthrough instructions](docs/case-study/PORTFOLIO_CAPABILITIES.md) · [Seven-step screenshot walkthrough](docs/case-study/portfolio-demo.html).
+
+**Latest candidate acceptance:** [Local browser journey on 26 November 2026](docs/verification/website-operations-local-2026-11-26.md) at revision `0d6f4c4`: one fictional enquiry through consent, assignment and an owned client brief, with cross-operator isolation. All 36 focused checks passed. Hosted staging acceptance remains unverified.
+
 
 
 **Featured case study:** [Dubai Property Developers · From website enquiry to an owned client brief](docs/case-study/DUBAI_PROPERTY_DEVELOPERS_CASE_STUDY.md). A fictional property enquiry illustrates consent, assignment, and client conversion in the operations portal.
@@ -180,7 +184,7 @@ docker compose up --build      # postgres+pgvector, redis, migrate, api, worker,
 
 
 
-The API works without PostgreSQL or Redis: the agent runtime uses in-memory stores, and `/ready` reports
+The API works without PostgreSQL or Redis: the default runtime uses in-memory stores with optional SQLite conversation memory, and `/ready` reports
 
 `degraded`. The database is needed for migrations, seeding and the integration tests.
 
@@ -272,7 +276,7 @@ docs/             architecture, api, agents, deployment, security, development
 
 | Embeddings | Offline hashing embedder (lexical, not semantic) |
 
-| Persistence | In-memory defaults; PostgreSQL lead and workflow stores are wired through runtime settings |
+| Persistence | PostgreSQL lead/workflow stores and optional SQLite scoped conversation memory; other runtime stores default to memory |
 
 | Auth | API dev principal + RBAC; token mode requires an explicitly registered verifier and fails closed without one. Browser account/OIDC components require separate configuration |
 

@@ -68,7 +68,7 @@ class _RetryableHttpError(IntegrationError):
 
 
 class IntegrationRequestRejected(IntegrationError):
-    """4xx from upstream: retrying will not help."""
+    """Redirect or 4xx from upstream: automatic retrying will not help."""
 
     retryable = False
 
@@ -91,7 +91,10 @@ class HttpIntegrationClient:
         self._auth = auth
         self._retry = retry_policy
         self._client = httpx.AsyncClient(
-            base_url=base_url, timeout=retry_policy.timeout_seconds, transport=transport
+            base_url=base_url,
+            timeout=retry_policy.timeout_seconds,
+            transport=transport,
+            follow_redirects=False,
         )
 
     async def request(
@@ -130,6 +133,13 @@ class HttpIntegrationClient:
                 raise _RetryableHttpError(
                     f"{self.integration}: transport error", details={"error": type(exc).__name__}
                 ) from exc
+            if 300 <= response.status_code < 400:
+                # A redirect is not a delivery acknowledgement. Do not expose its
+                # Location or body, which may contain credential-bearing URLs.
+                raise IntegrationRequestRejected(
+                    f"{self.integration}: upstream redirect rejected ({response.status_code})",
+                    details={"status": response.status_code},
+                )
             if response.status_code == 429 or response.status_code >= 500:
                 raise _RetryableHttpError(
                     f"{self.integration}: upstream {response.status_code}",

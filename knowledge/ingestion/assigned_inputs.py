@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import codecs
 import http.client
 import ipaddress
 import json
@@ -12,7 +13,7 @@ import subprocess
 import sys
 import time
 from html.parser import HTMLParser
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import quote, urljoin, urlsplit
 
 from core.exceptions.errors import DomainValidationError
 
@@ -20,20 +21,98 @@ MAX_IMPORT_BYTES = 2_000_000
 
 
 class PageText(HTMLParser):
+    _HIDDEN_TAGS = frozenset({"script", "style", "noscript", "svg", "template"})
+    _VOID_TAGS = frozenset(
+        {
+            "area",
+            "base",
+            "br",
+            "col",
+            "embed",
+            "hr",
+            "img",
+            "input",
+            "link",
+            "meta",
+            "param",
+            "source",
+            "track",
+            "wbr",
+        }
+    )
+    _BLOCK_TAGS = frozenset(
+        {
+            "p",
+            "div",
+            "br",
+            "hr",
+            "li",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "section",
+            "article",
+            "header",
+            "footer",
+            "main",
+            "nav",
+            "aside",
+            "blockquote",
+            "pre",
+            "ul",
+            "ol",
+            "dl",
+            "dt",
+            "dd",
+            "table",
+            "tr",
+            "caption",
+            "address",
+            "figure",
+            "figcaption",
+            "details",
+            "summary",
+        }
+    )
+
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.hidden = 0
+        self._hidden_tag: str | None = None
         self.parts: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag in {"script", "style", "noscript", "svg", "template"}:
-            self.hidden += 1
-        if not self.hidden and tag in {"p", "div", "br", "li", "h1", "h2", "h3"}:
+        if self.hidden:
+            if tag == self._hidden_tag:
+                self.hidden += 1
+            return
+        if tag in self._HIDDEN_TAGS or any(name == "hidden" for name, _ in attrs):
+            # Void elements have no descendants; they cannot suppress later text.
+            if tag not in self._VOID_TAGS:
+                self._hidden_tag = tag
+                self.hidden = 1
+            return
+        if tag in self._BLOCK_TAGS:
             self.parts.append("\n")
+        elif tag in {"td", "th"}:
+            self.parts.append(" ")
 
     def handle_endtag(self, tag: str) -> None:
-        if tag in {"script", "style", "noscript", "svg", "template"}:
-            self.hidden = max(0, self.hidden - 1)
+        if self.hidden:
+            # Only a matching outer element can end suppression. Count nested
+            # instances of that element without building an unbounded tag stack.
+            if tag == self._hidden_tag:
+                self.hidden -= 1
+                if not self.hidden:
+                    self._hidden_tag = None
+            return
+        if tag in self._BLOCK_TAGS and tag not in {"br", "hr"}:
+            self.parts.append("\n")
+        elif tag in {"td", "th"}:
+            self.parts.append(" ")
 
     def handle_data(self, data: str) -> None:
         if not self.hidden:
@@ -72,11 +151,23 @@ def extract_input(data: bytes, mime: str) -> list[str]:
             ) from None
     if mime not in {"text/plain", "text/markdown", "text/html"}:
         raise DomainValidationError("Use a PDF, text, Markdown or readable HTML source.")
-    text = data.decode("utf-8", errors="replace")
+    # Check UTF-32 first: its little-endian BOM starts with the UTF-16 BOM.
+    if data.startswith((codecs.BOM_UTF32_LE, codecs.BOM_UTF32_BE)):
+        encoding = "utf-32"
+    elif data.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+        encoding = "utf-16"
+    else:
+        encoding = "utf-8-sig"
+    try:
+        text = data.decode(encoding)
+    except UnicodeError:
+        raise DomainValidationError(
+            "This text could not be read. Use UTF-8 or BOM-marked Unicode text, or paste its text."
+        ) from None
     if mime == "text/html":
         parser = PageText()
         parser.feed(text)
-        text = " ".join(parser.parts)
+        text = "".join(parser.parts)
     return [text]
 
 
@@ -108,7 +199,9 @@ def public_target(url: str) -> tuple[str, str, str]:
         return (
             host,
             sorted(addresses)[0],
-            (parsed.path or "/") + ("?" + parsed.query if parsed.query else ""),
+            # Encode Unicode for the HTTP request line, retaining existing escapes.
+            quote(parsed.path or "/", safe="/%:@!$&'()*+,;=-._~")
+            + ("?" + quote(parsed.query, safe="/%?:@!$&'()*+,;=-._~[]") if parsed.query else ""),
         )
     except (ValueError, OSError, UnicodeError):
         raise DomainValidationError(
@@ -134,11 +227,20 @@ class PinnedHTTPS(http.client.HTTPSConnection):
             raise
 
 
+def _check_fetch_deadline(deadline: float) -> None:
+    if time.monotonic() >= deadline:
+        raise DomainValidationError("The website took too long. Paste its text instead.")
+
+
 def import_website(url: str) -> tuple[list[str], str]:
+    deadline = time.monotonic() + 20
     for _ in range(4):
+        _check_fetch_deadline(deadline)
         host, address, path = public_target(url)
+        _check_fetch_deadline(deadline)
         connection = PinnedHTTPS(host, address)
         try:
+            _check_fetch_deadline(deadline)
             connection.request(
                 "GET",
                 path,
@@ -148,7 +250,9 @@ def import_website(url: str) -> tuple[list[str], str]:
                     "User-Agent": "DubaiPropertyKnowledgeImporter/1.0",
                 },
             )
+            _check_fetch_deadline(deadline)
             response = connection.getresponse()
+            _check_fetch_deadline(deadline)
             if response.status in {301, 302, 303, 307, 308}:
                 url = urljoin(url, response.getheader("Location", ""))
                 continue
@@ -160,16 +264,20 @@ def import_website(url: str) -> tuple[list[str], str]:
                     "The page could not be imported. Use a readable public page or paste its text."
                 )
             chunks = bytearray()
-            deadline = time.monotonic() + 20
             while len(chunks) <= MAX_IMPORT_BYTES:
+                _check_fetch_deadline(deadline)
                 chunk = response.read1(min(65536, MAX_IMPORT_BYTES + 1 - len(chunks)))
+                # EOF is still a network result and cannot bypass the fetch budget.
+                _check_fetch_deadline(deadline)
                 if not chunk:
+                    # read1() can reach EOF without raising IncompleteRead when
+                    # Content-Length still promises more bytes. Do not save it.
+                    if getattr(response, "length", None) not in {None, 0}:
+                        raise DomainValidationError(
+                            "The website response was incomplete. Try again or paste its text."
+                        )
                     break
                 chunks.extend(chunk)
-                if time.monotonic() > deadline:
-                    raise DomainValidationError(
-                        "The website took too long. Paste its text instead."
-                    )
             content = bytes(chunks)
             mime = response.getheader("Content-Type", "").split(";")[0].strip().lower()
             return extract_input(content, mime), url

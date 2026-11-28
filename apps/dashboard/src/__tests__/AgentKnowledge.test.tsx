@@ -7,7 +7,7 @@ const request=vi.mocked(knowledgeRequest);
 const agents=[{id:'documents',name:'Document Agent',status:'partial'},{id:'marketing',name:'Marketing Agent',status:'partial'}];
 let sources:{id:string;title:string;kind:string;uri:null;chars:number;created:string;review_by:null;customer_safe:number}[];
 const answer:SourceAnswer={agent_id:'documents',answered:true,supplied_sources_only:true,method:'source-excerpts',sent:false,text:'[1] Fictional project has eight gardens.',sources:[{source_id:'one',label:'1',title:'Fictional PDF',uri:null,page:1,excerpt:'Fictional project has eight gardens.'}]};
-beforeEach(()=>{sources=[];request.mockReset();request.mockImplementation(async(path,init)=>{if(path==='')return {configured:true,agents};if(path.endsWith('/answer'))return answer;if(init?.method==='POST'){sources=[{id:'one',title:'Fictional PDF',kind:'pdf',uri:null,chars:42,created:'2026-11-24T00:00:00Z',review_by:null,customer_safe:0}];return {source:sources[0]};}if(init?.method==='DELETE'){sources=[];return {removed:true};}return {agent_id:path.split('/')[1],sources};});});
+beforeEach(()=>{sources=[];request.mockReset();request.mockImplementation(async(path,init)=>{if(path==='')return {configured:true,agents};if(path.endsWith('/answer'))return answer;if(init?.method==='POST'){sources=[{id:'one',title:'Fictional PDF',kind:'pdf',uri:null,chars:42,created:'2026-11-24T00:00:00Z',review_by:null,customer_safe:0}];return {agent_id:path.split('/')[1],source:sources[0]};}if(init?.method==='DELETE'){sources=[];return {removed:true};}return {agent_id:path.split('/')[1],sources};});});
 afterEach(cleanup);
 async function ready(){render(<AgentKnowledgePanel/>);await waitFor(()=>expect(screen.getByRole('button',{name:'Save source for this agent'})).toBeEnabled());}
 

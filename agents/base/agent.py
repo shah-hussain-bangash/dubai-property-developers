@@ -16,7 +16,8 @@ from typing import Any, ClassVar, Generic, TypeVar
 from pydantic import BaseModel, Field, SerializeAsAny, ValidationError
 
 from agents.base.context import AgentDependencies, ExecutionContext
-from core.exceptions.errors import PlatformError
+from core.exceptions.errors import AuthorizationError, PlatformError
+from core.memory.base import ConversationMemory, ScopedMemoryProvider
 from core.observability.context import set_correlation_id
 from core.observability.logging import get_logger
 from schemas.agents.models import AgentDescriptor, AgentRunStatus, ImplementationStatus
@@ -94,6 +95,13 @@ class BaseAgent(ABC, Generic[InT, OutT]):  # noqa: UP046 -- Retain the public Ge
     def timeout_seconds(self) -> float:
         return self.config.timeout_seconds or self.spec.default_timeout_seconds
 
+    def conversation_memory(self, ctx: ExecutionContext) -> ConversationMemory:
+        if ctx.principal.tenant_id != ctx.tenant_id:
+            raise AuthorizationError("Principal belongs to a different organization")
+        if not isinstance(self.deps.memory, ScopedMemoryProvider):
+            raise AuthorizationError("Memory backend does not support organization/agent scopes")
+        return self.deps.memory.scoped(ctx.tenant_id, self.spec.agent_id)
+
     @abstractmethod
     async def execute(self, data: InT, ctx: ExecutionContext) -> OutT: ...
 
@@ -129,12 +137,22 @@ class BaseAgent(ABC, Generic[InT, OutT]):  # noqa: UP046 -- Retain the public Ge
                 **kwargs,
             )
 
+        if ctx.principal.tenant_id != ctx.tenant_id:
+            result = _result(
+                AgentRunStatus.FAILED,
+                error=AgentError(
+                    code="forbidden", message="Principal belongs to a different organization"
+                ),
+            )
+            await self._record(result, started_at, ctx.principal.tenant_id)
+            return result
+
         if not self.config.enabled:
             result = _result(
                 AgentRunStatus.FAILED,
                 error=AgentError(code="agent_disabled", message="agent is disabled"),
             )
-            await self._record(result, started_at)
+            await self._record(result, started_at, ctx.principal.tenant_id)
             return result
 
         try:
@@ -156,7 +174,7 @@ class BaseAgent(ABC, Generic[InT, OutT]):  # noqa: UP046 -- Retain the public Ge
                     },
                 ),
             )
-            await self._record(result, started_at)
+            await self._record(result, started_at, ctx.principal.tenant_id)
             return result
 
         logger.info("agent started", extra=log_extra)
@@ -191,12 +209,13 @@ class BaseAgent(ABC, Generic[InT, OutT]):  # noqa: UP046 -- Retain the public Ge
             "agent finished",
             extra={**log_extra, "status": result.status.value, "duration_ms": result.duration_ms},
         )
-        await self._record(result, started_at)
+        await self._record(result, started_at, ctx.principal.tenant_id)
         return result
 
-    async def _record(self, result: AgentResult, started_at: datetime) -> None:
+    async def _record(self, result: AgentResult, started_at: datetime, tenant_id: str) -> None:
         await self.deps.executions.record(
             {
+                "tenant_id": tenant_id,
                 "agent_id": result.agent_id,
                 "status": result.status.value,
                 "correlation_id": result.correlation_id,

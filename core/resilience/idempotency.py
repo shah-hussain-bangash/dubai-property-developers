@@ -16,9 +16,27 @@ from typing import Any, Protocol
 from weakref import WeakValueDictionary
 
 
-def make_idempotency_key(action: str, payload: dict[str, Any], scope: str = "") -> str:
+def make_idempotency_key(
+    action: str,
+    payload: dict[str, Any],
+    scope: str = "",
+    *,
+    agent_id: str | None = None,
+) -> str:
     canonical = json.dumps(payload, sort_keys=True, default=str, separators=(",", ":"))
-    digest = hashlib.sha256(f"{scope}|{action}|{canonical}".encode()).hexdigest()
+    # Trusted ownership is separate from caller-controlled payload fields.
+    # Keep the existing namespace for callers without an agent identity.
+    material = (
+        f"{scope}|{action}|{canonical}"
+        if agent_id is None
+        else json.dumps(
+            [scope, agent_id, action, payload],
+            sort_keys=True,
+            default=str,
+            separators=(",", ":"),
+        )
+    )
+    digest = hashlib.sha256(material.encode()).hexdigest()
     return f"{action}:{digest[:40]}"
 
 

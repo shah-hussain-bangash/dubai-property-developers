@@ -8,8 +8,13 @@ ordered steps. A step returns one of:
 - `pending_approval`
 - `escalate`
 
-Errors produce a `failed` run with a structured error. Every run records step names, outcomes and
+Step errors produce a `failed` run with a structured error. Every run records step names, outcomes and
 durations.
+
+The runner rejects mismatched principal/context organizations before state validation or any step.
+The in-memory history store saves detached snapshots and returns detached diagnostic views;
+changes require an explicit save. A retained execution ID cannot change its organization or workflow
+identity. See the [workflow history verification](../verification/workflow-history-ownership-local-2026-11-25.md).
 
 | id | Steps | Status | Terminal outcomes |
 |---|---|---|---|

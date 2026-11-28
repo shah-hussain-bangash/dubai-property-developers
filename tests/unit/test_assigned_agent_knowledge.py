@@ -205,7 +205,7 @@ def test_website_import_pins_checked_address_and_rechecks_redirects(monkeypatch)
 
     monkeypatch.setattr(socket, "getaddrinfo", lookup)
     connection = Mock()
-    response = Mock(status=200)
+    response = Mock(status=200, length=None)
     response.getheader.side_effect = lambda key, default="": {"Content-Type": "text/html"}.get(
         key, default
     )

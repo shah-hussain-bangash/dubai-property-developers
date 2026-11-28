@@ -4,6 +4,8 @@ from enum import StrEnum
 
 from pydantic import BaseModel, EmailStr, Field
 
+from schemas.conversations.models import Citation
+
 
 class EmailMode(StrEnum):
     DRAFT = "draft"  # render only
@@ -29,6 +31,7 @@ class EmailAgentInput(BaseModel):
     is_marketing: bool = False
     consent_marketing: bool = False
     inbound_text: str | None = Field(default=None, max_length=10_000)
+    knowledge_query: str | None = Field(default=None, min_length=3, max_length=1000)
 
 
 class EmailAgentOutput(BaseModel):
@@ -37,3 +40,6 @@ class EmailAgentOutput(BaseModel):
     send_status: str | None = None  # "pending_approval" | "executed" | "replayed"
     approval_id: str | None = None
     classification: InboundClassification | None = None
+    citations: list[Citation] = Field(default_factory=list)
+    needs_human: bool = False
+    notes: list[str] = Field(default_factory=list)

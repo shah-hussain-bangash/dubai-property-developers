@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from schemas.conversations.models import Channel
+from schemas.conversations.models import Channel, Citation
 
 
 class FollowUpTask(BaseModel):
@@ -21,6 +21,7 @@ class FollowUpTask(BaseModel):
     consent_whatsapp: bool = False
     consent_marketing: bool = False
     customer_replied_since: bool = False
+    knowledge_query: str | None = Field(default=None, min_length=3, max_length=1000)
 
 
 class FollowUpInput(BaseModel):
@@ -33,12 +34,13 @@ class FollowUpAction(BaseModel):
     task_id: str
     lead_id: str
     channel: Channel
-    template: str
+    template: str | None
     draft_text: str
     requires_approval: bool = True
     send_status: str | None = None
     approval_id: str | None = None
     error: str | None = None
+    citations: list[Citation] = Field(default_factory=list)
 
 
 class SkippedTask(BaseModel):

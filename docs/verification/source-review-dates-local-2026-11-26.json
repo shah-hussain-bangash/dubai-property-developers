@@ -1,0 +1,22 @@
+{
+  "environment": "local, mock providers, disposable source store",
+  "verified_on": "2026-11-26",
+  "parent_revision": "8a0ba430d17da4d205d4361ec7db308a92542049",
+  "agent_id": "documents",
+  "source_id": "730bcc0c85eec2783d0955fd0c5e5975ad090aa952b93ff1b83ccfa07fd45b8f",
+  "source_title": "Fictional review PDF",
+  "question": "datemarker pdfmarker",
+  "expected_excerpt": "Fictional datemarker pdfmarker policy allows three visits.",
+  "steps": [
+    {"fixture_day": "2030-01-02", "review_by": "2030-01-02", "answered": true, "page": 2},
+    {"fixture_day": "2030-01-03", "review_by": "2030-01-02", "answered": false, "action": "question after expiry"},
+    {"fixture_day": "2030-01-03", "review_by": "2030-01-02", "answered": false, "action": "identical re-upload without date, then question"},
+    {"fixture_day": "2030-01-03", "review_by": "2030-01-04", "answered": true, "page": 2, "action": "explicit renewal, then question"}
+  ],
+  "final_saved_source_count": 1,
+  "final_customer_safe": false,
+  "signed_out": true,
+  "servers_stopped": true,
+  "live_provider_writes": false,
+  "hosted_verification": false
+}

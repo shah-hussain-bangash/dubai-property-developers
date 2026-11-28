@@ -1,0 +1,127 @@
+{
+  "environment": "disposable local authenticated mock-provider API; fictional data only",
+  "base_revision": "5cd218fb2ed44ab9e7a9bf8137335b04309e8ccc",
+  "approved_source_before_invalid_requests": {
+    "agent_id": "documents",
+    "sources": [
+      {
+        "id": "9d091b04f68bd37eb66e36e7c131e0a8093e87de9a23a12c1b1301d0cbb1d5be",
+        "title": "Fictional strict approval fixture",
+        "kind": "text",
+        "uri": null,
+        "chars": 50,
+        "created": "2026-11-27T12:46:51.222372+00:00",
+        "review_by": null,
+        "customer_safe": 1
+      }
+    ]
+  },
+  "invalid_json_approval_results": [
+    {
+      "input": 0,
+      "status": 422,
+      "error": "validation_error"
+    },
+    {
+      "input": 1,
+      "status": 422,
+      "error": "validation_error"
+    },
+    {
+      "input": "yes",
+      "status": 422,
+      "error": "validation_error"
+    },
+    {
+      "input": "true",
+      "status": 422,
+      "error": "validation_error"
+    },
+    {
+      "input": "false",
+      "status": 422,
+      "error": "validation_error"
+    },
+    {
+      "input": null,
+      "status": 422,
+      "error": "validation_error"
+    },
+    {
+      "input": {},
+      "status": 422,
+      "error": "validation_error"
+    },
+    {
+      "input": [],
+      "status": 422,
+      "error": "validation_error"
+    }
+  ],
+  "source_unchanged_after_each_rejection": true,
+  "customer_answer_after_boolean_true": {
+    "agent_id": "documents",
+    "answered": true,
+    "supplied_sources_only": true,
+    "method": "source-excerpts",
+    "sent": false,
+    "text": "[1] Fictional approvalmarker gardens allow two visits.",
+    "sources": [
+      {
+        "source_id": "9d091b04f68bd37eb66e36e7c131e0a8093e87de9a23a12c1b1301d0cbb1d5be",
+        "title": "Fictional strict approval fixture",
+        "uri": null,
+        "page": null,
+        "excerpt": "Fictional approvalmarker gardens allow two visits.",
+        "score": 1.0,
+        "chunk": 0,
+        "label": "1"
+      }
+    ],
+    "audience": "customer"
+  },
+  "staff_answer_after_boolean_false": {
+    "agent_id": "documents",
+    "answered": true,
+    "supplied_sources_only": true,
+    "method": "source-excerpts",
+    "sent": false,
+    "text": "[1] Fictional approvalmarker gardens allow two visits.",
+    "sources": [
+      {
+        "source_id": "9d091b04f68bd37eb66e36e7c131e0a8093e87de9a23a12c1b1301d0cbb1d5be",
+        "title": "Fictional strict approval fixture",
+        "uri": null,
+        "page": null,
+        "excerpt": "Fictional approvalmarker gardens allow two visits.",
+        "score": 1.0,
+        "chunk": 0,
+        "label": "1"
+      }
+    ]
+  },
+  "customer_answer_after_boolean_false": {
+    "agent_id": "documents",
+    "answered": false,
+    "supplied_sources_only": true,
+    "method": "source-excerpts",
+    "sent": false,
+    "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+    "sources": [],
+    "audience": "customer"
+  },
+  "omitted_approval_source": {
+    "agent_id": "documents",
+    "source": {
+      "id": "efa2baaf6dba82af0c33a4314732ac56ef32d7b0152d66143bfa0d86738715ec",
+      "title": "Fictional omitted approval",
+      "kind": "text",
+      "uri": null,
+      "chars": 45,
+      "created": "2026-11-27T12:46:51.318993+00:00",
+      "review_by": null,
+      "customer_safe": 0
+    }
+  },
+  "customer_messages_sent": 0
+}

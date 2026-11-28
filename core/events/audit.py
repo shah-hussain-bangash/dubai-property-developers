@@ -33,8 +33,14 @@ class AuditSink(Protocol):
 
 
 class InMemoryAuditSink:
+    """Process-local redacted records with detached diagnostic read views."""
+
     def __init__(self) -> None:
-        self.events: list[AuditEvent] = []
+        self._events: list[AuditEvent] = []
+
+    @property
+    def events(self) -> list[AuditEvent]:
+        return [event.model_copy(deep=True) for event in self._events]
 
     async def record(self, event: AuditEvent) -> None:
-        self.events.append(event.redacted())
+        self._events.append(event.redacted().model_copy(deep=True))

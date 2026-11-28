@@ -1,0 +1,164 @@
+{
+  "environment": "disposable local authenticated mock-provider API; fictional data only",
+  "base_revision": "17024336adbbe219893f9a31ae3ff90029995b0c",
+  "source_calendar": "2030-01-02 then 2030-01-03; machine clock unchanged",
+  "before": {
+    "agent_id": "documents",
+    "sources": [
+      {
+        "id": "3deb09d1eb665936c5b6ce894b2a999abea6d4d23c01b5ec7342216afc3537b8",
+        "title": "Fictional strict calendar fixture",
+        "kind": "text",
+        "uri": null,
+        "chars": 50,
+        "created": "2026-11-28T05:55:41.727254+00:00",
+        "review_by": "2030-01-02",
+        "customer_safe": 1
+      }
+    ]
+  },
+  "rejected_json_dates": [
+    {
+      "input": 1893542400,
+      "status": 422,
+      "error": "validation_error"
+    },
+    {
+      "input": 1893542400000,
+      "status": 422,
+      "error": "validation_error"
+    },
+    {
+      "input": 1893542400.0,
+      "status": 422,
+      "error": "validation_error"
+    },
+    {
+      "input": "2030-01-03T00:00:00Z",
+      "status": 422,
+      "error": "validation_error"
+    },
+    {
+      "input": "2030-01-03T00:00:00+00:00",
+      "status": 422,
+      "error": "validation_error"
+    },
+    {
+      "input": "2030-02-30",
+      "status": 422,
+      "error": "validation_error"
+    },
+    {
+      "input": true,
+      "status": 422,
+      "error": "validation_error"
+    },
+    {
+      "input": [],
+      "status": 422,
+      "error": "validation_error"
+    },
+    {
+      "input": {},
+      "status": 422,
+      "error": "validation_error"
+    }
+  ],
+  "metadata_unchanged_after_rejection": true,
+  "current_customer_answer": {
+    "agent_id": "documents",
+    "answered": true,
+    "supplied_sources_only": true,
+    "method": "source-excerpts",
+    "sent": false,
+    "text": "[1] Fictional calendarmarker gardens allow two visits.",
+    "sources": [
+      {
+        "source_id": "3deb09d1eb665936c5b6ce894b2a999abea6d4d23c01b5ec7342216afc3537b8",
+        "title": "Fictional strict calendar fixture",
+        "uri": null,
+        "page": null,
+        "excerpt": "Fictional calendarmarker gardens allow two visits.",
+        "score": 1.0,
+        "chunk": 0,
+        "label": "1"
+      }
+    ],
+    "audience": "customer"
+  },
+  "after_restart_date_preservation": [
+    {
+      "date_field": {},
+      "source": {
+        "id": "3deb09d1eb665936c5b6ce894b2a999abea6d4d23c01b5ec7342216afc3537b8",
+        "title": "Fictional strict calendar fixture",
+        "kind": "text",
+        "uri": null,
+        "chars": 50,
+        "created": "2026-11-28T05:55:41.727254+00:00",
+        "review_by": "2030-01-02",
+        "customer_safe": 1
+      }
+    },
+    {
+      "date_field": {
+        "review_by": null
+      },
+      "source": {
+        "id": "3deb09d1eb665936c5b6ce894b2a999abea6d4d23c01b5ec7342216afc3537b8",
+        "title": "Fictional strict calendar fixture",
+        "kind": "text",
+        "uri": null,
+        "chars": 50,
+        "created": "2026-11-28T05:55:41.727254+00:00",
+        "review_by": "2030-01-02",
+        "customer_safe": 1
+      }
+    }
+  ],
+  "expired_customer_answer": {
+    "agent_id": "documents",
+    "answered": false,
+    "supplied_sources_only": true,
+    "method": "source-excerpts",
+    "sent": false,
+    "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+    "sources": [],
+    "audience": "customer"
+  },
+  "explicit_renewal": {
+    "agent_id": "documents",
+    "source": {
+      "id": "3deb09d1eb665936c5b6ce894b2a999abea6d4d23c01b5ec7342216afc3537b8",
+      "title": "Fictional strict calendar fixture",
+      "kind": "text",
+      "uri": null,
+      "chars": 50,
+      "created": "2026-11-28T05:55:41.727254+00:00",
+      "review_by": "2030-01-05",
+      "customer_safe": 1
+    }
+  },
+  "renewed_customer_answer": {
+    "agent_id": "documents",
+    "answered": true,
+    "supplied_sources_only": true,
+    "method": "source-excerpts",
+    "sent": false,
+    "text": "[1] Fictional calendarmarker gardens allow two visits.",
+    "sources": [
+      {
+        "source_id": "3deb09d1eb665936c5b6ce894b2a999abea6d4d23c01b5ec7342216afc3537b8",
+        "title": "Fictional strict calendar fixture",
+        "uri": null,
+        "page": null,
+        "excerpt": "Fictional calendarmarker gardens allow two visits.",
+        "score": 1.0,
+        "chunk": 0,
+        "label": "1"
+      }
+    ],
+    "audience": "customer"
+  },
+  "customer_messages_sent": 0
+}

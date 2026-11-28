@@ -183,6 +183,16 @@ jobs:
         run: |
           docker run --rm --network none --entrypoint python dubai-api-ci -c "import os, sys; assert sys.version_info[:2] == (3, 15); assert os.getuid() != 0"
           docker run --rm --network none --entrypoint python dubai-api-ci -m pip check
+      - name: Verify durable memory across API containers
+        run: |
+          volume=$(docker volume create)
+          trap 'docker volume rm "$volume"' EXIT
+          docker run --rm --network none \
+            --mount "type=volume,source=$volume,target=/app/agent-memory" \
+            --entrypoint python dubai-api-ci -c "import asyncio; from database.repositories.sqlite_conversation_memory import SqliteConversationMemory; asyncio.run(SqliteConversationMemory('/app/agent-memory/memory.sqlite3').scoped('fictional-org','whatsapp').update_state('fixture',{'opted_out':True}))"
+          docker run --rm --network none \
+            --mount "type=volume,source=$volume,target=/app/agent-memory" \
+            --entrypoint python dubai-api-ci -c "import asyncio, os, stat; from database.repositories.sqlite_conversation_memory import SqliteConversationMemory; state = asyncio.run(SqliteConversationMemory('/app/agent-memory/memory.sqlite3').scoped('fictional-org','whatsapp').get_state('fixture')); assert state == {'opted_out':True}; assert stat.S_IMODE(os.stat('/app/agent-memory/memory.sqlite3').st_mode) == 0o600; print('Durable scoped opt-out survived API container replacement')"
       - name: Verify container startup and health
         run: |
           docker run --detach --name api-smoke --network none --env ENVIRONMENT=test dubai-api-ci
@@ -204,6 +214,26 @@ jobs:
       - name: Remove smoke-test container
         if: always()
         run: docker rm --force api-smoke || true
+
+  dashboard-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Build dashboard image
+        run: docker build --tag dubai-dashboard-ci apps/dashboard
+      - name: Verify non-root storage and container replacement
+        run: |
+          volume=$(docker volume create)
+          trap 'docker volume rm "$volume"' EXIT
+          for mode in write read; do
+            docker run --rm --network none \
+              --mount "type=volume,source=$volume,target=/app/portal-data" \
+              --mount "type=bind,source=$PWD/scripts/maintenance/check_dashboard_storage.cjs,target=/check-storage.cjs,readonly" \
+              --entrypoint node dubai-dashboard-ci /check-storage.cjs "$mode"
+          done
 
   windows-setup:
     runs-on: windows-latest

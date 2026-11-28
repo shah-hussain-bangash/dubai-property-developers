@@ -1,0 +1,10 @@
+{
+  "evidence": "local-synthetic-sqlite-backup-restore",
+  "source_rows": 4,
+  "restored_rows": 4,
+  "exact_row_preservation": true,
+  "agent_and_organization_isolation": true,
+  "staff_customer_boundary": true,
+  "original_left_modified": true,
+  "live_accounts_used": false
+}

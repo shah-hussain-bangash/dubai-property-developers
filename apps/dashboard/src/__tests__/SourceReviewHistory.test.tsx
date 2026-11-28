@@ -1,0 +1,33 @@
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
+import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {AgentKnowledgePanel} from '@/features/knowledge/AgentKnowledgePanel';
+import {knowledgeRequest,type AssignedSource} from '@/services/agentKnowledge';
+import {parseSourceReviewHistory,type SourceReviewHistory,type ReviewEvent} from '@/services/sourceReviewHistory';
+vi.mock('@/services/agentKnowledge',async original=>({...await original<typeof import('@/services/agentKnowledge')>(),knowledgeRequest:vi.fn()}));
+const request=vi.mocked(knowledgeRequest);
+const source:AssignedSource={id:'fixture',title:'Fictional PDF',kind:'pdf',uri:null,chars:23,created:'2026-11-26',review_by:'2030-01-02',customer_safe:0};
+const event:ReviewEvent={event_id:'11111111-1111-4111-8111-111111111111',reviewed_at:'2026-11-26T10:00:00+00:00',reviewed_by:'fictional-reviewer',previous_review_by:null,review_by:'2030-01-02',previous_customer_safe:true,customer_safe:false};
+const history:SourceReviewHistory={agent_id:'documents',source_id:'fixture',events:[event],has_more:false,next_cursor:null};
+beforeEach(()=>{request.mockReset();request.mockImplementation(async path=>path===''?{configured:true,agents:[{id:'documents',name:'Document Agent'},{id:'marketing',name:'Marketing Agent'}]}:path.includes('/reviews')?history:path.endsWith('/fixture')?{agent_id:'documents',source,pages:[{page:1,text:'Fictional gardens text.'}]}:{agent_id:path.split('/')[1],sources:[source]});});
+afterEach(()=>{cleanup();vi.useRealTimers();});
+async function ready(){render(<AgentKnowledgePanel/>);await waitFor(()=>expect(screen.getByRole('button',{name:'View saved text: Fictional PDF'})).toBeEnabled());fireEvent.click(screen.getByRole('button',{name:'View saved text: Fictional PDF'}));await screen.findByRole('heading',{name:'Source review history'});}
+async function load(){fireEvent.click(screen.getByRole('button',{name:'Load review history'}));await screen.findByText('Reviewed by fictional-reviewer');}
+describe('scoped source review history',()=>{
+ it('loads only on request and renders trusted reviewer, GST time and changes',async()=>{await ready();expect(request.mock.calls.some(([path])=>path.includes('/reviews'))).toBe(false);await load();expect(screen.getByText('26/11/2026, 14:00:00 GST')).toBeVisible();expect(screen.getByText(/Review date: No deadline → 2030-01-02/)).toBeVisible();expect(screen.getByText(/Customer use: Approved → Staff only/)).toBeVisible();expect(request).toHaveBeenCalledWith('/documents/sources/fixture/reviews',{},expect.any(AbortSignal));expect(request.mock.calls.some(([,init])=>init?.method==='PATCH')).toBe(false);});
+ it('shows empty history without inventing earlier reviews',async()=>{await ready();request.mockResolvedValueOnce({...history,events:[]});fireEvent.click(screen.getByRole('button',{name:'Load review history'}));expect(await screen.findByText('No reviews recorded yet.')).toBeVisible();expect(screen.getByText(/Imports and earlier reviews are not backfilled/)).toBeVisible();});
+ it('loads older pages using their cursor and can return to latest reviews',async()=>{await ready();const events=Array.from({length:20},(_,i)=>({...event,event_id:'11111111-1111-4111-8111-'+String(i).padStart(12,'0')}));request.mockResolvedValueOnce({...history,events,has_more:true,next_cursor:events[19].event_id});fireEvent.click(screen.getByRole('button',{name:'Load review history'}));await screen.findByRole('button',{name:'Load older reviews'});request.mockResolvedValueOnce({...history,events:[{...event,reviewed_by:'earlier-reviewer'}]});fireEvent.click(screen.getByRole('button',{name:'Load older reviews'}));await screen.findByText('Reviewed by earlier-reviewer');expect(request.mock.calls.at(-1)?.[0]).toBe('/documents/sources/fixture/reviews?before_event='+events[19].event_id);fireEvent.click(screen.getByRole('button',{name:'Refresh latest reviews'}));await screen.findByText('Reviewed by fictional-reviewer');expect(request.mock.calls.at(-1)?.[0]).toBe('/documents/sources/fixture/reviews');});
+ it('clears stale history when refresh fails and supports retry',async()=>{await ready();await load();request.mockRejectedValueOnce(Error('Fictional history read failure'));fireEvent.click(screen.getByRole('button',{name:'Refresh latest reviews'}));expect(await screen.findByRole('alert')).toHaveTextContent('Fictional history read failure');expect(screen.queryByText('Reviewed by fictional-reviewer')).toBeNull();await load();});
+ it('aborts a pending history read when switching agents',async()=>{await ready();let finish!:(value:unknown)=>void;request.mockImplementationOnce(async()=>new Promise(resolve=>{finish=resolve;}));fireEvent.click(screen.getByRole('button',{name:'Load review history'}));const signal=request.mock.calls.at(-1)?.[2];fireEvent.change(screen.getByLabelText('Agent'),{target:{value:'marketing'}});await screen.findByText('Add knowledge for Marketing Agent');expect(signal?.aborted).toBe(true);await act(async()=>finish(history));expect(screen.queryByText('Reviewed by fictional-reviewer')).toBeNull();});
+ it('renders reviewer markup as plain text',async()=>{await ready();request.mockResolvedValueOnce({...history,events:[{...event,reviewed_by:'<script>fictional</script>'}]});fireEvent.click(screen.getByRole('button',{name:'Load review history'}));expect(await screen.findByText('Reviewed by <script>fictional</script>')).toBeVisible();expect(document.querySelector('script')).toBeNull();});
+ it('allows retry after the history request times out',async()=>{await ready();vi.useFakeTimers();request.mockImplementationOnce(async(_path,_init,signal)=>new Promise((_resolve,reject)=>signal?.addEventListener('abort',()=>reject(Error('aborted')))));fireEvent.click(screen.getByRole('button',{name:'Load review history'}));await act(async()=>{await vi.advanceTimersByTimeAsync(45000);});expect(screen.getByRole('alert')).toHaveTextContent('Review history did not finish loading');expect(screen.getByRole('button',{name:'Load review history'})).toBeEnabled();});
+ it.each([
+  {...history,agent_id:'marketing'},
+  {...history,source_id:'other'},
+  {...history,events:[event,event]},
+  {...history,next_cursor:event.event_id},
+  {...history,has_more:true,next_cursor:event.event_id},
+  {...history,events:[{...event,reviewed_at:'invalid'}]},
+  {...history,events:[{...event,review_by:'2030-02-30'}]},
+  {...history,events:[{...event,customer_safe:1}]},
+ ])('rejects invalid history ownership, dates, cursors or flags %#',value=>{expect(()=>parseSourceReviewHistory(value as SourceReviewHistory,'documents','fixture')).toThrow();});
+});

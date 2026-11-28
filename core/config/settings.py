@@ -185,6 +185,8 @@ class Settings(BaseSettings):
     knowledge_stale_after_days: int = 180
     # Enables durable owner-supplied knowledge; None keeps explicit demo fixtures.
     agent_knowledge_path: str | None = Field(default=None, min_length=1, max_length=1000)
+    # None retains process-local conversation history/state; a path enables SQLite.
+    agent_memory_path: str | None = Field(default=None, min_length=1, max_length=1000)
 
     # --- agents & governance ----------------------------------------------
     agent_default_timeout_seconds: float = 20.0

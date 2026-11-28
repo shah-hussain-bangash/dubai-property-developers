@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from schemas.conversations.models import Citation
 from schemas.leads.models import NormalizedLead
 
 
@@ -16,6 +17,7 @@ class CampaignDraft(BaseModel):
     headline: str
     body: str
     status: str = "draft_requires_approval"
+    citations: list[Citation] = Field(default_factory=list)
 
 
 class MarketingOutput(BaseModel):
@@ -23,3 +25,4 @@ class MarketingOutput(BaseModel):
     drafts: list[CampaignDraft]
     excluded_without_consent: int
     recommendations: list[str]
+    needs_human: bool = False

@@ -23,6 +23,21 @@
 | Retention policy configuration | `core/policies/retention.py` (enforcement job planned) |
 | Dependency review, pip-audit, Dependabot | `.github/` |
 
+`InMemoryAuditSink.events` returns detached diagnostic snapshots; record new events through
+`record()` so redaction is applied. Tool audit ownership comes from the authenticated principal,
+including rejected cross-organization calls. These records remain process-local, not a durable
+or tamper-evident journal. See the [audit integrity verification](../verification/audit-record-integrity-local-2026-11-25.md).
+
+## CRM record paths
+
+CRM lead reads and updates accept only record IDs containing 1-128 ASCII letters,
+digits, underscores or hyphens. This is a conservative adapter contract, not a claim
+about every provider's possible ID format. IDs are rejected rather than normalized.
+Validation runs before update approvals and inside both HTTP and mock adapters;
+existing approvals are revalidated before execution. This prevents IDs from adding
+path segments, queries or fragments; it does not establish record-level authorization.
+See the [local CRM path verification](../verification/crm-record-paths-local-2026-11-25.md).
+
 ## Generic webhook replay semantics
 
 The generic verifier authenticates the exact `timestamp + "." + raw body` bytes. Its

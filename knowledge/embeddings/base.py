@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import math
 import re
+import unicodedata
 from typing import Protocol
 
 _TOKEN = re.compile(r"[a-z0-9؀-ۿ]+")
@@ -65,6 +66,22 @@ class EmbeddingProvider(Protocol):
 
 def tokenize(text: str) -> list[str]:
     return [t for t in _TOKEN.findall(text.lower()) if t not in _STOPWORDS]
+
+
+def tokenize_unicode(text: str) -> list[str]:
+    """Whole Unicode words for supplied sources; legacy hashing tokens stay stable."""
+    normalized = unicodedata.normalize("NFC", text.casefold())
+    characters: list[str] = []
+    in_word = False
+    for char in normalized:
+        category = unicodedata.category(char)[0]
+        if category in {"L", "N"} or (category == "M" and in_word):
+            characters.append(char)
+            in_word = True
+        else:
+            characters.append(" ")
+            in_word = False
+    return [token for token in "".join(characters).split() if token not in _STOPWORDS]
 
 
 class HashingEmbeddingProvider:

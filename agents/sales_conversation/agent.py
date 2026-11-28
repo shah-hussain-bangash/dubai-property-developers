@@ -54,7 +54,7 @@ class SalesConversationAgent(BaseAgent[SalesConversationInput, SalesConversation
         injection = assess_injection(text)
         name = data.customer_first_name or "there"
 
-        await self.deps.memory.append(
+        await self.conversation_memory(ctx).append(
             data.message.conversation_id,
             MemoryMessage(role="customer", content=text, channel=data.message.channel.value),
         )

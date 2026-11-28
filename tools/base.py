@@ -140,8 +140,15 @@ class ToolRegistry:
 
 
 @runtime_checkable
+class ContextAuthorizingTool(Protocol):
+    """Optional ownership check before approval creation or cached replay."""
+
+    def authorize_context(self, ctx: ToolCallContext) -> None: ...
+
+
+@runtime_checkable
 class ContextualTool(Protocol):
-    """Optional read-tool entry point that receives trusted caller identity."""
+    """Optional tool entry point that receives trusted caller identity."""
 
     async def execute_with_context(
         self, payload: dict[str, Any], ctx: ToolCallContext
@@ -178,7 +185,7 @@ class ToolGateway:
     ) -> None:
         await self.audit.record(
             AuditEvent(
-                tenant_id=ctx.tenant_id,
+                tenant_id=ctx.principal.tenant_id,
                 actor=(
                     f"{ctx.principal.subject}" + (f"/agent:{ctx.agent_id}" if ctx.agent_id else "")
                 ),
@@ -214,6 +221,14 @@ class ToolGateway:
 
             raise AuthorizationError(f"principal lacks permission {spec.permission.value}")
 
+    async def _authorize_context(self, ctx: ToolCallContext, tool: Tool) -> None:
+        if isinstance(tool, ContextAuthorizingTool):
+            try:
+                tool.authorize_context(ctx)
+            except AuthorizationError:
+                await self._audit(ctx, tool.spec.name, "denied", {"why": "tool ownership"})
+                raise
+
     async def invoke(
         self,
         ctx: ToolCallContext,
@@ -242,6 +257,8 @@ class ToolGateway:
 
             raise ToolPermissionError(f"agent '{ctx.agent_id}' may not use tool '{tool_name}'")
 
+        await self._authorize_context(ctx, tool)
+
         # 2. Validate one payload snapshot throughout approval and execution.
         payload = deepcopy(payload)
         tool.validate(payload)
@@ -253,6 +270,7 @@ class ToolGateway:
             tool_name,
             payload,
             scope=ctx.tenant_id,
+            agent_id=ctx.agent_id,
         )
 
         # 4. Check cached results.
@@ -349,8 +367,10 @@ class ToolGateway:
             principal=approver,
             tenant_id=request.tenant_id,
             correlation_id=request.correlation_id or "",
+            agent_id=request.requested_by_agent,
         )
 
+        await self._authorize_context(ctx, tool)
         tool.validate(request.payload)
 
         # RBAC must pass before cached results are returned.

@@ -37,7 +37,9 @@ async def test_all_agent_knowledge_scopes_are_independent(
     assert [hit.chunk.title for hit in result.hits] == [f"Probe for {agent}"]
 
 
-@pytest.mark.parametrize("agent", ["documents", "sales_conversation"])
+@pytest.mark.parametrize(
+    "agent", ["documents", "sales_conversation", "marketing", "email", "whatsapp", "followup"]
+)
 async def test_payload_cannot_select_another_agent_or_general_corpus(
     agent: str, runtime: PlatformRuntime, ctx: ExecutionContext
 ) -> None:
@@ -109,6 +111,6 @@ async def test_scoping_does_not_grant_extra_tools(
     runtime: PlatformRuntime, ctx: ExecutionContext
 ) -> None:
     with pytest.raises(ToolPermissionError):
-        await runtime.agents.get("marketing").use_tool(
+        await runtime.agents.get("qualification").use_tool(
             ctx, "documents.search", {"query": "anything", "tenant_id": ctx.tenant_id}
         )

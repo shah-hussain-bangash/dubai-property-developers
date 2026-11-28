@@ -26,6 +26,7 @@ case-insensitive. Lists are comma-separated.
 | `KNOWLEDGE_CHUNK_SIZE`, `KNOWLEDGE_CHUNK_OVERLAP` | `800`, `120` | Characters |
 | `KNOWLEDGE_STALE_AFTER_DAYS` | `180` | Reserved for the staleness policy (currently driven by each document's `review_by`) |
 | `AGENT_DEFAULT_TIMEOUT_SECONDS` | `20` | Per-agent override via `AgentConfig` |
+| `AGENT_MEMORY_PATH` | unset | Optional durable SQLite conversation history/state; unset retains in-memory storage. The example environment and Compose opt in with separate local/volume paths. |
 | `APPROVAL_REQUIRED_FOR_OUTBOUND_MESSAGES` | `true` | WhatsApp, email |
 | `APPROVAL_REQUIRED_FOR_CRM_WRITES` | `false` | |
 | `APPROVAL_REQUIRED_FOR_CALENDAR_EVENTS` | `true` | |

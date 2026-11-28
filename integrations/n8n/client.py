@@ -2,12 +2,30 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Protocol
 
 import httpx
 
+from core.exceptions.errors import DomainValidationError
 from integrations.base import HttpIntegrationClient, IntegrationConfig, NoAuth
 from schemas.integrations.models import ApiAccessStatus, IntegrationDescriptor
+
+
+def validated_webhook_path(value: object) -> str:
+    """Keep a webhook name beneath /webhook/ without URL interpretation."""
+    if isinstance(value, str) and len(value) <= 1024:
+        # Preserve the adapter's existing support for outer slashes.
+        path = value.strip("/")
+        segments = path.split("/")
+        if all(
+            segment not in {"", ".", ".."} and re.fullmatch(r"[A-Za-z0-9_.-]+", segment) is not None
+            for segment in segments
+        ):
+            return path
+    raise DomainValidationError(
+        "Webhook path must contain nonempty ASCII name segments without URL controls"
+    )
 
 
 class N8nConfig(IntegrationConfig):
@@ -31,6 +49,7 @@ class MockN8nClient:
     async def trigger(
         self, webhook_path: str, payload: dict[str, Any], *, idempotency_key: str
     ) -> Any:
+        webhook_path = validated_webhook_path(webhook_path)
         self.triggered.append({"path": webhook_path, "payload": payload, "key": idempotency_key})
         return {"accepted": True, "is_mock": True}
 
@@ -52,9 +71,10 @@ class HttpN8nClient:
     async def trigger(
         self, webhook_path: str, payload: dict[str, Any], *, idempotency_key: str
     ) -> Any:
+        webhook_path = validated_webhook_path(webhook_path)
         return await self._http.request(
             "POST",
-            f"/webhook/{webhook_path.strip('/')}",
+            f"/webhook/{webhook_path}",
             json=payload,
             idempotency_key=idempotency_key,
         )

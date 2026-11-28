@@ -1,0 +1,103 @@
+{
+  "environment": "local, mock providers",
+  "parent_revision": "53aec3bd685e096abf1bf91b1f8bd696b0b71547",
+  "agent_id": "documents",
+  "fixture_day": "2030-01-03",
+  "before": {
+    "staff": {
+      "agent_id": "documents",
+      "answered": true,
+      "supplied_sources_only": true,
+      "method": "source-excerpts",
+      "sent": false,
+      "text": "[1] Fictional previewmarker pdfmarker policy contains staffonlymarker internal details.\n\n[2] Fictional previewmarker pdfmarker policy allows three visits.",
+      "sources": [
+        {
+          "source_id": "67efa82bf241c0d82f3460e320cb2c8372c5a771d9541223bf60301d731c570b",
+          "title": "Fictional staff-only policy",
+          "uri": null,
+          "page": null,
+          "excerpt": "Fictional previewmarker pdfmarker policy contains staffonlymarker internal details.",
+          "score": 1.0,
+          "chunk": 0,
+          "label": "1"
+        },
+        {
+          "source_id": "b5d510c0a355379d9939627ab126289908f9676372e5606efa7a3a2bbc55511a",
+          "title": "Fictional approved PDF",
+          "uri": null,
+          "page": 2,
+          "excerpt": "Fictional previewmarker pdfmarker policy allows three visits.",
+          "score": 1.0,
+          "chunk": 0,
+          "label": "2"
+        }
+      ]
+    },
+    "customer": {
+      "agent_id": "documents",
+      "answered": true,
+      "supplied_sources_only": true,
+      "method": "source-excerpts",
+      "sent": false,
+      "text": "[1] Fictional previewmarker pdfmarker policy allows three visits.",
+      "sources": [
+        {
+          "source_id": "b5d510c0a355379d9939627ab126289908f9676372e5606efa7a3a2bbc55511a",
+          "title": "Fictional approved PDF",
+          "uri": null,
+          "page": 2,
+          "excerpt": "Fictional previewmarker pdfmarker policy allows three visits.",
+          "score": 1.0,
+          "chunk": 0,
+          "label": "1"
+        }
+      ],
+      "audience": "customer"
+    }
+  },
+  "after_approval_withdrawal": {
+    "staff": {
+      "agent_id": "documents",
+      "answered": true,
+      "supplied_sources_only": true,
+      "method": "source-excerpts",
+      "sent": false,
+      "text": "[1] Fictional previewmarker pdfmarker policy contains staffonlymarker internal details.\n\n[2] Fictional previewmarker pdfmarker policy allows three visits.",
+      "sources": [
+        {
+          "source_id": "67efa82bf241c0d82f3460e320cb2c8372c5a771d9541223bf60301d731c570b",
+          "title": "Fictional staff-only policy",
+          "uri": null,
+          "page": null,
+          "excerpt": "Fictional previewmarker pdfmarker policy contains staffonlymarker internal details.",
+          "score": 1.0,
+          "chunk": 0,
+          "label": "1"
+        },
+        {
+          "source_id": "b5d510c0a355379d9939627ab126289908f9676372e5606efa7a3a2bbc55511a",
+          "title": "Fictional approved PDF",
+          "uri": null,
+          "page": 2,
+          "excerpt": "Fictional previewmarker pdfmarker policy allows three visits.",
+          "score": 1.0,
+          "chunk": 0,
+          "label": "2"
+        }
+      ]
+    },
+    "customer": {
+      "agent_id": "documents",
+      "answered": false,
+      "supplied_sources_only": true,
+      "method": "source-excerpts",
+      "sent": false,
+      "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+      "sources": [],
+      "audience": "customer"
+    }
+  },
+  "final_source_count": 2,
+  "explicit_review_events": 1
+}

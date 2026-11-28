@@ -117,6 +117,6 @@ async def test_disabled_agent_does_not_run(system_ctx: ExecutionContext) -> None
 async def test_agent_cannot_use_tools_outside_allowlist(
     runtime: PlatformRuntime, ctx: ExecutionContext
 ) -> None:
-    agent = runtime.agents.get("marketing")  # allowlist is empty
+    agent = runtime.agents.get("marketing")  # source reads do not authorize property tools
     with pytest.raises(ToolPermissionError):
         await agent.use_tool(ctx, "property.search", {})

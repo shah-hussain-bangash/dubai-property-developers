@@ -77,7 +77,7 @@ async def test_cache_lookup_edits_cannot_change_execution_or_its_replay(monkeypa
     executed = await gateway.invoke(ctx, tool.spec.name, payload)
     assert executed.data == fixture_payload()
     assert executed.idempotency_key == make_idempotency_key(
-        tool.spec.name, fixture_payload(), scope=ctx.tenant_id
+        tool.spec.name, fixture_payload(), scope=ctx.tenant_id, agent_id=ctx.agent_id
     )
     replay = await gateway.invoke(ctx, tool.spec.name, fixture_payload())
     assert replay.status == ToolResultStatus.REPLAYED
@@ -101,7 +101,7 @@ async def test_approval_lookup_edits_cannot_change_the_requested_payload(monkeyp
     request = await gateway.approvals.get(pending.approval_id)
     assert request.payload == fixture_payload()
     assert request.idempotency_key == make_idempotency_key(
-        tool.spec.name, fixture_payload(), scope=ctx.tenant_id
+        tool.spec.name, fixture_payload(), scope=ctx.tenant_id, agent_id=ctx.agent_id
     )
     assert tool.calls == 0
 
@@ -129,7 +129,7 @@ async def test_validation_can_normalize_the_snapshot_without_mutating_the_caller
     expected["details"]["validated"] = True
     assert result.data == expected
     assert result.idempotency_key == make_idempotency_key(
-        tool.spec.name, expected, scope=ctx.tenant_id
+        tool.spec.name, expected, scope=ctx.tenant_id, agent_id=ctx.agent_id
     )
 
 

@@ -1,0 +1,66 @@
+{
+  "questions": {
+    "agent_id": "documents",
+    "cases": [
+      {
+        "id": "case-1",
+        "question": "project gardens",
+        "expectation": "answer",
+        "expected_excerpt": "eight gardens"
+      },
+      {
+        "id": "case-2",
+        "question": "quasar telescope",
+        "expectation": "no_answer",
+        "expected_excerpt": null
+      }
+    ]
+  },
+  "results": {
+    "agent_id": "documents",
+    "supplied_sources_only": true,
+    "sent": false,
+    "evaluated": 2,
+    "passed": 2,
+    "failed": 0,
+    "cases": [
+      {
+        "id": "case-1",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": true,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "[1] Fictional project contains eight gardens.",
+          "sources": [
+            {
+              "source_id": "888961d6b9ede465843c1683d8c2e842a9c369b77ca63af18ba878c93aa264f8",
+              "title": "Fictional evaluation guide",
+              "uri": null,
+              "page": null,
+              "excerpt": "Fictional project contains eight gardens.",
+              "score": 1,
+              "chunk": 0,
+              "label": "1"
+            }
+          ]
+        }
+      },
+      {
+        "id": "case-2",
+        "passed": true,
+        "answer": {
+          "agent_id": "documents",
+          "answered": false,
+          "supplied_sources_only": true,
+          "method": "source-excerpts",
+          "sent": false,
+          "text": "I could not find an answer in this agent's supplied sources. Add a relevant source or ask a more specific question.",
+          "sources": []
+        }
+      }
+    ]
+  }
+}
